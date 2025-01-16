@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Box with Buttons</title>
+    <style>
+	    body {
+			background-color: #202020;
+		}
+        /* Style for the text display box */
+        #textBox {
+            width: 500px;
+            height: 40px;
+            border: none;
+            padding: 5px;
+            background-color: #E0E0E0;
+            color: #404040;
+            font-size: 20px;
+            font-family: Arial, sans-serif;
+            resize: none; /* Prevents resizing of the box */
+            overflow: auto; /* Adds scroll if text overflows */
+        }
+        /* Container for buttons (float them to the right) */
+        .buttons {
+            float: right; /* Float the buttons container to the right */
+            margin-left: 10px; /* Adds space between the text box and buttons */
+        }
+        /* Style for each button */
+        button {
+            display: block; /* Make buttons block elements */
+            width: 30px;
+            height: 30px;
+            padding: 0px;
+            font-size: 25px;
+            margin-bottom: 10px; /* Space between buttons */
+            cursor: pointer;
+            background-color: #E0E0E0;
+            color: #404040;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #C0C0C0;
+        }
+        /* Clear floats */
+        .clear {
+            clear: both; /* Clears the float and ensures that subsequent elements are not affected */
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <!-- Text display box -->
+        <textarea id="textBox" readonly>This is a text box where you can display content.</textarea>
+        <!-- Buttons placed to the right using float -->
+        <div class="buttons">
+            <button id="button1">+</button>
+            <button id="button2">-</button>
+        </div>
+        <!-- Clear the float after the buttons -->
+        <div class="clear"></div>
+    </div>
+</body>
+</html>
