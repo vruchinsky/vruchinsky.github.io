@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text Box with Buttons</title>
+    <title>|||||&#10140;V</title>
     <style>
 	    body {
 			background-color: #202020;
 		}
-        /* Style for the text display box */
-        #textBox {
+        /* Style for roman numerals text display box */
+        #DisplayRoman {
             width: 500px;
             height: 40px;
             border: none;
@@ -20,6 +20,8 @@
             font-family: Arial, sans-serif;
             resize: none; /* Prevents resizing of the box */
             overflow: auto; /* Adds scroll if text overflows */
+			text-align: right;
+			/* direction: rtl; */ /* text direction (ltr = "right-to-left") */
         }
         /* Container for buttons (float them to the right) */
         .buttons {
@@ -44,20 +46,24 @@
         button:hover {
             background-color: #C0C0C0;
         }
+		button:active {
+			font-weight: bold;
+		}
         /* Clear floats */
         .clear {
             clear: both; /* Clears the float and ensures that subsequent elements are not affected */
         }
     </style>
+	<script src="./TalliesToNumerals.js" defer></script>
 </head>
 <body>
     <div>
         <!-- Text display box -->
-        <textarea id="textBox" readonly>This is a text box where you can display content.</textarea>
+        <textarea id="DisplayRoman" readonly></textarea>
         <!-- Buttons placed to the right using float -->
         <div class="buttons">
-            <button id="button1">+</button>
-            <button id="button2">-</button>
+            <button onclick=incrementNumber()>+</button>
+            <button onclick=decrementNumber()>-</button>
         </div>
         <!-- Clear the float after the buttons -->
         <div class="clear"></div>
