@@ -9,10 +9,10 @@ let incrementOrDecrementExecuting = false;
 function initializeNumber()
 {
 	inputNumber = 0;
-	romanTextElement.textContent = "NULL";
+	romanTextElement.textContent = "\u2205"; // hex code for empty-set symbol in unicode
 }
 
-const replacementPauseTime = 2000; // milliseconds
+const replacementPauseTime = 1000; // milliseconds
 const minimumPauseTime = 250; // milliseconds
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms)); // from https://dev.to/rajnishkatharotiya/pause-function-execution-for-a-certain-time-in-javascript-9lj
 
@@ -77,10 +77,27 @@ async function incrementNumber()
 		romanTextElement.textContent = "";
 	inputNumber++;
     romanTextElement.textContent += "I";
-	let s = replaceLastChars(romanTextElement.textContent, "IIIII", "V");
-	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
- 	s = replaceLastChars(romanTextElement.textContent, "VV", "X");
-	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
+	let s = replaceLastChars(romanTextElement.textContent, "IIIII", "\\ ////");
+	if (s != null)
+	{ // IIIII -> V step-by-step text-character-based animation
+		await pause(replacementPauseTime);
+		romanTextElement.textContent = s;
+		await pause(replacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\\ ////", "\\/");
+		romanTextElement.textContent = s;
+		await pause(replacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\\/", "V");
+		romanTextElement.textContent = s;
+	}
+ 	s = replaceLastChars(romanTextElement.textContent, "VV", "\u039bV");
+	if (s != null)
+	{ // VV -> X step-by-step text-character-based animation
+		await pause(replacementPauseTime);
+		romanTextElement.textContent = s;
+		await pause(replacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\u039bV", "X");
+		romanTextElement.textContent = s;
+	}
 	s = replaceLastChars(romanTextElement.textContent, "XXXXX", "L");
 	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
  	s = replaceLastChars(romanTextElement.textContent, "LL", "C");
@@ -101,7 +118,7 @@ async function decrementNumber()
 	inputNumber--;
 	if (inputNumber == 0)
 	{
-		romanTextElement.textContent = "NULL";
+		romanTextElement.textContent = "\u2205";
 		reenableButtons();
 		return;
 	}
@@ -113,10 +130,27 @@ async function decrementNumber()
 	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
 	s = replaceLastChars(romanTextElement.textContent, "L", "XXXXX");
 	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
-	s = replaceLastChars(romanTextElement.textContent, "X", "VV");
-	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
-	s = replaceLastChars(romanTextElement.textContent, "V", "IIIII");
-	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
+	s = replaceLastChars(romanTextElement.textContent, "X", "\u039bV");
+	if (s != null)
+	{ // X -> VV step-by-step text-character-based animation
+		romanTextElement.textContent = s;
+		await pause(replacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\u039bV", "VV");
+		romanTextElement.textContent = s;
+		await pause(replacementPauseTime);
+	}
+	s = replaceLastChars(romanTextElement.textContent, "V", "\\/");
+	if (s != null)
+	{ // V -> IIIII step-by-step text-character-based animation
+		romanTextElement.textContent = s;
+		await pause(replacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\\/", "\\ ////");
+		romanTextElement.textContent = s;
+		await pause(replacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\\ ////", "IIIII");
+		romanTextElement.textContent = s;
+		await pause(replacementPauseTime);
+	}
 	s = romanTextElement.textContent;
 	romanTextElement.textContent = s.substring(0,s.length-1);
 	reenableButtons();
