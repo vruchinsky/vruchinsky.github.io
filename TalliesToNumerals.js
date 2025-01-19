@@ -12,15 +12,13 @@ function initializeNumber()
 	romanTextElement.textContent = "NULL";
 }
 
-const pauseTime = 2000; // milliseconds
+const replacementPauseTime = 2000; // milliseconds
+const minimumPauseTime = 250; // milliseconds
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms)); // from https://dev.to/rajnishkatharotiya/pause-function-execution-for-a-certain-time-in-javascript-9lj
 
-function replaceLastChars(s, a, b)
-{
-// if string s ends with string a,
-// then replace the ending with string b and return the result,
-// otherwise do nothing and return null
-	if (s.length < a.length) return null;
+function replaceLastChars(s, a, b) // if string s ends with string a,
+{ // then replace the ending with string b and return the result,
+	if (s.length < a.length) return null; // otherwise do nothing and return null
 	let iLast = s.length - a.length; // index of the 1st of last chars in s
 	if (s.substring(iLast) === a)
 		return (s.substring(0,iLast) + b);
@@ -28,93 +26,100 @@ function replaceLastChars(s, a, b)
 }
 
 const buttonNormalColor = "#E0E0E0";
-const buttonPressedColor = "#A0A0A0";
+const buttonDisabledColor = "#707070";
+const buttonsPressedColor = "#A0A0A0";
 const buttonHoverColor = "#C0C0C0";
 
-function beginExecuting()
+function incrementButtonMouseoverListener() {incrementButton.style.backgroundColor = buttonHoverColor;}
+function decrementButtonMouseoverListener() {decrementButton.style.backgroundColor = buttonHoverColor;}
+function incrementButtonMouseoutListener() {incrementButton.style.backgroundColor = buttonNormalColor;}
+function decrementButtonMouseoutListener() {decrementButton.style.backgroundColor = buttonNormalColor;}
+
+function disableButtons(incrementButtonPressed)
 {
 	incrementOrDecrementExecuting = true;
 	incrementButton.disabled = true;
 	decrementButton.disabled = true;
-	incrementButton.style.fontWeight = "bold";
-	incrementButton.style.backgroundColor = buttonPressedColor;
-	decrementButton.style.fontWeight = "bold";
-	decrementButton.style.backgroundColor = buttonPressedColor;
+	incrementButton.style.backgroundColor = incrementButtonPressed ? buttonDisabledColor : buttonsPressedColor;
+	decrementButton.style.backgroundColor = incrementButtonPressed ? buttonsPressedColor : buttonDisabledColor;
+	if (incrementButtonPressed)
+		incrementButton.style.fontWeight = "bold";
+	else
+		decrementButton.style.fontWeight = "bold";
+	incrementButton.removeEventListener('mouseover', incrementButtonMouseoverListener);
+	decrementButton.removeEventListener('mouseover', decrementButtonMouseoverListener);
+	incrementButton.removeEventListener('mouseout', incrementButtonMouseoutListener);
+	decrementButton.removeEventListener('mouseout', decrementButtonMouseoutListener);
 }
 
-function finishExecuting()
+function reenableButtons()
 {
 	incrementButton.disabled = false;
 	decrementButton.disabled = false;
-	incrementButton.style.fontWeight = "normal";
 	incrementButton.style.backgroundColor = buttonNormalColor;
-	decrementButton.style.fontWeight = "normal";
 	decrementButton.style.backgroundColor = buttonNormalColor;
+	incrementButton.style.fontWeight = "normal";
+	decrementButton.style.fontWeight = "normal";
 	incrementOrDecrementExecuting = false;
-	incrementButton.addEventListener('mouseover',
-		() => {incrementButton.style.backgroundColor = buttonHoverColor;});
-	decrementButton.addEventListener('mouseover',
-		() => {decrementButton.style.backgroundColor = buttonHoverColor;});
-	incrementButton.addEventListener('mouseout',
-		() => {incrementButton.style.backgroundColor = buttonNormalColor;});
-	decrementButton.addEventListener('mouseout',
-		() => {decrementButton.style.backgroundColor = buttonNormalColor;});
+	incrementButton.addEventListener('mouseover', incrementButtonMouseoverListener);
+	decrementButton.addEventListener('mouseover', decrementButtonMouseoverListener);
+	incrementButton.addEventListener('mouseout', incrementButtonMouseoutListener);
+	decrementButton.addEventListener('mouseout', decrementButtonMouseoutListener);
 }
 
 async function incrementNumber()
 {
-	if (inputNumber >= largestNumberToDisplay)
-		return;
+	if (inputNumber >= largestNumberToDisplay) return;
 	if (incrementOrDecrementExecuting) return;
-	beginExecuting();
+	disableButtons(true);
+	await pause(minimumPauseTime);
 	if (inputNumber == 0)
 		romanTextElement.textContent = "";
 	inputNumber++;
     romanTextElement.textContent += "I";
 	let s = replaceLastChars(romanTextElement.textContent, "IIIII", "V");
-	if (s != null) {await pause(pauseTime); romanTextElement.textContent = s;}
+	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
  	s = replaceLastChars(romanTextElement.textContent, "VV", "X");
-	if (s != null) {await pause(pauseTime); romanTextElement.textContent = s;}
+	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
 	s = replaceLastChars(romanTextElement.textContent, "XXXXX", "L");
-	if (s != null) {await pause(pauseTime); romanTextElement.textContent = s;}
+	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
  	s = replaceLastChars(romanTextElement.textContent, "LL", "C");
-	if (s != null) {await pause(pauseTime); romanTextElement.textContent = s;}
+	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
 	s = replaceLastChars(romanTextElement.textContent, "CCCCC", "D");
-	if (s != null) {await pause(pauseTime); romanTextElement.textContent = s;}
+	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
  	s = replaceLastChars(romanTextElement.textContent, "DD", "M");
-	if (s != null) {await pause(pauseTime); romanTextElement.textContent = s;}
-	finishExecuting();
+	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
+	reenableButtons();
 }
 
 async function decrementNumber()
 {
-	if (inputNumber <= 0)
-		return;
+	if (inputNumber <= 0) return;
 	if (incrementOrDecrementExecuting) return;
-	beginExecuting();
+	disableButtons(false);
+	await pause(minimumPauseTime);
 	inputNumber--;
 	if (inputNumber == 0)
 	{
 		romanTextElement.textContent = "NULL";
-		finishExecuting();
+		reenableButtons();
 		return;
 	}
 	let s = replaceLastChars(romanTextElement.textContent, "M", "DD");
-	if (s != null) {romanTextElement.textContent = s; await pause(pauseTime);}
+	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
 	s = replaceLastChars(romanTextElement.textContent, "D", "CCCCC");
-	if (s != null) {romanTextElement.textContent = s; await pause(pauseTime);}
+	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
 	s = replaceLastChars(romanTextElement.textContent, "C", "LL");
-	if (s != null) {romanTextElement.textContent = s; await pause(pauseTime);}
+	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
 	s = replaceLastChars(romanTextElement.textContent, "L", "XXXXX");
-	if (s != null) {romanTextElement.textContent = s; await pause(pauseTime);}
+	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
 	s = replaceLastChars(romanTextElement.textContent, "X", "VV");
-	if (s != null) {romanTextElement.textContent = s; await pause(pauseTime);}
+	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
 	s = replaceLastChars(romanTextElement.textContent, "V", "IIIII");
-	if (s != null) {romanTextElement.textContent = s; await pause(pauseTime);}
+	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
 	s = romanTextElement.textContent;
-	let oldLength = s.length;
-	romanTextElement.textContent = s.substring(0,oldLength-1);
-	finishExecuting();
+	romanTextElement.textContent = s.substring(0,s.length-1);
+	reenableButtons();
 }
 
 initializeNumber();
