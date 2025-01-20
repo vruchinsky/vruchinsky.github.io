@@ -1,6 +1,7 @@
 const largestNumberToDisplay = 4999;
 const emptySetSymbol = "\u2205"; // hex code for empty-set symbol in unicode
 const romanTextElement = document.getElementById("DisplayRoman");
+const romanTextWithSpacesElement = document.getElementById("DisplayRomanWithSpaces");
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 
@@ -75,6 +76,10 @@ function reenableButtons()
 	incrementButton.style.cursor = 'default';
 	decrementButton.style.cursor = 'default';
 	romanTextElement.style.cursor = 'default';
+}
+
+function insertSpacesInRomanNumerals(s)
+{
 }
 
 async function incrementNumber()

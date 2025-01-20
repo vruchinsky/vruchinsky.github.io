@@ -6,13 +6,31 @@
     <title>|||||&#10140;V   CXXIII&#10140;123</title>
     <style>
 	    body {
+			margin: 0;
+			padding: 0;
 			background-color: #202020;
 		}
+	    .container {
+			width: 600px;
+			margin: 5px auto;
+		}
+		.RomanDisplays {
+			width: 500px;
+            float: left; /* Float the label to the left */
+		}
+        /* Container for buttons (float them to the right) */
+        .buttons {
+			width: 30px;
+            float: right; /* Float the buttons container to the right */
+            margin-left: 0px; /* Adds space between the text box and buttons */
+        }
         /* Style for roman numerals text display box */
-        #DisplayRoman {
+        #DisplayRoman, #DisplayRomanWithSpaces {
+            float: left; /* Float the label to the left */
             width: 500px;
-            height: 40px;
+            height: 25px;
             border: none;
+            border-radius: 1px;
             padding: 5px;
             background-color: #E0E0E0;
             color: #404040;
@@ -22,11 +40,13 @@
             overflow: auto; /* Adds scroll if text overflows */
 			text-align: right;
         }
-        /* Container for buttons (float them to the right) */
-        .buttons {
-            float: right; /* Float the buttons container to the right */
-            margin-left: 10px; /* Adds space between the text box and buttons */
-        }
+		#HorizontalDivider {
+            float: left; /* Float the label to the left */
+            width: 500px;
+            height: 1px;
+            border: none;
+			background-color: #202020;
+		}
         /* Style for each button */
         button {
             display: block; /* Make buttons block elements */
@@ -56,16 +76,18 @@
 	<script src="./TalliesToNumerals.js" defer></script>
 </head>
 <body>
-    <div>
-        <!-- Text display box -->
-        <textarea id="DisplayRoman" readonly></textarea>
-        <!-- Buttons placed to the right using float -->
-        <div class="buttons">
-            <button id="incrementButton" onclick=incrementNumber()>+</button>
-            <button id="decrementButton" onclick=decrementNumber()>-</button>
-        </div>
-        <!-- Clear the float after the buttons -->
-        <div class="clear"></div>
-    </div>
+	<div class="container">
+		<!-- Text display boxes -->
+		<div class="RomanDisplays">
+			<textarea id="DisplayRomanWithSpaces" readonly></textarea>
+			<div id="HorizontalDivider"></div>
+			<textarea id="DisplayRoman" readonly></textarea>
+		</div>
+		<!-- Buttons placed to the right using float -->
+		<div class="buttons">
+			<button id="incrementButton" onclick=incrementNumber()>+</button>
+			<button id="decrementButton" onclick=decrementNumber()>-</button>
+		</div>
+	</div>
 </body>
 </html>
