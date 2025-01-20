@@ -52,6 +52,10 @@ function disableButtons(incrementButtonPressed)
 	decrementButton.removeEventListener('mouseover', decrementButtonMouseoverListener);
 	incrementButton.removeEventListener('mouseout', incrementButtonMouseoutListener);
 	decrementButton.removeEventListener('mouseout', decrementButtonMouseoutListener);
+	document.body.style.cursor = 'progress';
+	incrementButton.style.cursor = 'progress';
+	decrementButton.style.cursor = 'progress';
+	romanTextElement.style.cursor = 'progress';
 }
 
 function reenableButtons()
@@ -67,6 +71,10 @@ function reenableButtons()
 	decrementButton.addEventListener('mouseover', decrementButtonMouseoverListener);
 	incrementButton.addEventListener('mouseout', incrementButtonMouseoutListener);
 	decrementButton.addEventListener('mouseout', decrementButtonMouseoutListener);
+	document.body.style.cursor = 'default';
+	incrementButton.style.cursor = 'default';
+	decrementButton.style.cursor = 'default';
+	romanTextElement.style.cursor = 'default';
 }
 
 async function incrementNumber()
