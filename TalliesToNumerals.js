@@ -1,4 +1,5 @@
 const largestNumberToDisplay = 4999;
+const emptySetSymbol = "\u2205"; // hex code for empty-set symbol in unicode
 const romanTextElement = document.getElementById("DisplayRoman");
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
@@ -9,10 +10,11 @@ let incrementOrDecrementExecuting = false;
 function initializeNumber()
 {
 	inputNumber = 0;
-	romanTextElement.textContent = "\u2205"; // hex code for empty-set symbol in unicode
+	romanTextElement.textContent = emptySetSymbol;
 }
 
 const replacementPauseTime = 1000; // milliseconds
+const intermediateReplacementPauseTime = 500; // milliseconds
 const minimumPauseTime = 250; // milliseconds
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms)); // from https://dev.to/rajnishkatharotiya/pause-function-execution-for-a-certain-time-in-javascript-9lj
 
@@ -79,29 +81,42 @@ async function incrementNumber()
     romanTextElement.textContent += "I";
 	let s = replaceLastChars(romanTextElement.textContent, "IIIII", "\\ ////");
 	if (s != null)
-	{ // IIIII -> V step-by-step text-character-based animation
-		await pause(replacementPauseTime);
+	{ // IIIII -> V multistep text-character-based animation
+		await pause(intermediateReplacementPauseTime);
 		romanTextElement.textContent = s;
-		await pause(replacementPauseTime);
+		await pause(intermediateReplacementPauseTime);
 		s = replaceLastChars(romanTextElement.textContent, "\\ ////", "\\/");
 		romanTextElement.textContent = s;
-		await pause(replacementPauseTime);
+		await pause(intermediateReplacementPauseTime);
 		s = replaceLastChars(romanTextElement.textContent, "\\/", "V");
 		romanTextElement.textContent = s;
 	}
- 	s = replaceLastChars(romanTextElement.textContent, "VV", "\u039bV");
+ 	s = replaceLastChars(romanTextElement.textContent, "VV", "\u039bV"); // \u039b = capital letter lambda
 	if (s != null)
-	{ // VV -> X step-by-step text-character-based animation
-		await pause(replacementPauseTime);
+	{ // VV -> X multistep text-character-based animation
+		await pause(replacementPauseTime); // wait longer before starting this multistep animation
 		romanTextElement.textContent = s;
-		await pause(replacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\u039bV", "X");
+		await pause(intermediateReplacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\u039bV", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
+		romanTextElement.textContent = s;
+		await pause(intermediateReplacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\u1D27\u2C7D", "X"); // \u2C7D = superscript letter v
 		romanTextElement.textContent = s;
 	}
 	s = replaceLastChars(romanTextElement.textContent, "XXXXX", "L");
 	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
- 	s = replaceLastChars(romanTextElement.textContent, "LL", "C");
-	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
+ 	s = replaceLastChars(romanTextElement.textContent, "LL", "\u0393L"); // \u0393 = capital letter gamma
+	if (s != null)
+	{ // LL -> C multistep text-character-based animation
+		await pause(replacementPauseTime); // wait longer before starting this multistep animation
+		romanTextElement.textContent = s;
+		await pause(intermediateReplacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\u0393L", "\u228f"); // \u228f = square subset symbol
+		romanTextElement.textContent = s;
+		await pause(intermediateReplacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\u228f", "C");
+		romanTextElement.textContent = s;
+	}
 	s = replaceLastChars(romanTextElement.textContent, "CCCCC", "D");
 	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
  	s = replaceLastChars(romanTextElement.textContent, "DD", "M");
@@ -118,7 +133,7 @@ async function decrementNumber()
 	inputNumber--;
 	if (inputNumber == 0)
 	{
-		romanTextElement.textContent = "\u2205";
+		romanTextElement.textContent = emptySetSymbol;
 		reenableButtons();
 		return;
 	}
@@ -126,30 +141,43 @@ async function decrementNumber()
 	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
 	s = replaceLastChars(romanTextElement.textContent, "D", "CCCCC");
 	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
-	s = replaceLastChars(romanTextElement.textContent, "C", "LL");
-	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
+	s = replaceLastChars(romanTextElement.textContent, "C", "\u228f"); // \u228f = square subset symbol
+	if (s != null)
+	{ // C -> LL multistep text-character-based animation
+		romanTextElement.textContent = s;
+		await pause(replacementPauseTime); // wait longer before starting this multistep animation
+		s = replaceLastChars(romanTextElement.textContent, "\u228f", "\u0393L"); // \u0393 = capital letter gamma
+		romanTextElement.textContent = s;
+		await pause(intermediateReplacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\u0393L", "LL");
+		romanTextElement.textContent = s;
+		await pause(intermediateReplacementPauseTime);
+	}
 	s = replaceLastChars(romanTextElement.textContent, "L", "XXXXX");
 	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
-	s = replaceLastChars(romanTextElement.textContent, "X", "\u039bV");
+	s = replaceLastChars(romanTextElement.textContent, "X", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
 	if (s != null)
-	{ // X -> VV step-by-step text-character-based animation
+	{ // X -> VV multistep text-character-based animation
 		romanTextElement.textContent = s;
-		await pause(replacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\u039bV", "VV");
+		await pause(replacementPauseTime); // wait longer before starting this multistep animation
+		s = replaceLastChars(romanTextElement.textContent, "\u1D27\u2C7D", "\u039bV"); // \u2C7D = superscript letter v
 		romanTextElement.textContent = s;
-		await pause(replacementPauseTime);
+		await pause(intermediateReplacementPauseTime);
+		s = replaceLastChars(romanTextElement.textContent, "\u039bV", "VV"); // \u039b = capital letter lambda
+		romanTextElement.textContent = s;
+		await pause(intermediateReplacementPauseTime);
 	}
 	s = replaceLastChars(romanTextElement.textContent, "V", "\\/");
 	if (s != null)
-	{ // V -> IIIII step-by-step text-character-based animation
+	{ // V -> IIIII multistep text-character-based animation
 		romanTextElement.textContent = s;
-		await pause(replacementPauseTime);
+		await pause(replacementPauseTime); // wait longer before starting this multistep animation
 		s = replaceLastChars(romanTextElement.textContent, "\\/", "\\ ////");
 		romanTextElement.textContent = s;
-		await pause(replacementPauseTime);
+		await pause(intermediateReplacementPauseTime);
 		s = replaceLastChars(romanTextElement.textContent, "\\ ////", "IIIII");
 		romanTextElement.textContent = s;
-		await pause(replacementPauseTime);
+		await pause(intermediateReplacementPauseTime);
 	}
 	s = romanTextElement.textContent;
 	romanTextElement.textContent = s.substring(0,s.length-1);
