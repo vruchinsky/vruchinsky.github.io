@@ -1,7 +1,7 @@
 const largestNumberToDisplay = 4999;
 const emptySetSymbol = "\u2205"; // hex code for empty-set symbol in unicode
-const romanTextElement = document.getElementById("DisplayRoman");
-const romanTextWithSpacesElement = document.getElementById("DisplayRomanWithSpaces");
+const romanNumeralsElement = document.getElementById("DisplayRoman");
+const romanNumeralsWithSpacesElement = document.getElementById("DisplayRomanWithSpaces");
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 
@@ -11,7 +11,8 @@ let incrementOrDecrementExecuting = false;
 function initializeNumber()
 {
 	inputNumber = 0;
-	romanTextElement.textContent = emptySetSymbol;
+	romanNumeralsElement.textContent = emptySetSymbol;
+	romanNumeralsWithSpacesElement.textContent = emptySetSymbol;
 }
 
 const replacementPauseTime = 1000; // milliseconds
@@ -26,6 +27,56 @@ function replaceLastChars(s, a, b) // if string s ends with string a,
 	if (s.substring(iLast) === a)
 		return (s.substring(0,iLast) + b);
 	return null;
+}
+
+function orderOfMagnitude(c)
+{
+	if (c.length < 1) return 0;
+	if (c[0] === "M") return 4;
+	if (c[0] === "D") return 3;
+	if (c[0] === "C") return 3;
+	if (c[0] === "L") return 2;
+	if (c[0] === "X") return 2;
+	if (c[0] === "V") return 1;
+	if (c[0] === "I") return 1;
+	return -1; // value to signify error
+}
+
+function removeLeadingWhiteSpace(s)
+{
+	while (s.length > 0 && s[0] === ' ')
+		s = s.substring(1); // remove leading spaces
+	return s;
+}
+
+function removeTrailingWhiteSpace(s)
+{
+	while (s.length > 0 && s[s.length-1] === ' ')
+		s = s.substring(0,s.length-1); // remove trailing spaces
+	return s;
+}
+
+function insertSpacesInRomanNumerals(s)
+{
+	s = removeLeadingWhiteSpace(s);
+	s = removeTrailingWhiteSpace(s);
+	if (s.length < 1) return "";
+	let order = orderOfMagnitude(s[0]);
+	let r = "";
+	for (let i=0; i<s.length; i++)
+	{
+		let c = s[i];
+		r += c; // copy each numeral
+		let oc = orderOfMagnitude(c);
+		let on = orderOfMagnitude(s.substring(i+1));
+		let od = oc - on;
+		while (od > 1) // and check whether to insert
+		{ // spaces for lower orders of magnitude
+			r += " ";
+			od--;
+		}
+	}
+	return r;
 }
 
 const buttonNormalColor = "#E0E0E0";
@@ -56,7 +107,8 @@ function disableButtons(incrementButtonPressed)
 	document.body.style.cursor = 'progress';
 	incrementButton.style.cursor = 'progress';
 	decrementButton.style.cursor = 'progress';
-	romanTextElement.style.cursor = 'progress';
+	romanNumeralsElement.style.cursor = 'progress';
+	romanNumeralsWithSpacesElement.style.cursor = 'progress';
 }
 
 function reenableButtons()
@@ -75,11 +127,8 @@ function reenableButtons()
 	document.body.style.cursor = 'default';
 	incrementButton.style.cursor = 'default';
 	decrementButton.style.cursor = 'default';
-	romanTextElement.style.cursor = 'default';
-}
-
-function insertSpacesInRomanNumerals(s)
-{
+	romanNumeralsElement.style.cursor = 'default';
+	romanNumeralsWithSpacesElement.style.cursor = 'default';
 }
 
 async function incrementNumber()
@@ -87,53 +136,55 @@ async function incrementNumber()
 	if (inputNumber >= largestNumberToDisplay) return;
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(true);
+	romanNumeralsWithSpacesElement.textContent = "";
 	await pause(minimumPauseTime);
 	if (inputNumber == 0)
-		romanTextElement.textContent = "";
+		romanNumeralsElement.textContent = "";
 	inputNumber++;
-    romanTextElement.textContent += "I";
-	let s = replaceLastChars(romanTextElement.textContent, "IIIII", "\\ ////");
+    romanNumeralsElement.textContent += "I";
+	let s = replaceLastChars(romanNumeralsElement.textContent, "IIIII", "\\ ////");
 	if (s != null)
 	{ // IIIII -> V multistep text-character-based animation
 		await pause(intermediateReplacementPauseTime);
-		romanTextElement.textContent = s;
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\\ ////", "\\/");
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\\ ////", "\\/");
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\\/", "V");
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\\/", "V");
+		romanNumeralsElement.textContent = s;
 	}
- 	s = replaceLastChars(romanTextElement.textContent, "VV", "\u039bV"); // \u039b = capital letter lambda
+ 	s = replaceLastChars(romanNumeralsElement.textContent, "VV", "\u039bV"); // \u039b = capital letter lambda
 	if (s != null)
 	{ // VV -> X multistep text-character-based animation
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		romanTextElement.textContent = s;
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\u039bV", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\u039bV", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\u1D27\u2C7D", "X"); // \u2C7D = superscript letter v
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\u1D27\u2C7D", "X"); // \u2C7D = superscript letter v
+		romanNumeralsElement.textContent = s;
 	}
-	s = replaceLastChars(romanTextElement.textContent, "XXXXX", "L");
-	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
- 	s = replaceLastChars(romanTextElement.textContent, "LL", "\u0393L"); // \u0393 = capital letter gamma
+	s = replaceLastChars(romanNumeralsElement.textContent, "XXXXX", "L");
+	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
+ 	s = replaceLastChars(romanNumeralsElement.textContent, "LL", "\u0393L"); // \u0393 = capital letter gamma
 	if (s != null)
 	{ // LL -> C multistep text-character-based animation
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		romanTextElement.textContent = s;
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\u0393L", "\u228f"); // \u228f = square subset symbol
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\u0393L", "\u228f"); // \u228f = square subset symbol
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\u228f", "C");
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\u228f", "C");
+		romanNumeralsElement.textContent = s;
 	}
-	s = replaceLastChars(romanTextElement.textContent, "CCCCC", "D");
-	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
- 	s = replaceLastChars(romanTextElement.textContent, "DD", "M");
-	if (s != null) {await pause(replacementPauseTime); romanTextElement.textContent = s;}
+	s = replaceLastChars(romanNumeralsElement.textContent, "CCCCC", "D");
+	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
+ 	s = replaceLastChars(romanNumeralsElement.textContent, "DD", "M");
+	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
+	romanNumeralsWithSpacesElement.textContent = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
 	reenableButtons();
 }
 
@@ -142,58 +193,61 @@ async function decrementNumber()
 	if (inputNumber <= 0) return;
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(false);
+	romanNumeralsWithSpacesElement.textContent = "";
 	await pause(minimumPauseTime);
 	inputNumber--;
 	if (inputNumber == 0)
 	{
-		romanTextElement.textContent = emptySetSymbol;
+		romanNumeralsElement.textContent = emptySetSymbol;
+		romanNumeralsWithSpacesElement.textContent = emptySetSymbol;
 		reenableButtons();
 		return;
 	}
-	let s = replaceLastChars(romanTextElement.textContent, "M", "DD");
-	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
-	s = replaceLastChars(romanTextElement.textContent, "D", "CCCCC");
-	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
-	s = replaceLastChars(romanTextElement.textContent, "C", "\u228f"); // \u228f = square subset symbol
+	let s = replaceLastChars(romanNumeralsElement.textContent, "M", "DD");
+	if (s != null) {romanNumeralsElement.textContent = s; await pause(replacementPauseTime);}
+	s = replaceLastChars(romanNumeralsElement.textContent, "D", "CCCCC");
+	if (s != null) {romanNumeralsElement.textContent = s; await pause(replacementPauseTime);}
+	s = replaceLastChars(romanNumeralsElement.textContent, "C", "\u228f"); // \u228f = square subset symbol
 	if (s != null)
 	{ // C -> LL multistep text-character-based animation
-		romanTextElement.textContent = s;
+		romanNumeralsElement.textContent = s;
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		s = replaceLastChars(romanTextElement.textContent, "\u228f", "\u0393L"); // \u0393 = capital letter gamma
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\u228f", "\u0393L"); // \u0393 = capital letter gamma
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\u0393L", "LL");
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\u0393L", "LL");
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
 	}
-	s = replaceLastChars(romanTextElement.textContent, "L", "XXXXX");
-	if (s != null) {romanTextElement.textContent = s; await pause(replacementPauseTime);}
-	s = replaceLastChars(romanTextElement.textContent, "X", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
+	s = replaceLastChars(romanNumeralsElement.textContent, "L", "XXXXX");
+	if (s != null) {romanNumeralsElement.textContent = s; await pause(replacementPauseTime);}
+	s = replaceLastChars(romanNumeralsElement.textContent, "X", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
 	if (s != null)
 	{ // X -> VV multistep text-character-based animation
-		romanTextElement.textContent = s;
+		romanNumeralsElement.textContent = s;
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		s = replaceLastChars(romanTextElement.textContent, "\u1D27\u2C7D", "\u039bV"); // \u2C7D = superscript letter v
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\u1D27\u2C7D", "\u039bV"); // \u2C7D = superscript letter v
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\u039bV", "VV"); // \u039b = capital letter lambda
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\u039bV", "VV"); // \u039b = capital letter lambda
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
 	}
-	s = replaceLastChars(romanTextElement.textContent, "V", "\\/");
+	s = replaceLastChars(romanNumeralsElement.textContent, "V", "\\/");
 	if (s != null)
 	{ // V -> IIIII multistep text-character-based animation
-		romanTextElement.textContent = s;
+		romanNumeralsElement.textContent = s;
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		s = replaceLastChars(romanTextElement.textContent, "\\/", "\\ ////");
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\\/", "\\ ////");
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanTextElement.textContent, "\\ ////", "IIIII");
-		romanTextElement.textContent = s;
+		s = replaceLastChars(romanNumeralsElement.textContent, "\\ ////", "IIIII");
+		romanNumeralsElement.textContent = s;
 		await pause(intermediateReplacementPauseTime);
 	}
-	s = romanTextElement.textContent;
-	romanTextElement.textContent = s.substring(0,s.length-1);
+	s = romanNumeralsElement.textContent;
+	romanNumeralsElement.textContent = s.substring(0,s.length-1);
+	romanNumeralsWithSpacesElement.textContent = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
 	reenableButtons();
 }
 
