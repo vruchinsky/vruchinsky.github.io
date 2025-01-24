@@ -25,35 +25,29 @@
             margin-left: 0px; /* Adds space between the text box and buttons */
         }
         /* Style for roman numerals text display box */
-        #DisplayRoman, #DisplayRomanWithSpaces {
+        #DisplayRoman, #DisplayRomanWithSpaces, #ConnectRomanToArabic,
+			#DisplayArabicWithSpaces, #DisplayArabic {
             float: left; /* Float the label to the left */
             width: 500px;
-            height: 25px;
+            height: 30px;
             border: none;
             border-radius: 1px;
-            padding: 5px;
+            padding: 0px;
             background-color: #E0E0E0;
             color: #404040;
-            font-size: 20px;
-            font-family: Arial, sans-serif;
+            font-size: 26px;
+            font-family: "Courier New";
             resize: none; /* Prevents resizing of the box */
             overflow: auto; /* Adds scroll if text overflows */
 			text-align: right;
         }
-		#HorizontalDivider {
-            float: left; /* Float the label to the left */
-            width: 500px;
-            height: 1px;
-            border: none;
-			background-color: #202020;
-		}
         /* Style for each button */
         button {
             display: block; /* Make buttons block elements */
-            width: 30px;
-            height: 30px;
+            width: 25px;
+            height: 25px;
             padding: 0px;
-            font-size: 29px;
+            font-size: 21px;
             margin-bottom: 10px; /* Space between buttons */
             cursor: pointer;
             background-color: #E0E0E0;
@@ -77,10 +71,12 @@
 </head>
 <body>
 	<div class="container">
+		<textarea id="DisplayArabic" readonly></textarea>
+		<textarea id="DisplayArabicWithSpaces" readonly></textarea>
+		<textarea id="ConnectRomanToArabic" readonly></textarea>
 		<!-- Text display boxes -->
 		<div class="RomanDisplays">
 			<textarea id="DisplayRomanWithSpaces" readonly></textarea>
-			<div id="HorizontalDivider"></div>
 			<textarea id="DisplayRoman" readonly></textarea>
 		</div>
 		<!-- Buttons placed to the right using float -->

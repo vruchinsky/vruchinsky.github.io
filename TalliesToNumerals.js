@@ -1,5 +1,8 @@
 const largestNumberToDisplay = 4999;
 const emptySetSymbol = "\u2205"; // hex code for empty-set symbol in unicode
+const arabicNumeralsElement = document.getElementById("DisplayArabic");
+const arabicNumeralsWithSpacesElement = document.getElementById("DisplayArabicWithSpaces");
+const romanToArabicConnectorElement = document.getElementById("ConnectRomanToArabic");
 const romanNumeralsElement = document.getElementById("DisplayRoman");
 const romanNumeralsWithSpacesElement = document.getElementById("DisplayRomanWithSpaces");
 const incrementButton = document.getElementById("incrementButton");
@@ -12,7 +15,11 @@ function initializeNumber()
 {
 	inputNumber = 0;
 	romanNumeralsElement.textContent = emptySetSymbol;
-	romanNumeralsWithSpacesElement.textContent = emptySetSymbol;
+	arabicNumeralsElement.textContent = inputNumber.toString();
+	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
+	let s = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
+	romanNumeralsWithSpacesElement.textContent = s;
+	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
 }
 
 const replacementPauseTime = 1000; // milliseconds
@@ -61,7 +68,7 @@ function insertSpacesInRomanNumerals(s)
 	s = removeLeadingWhiteSpace(s);
 	s = removeTrailingWhiteSpace(s);
 	if (s.length < 1) return "";
-	let order = orderOfMagnitude(s[0]);
+	if (s === emptySetSymbol) return emptySetSymbol;
 	let r = "";
 	for (let i=0; i<s.length; i++)
 	{
@@ -75,6 +82,53 @@ function insertSpacesInRomanNumerals(s)
 			r += " ";
 			od--;
 		}
+	}
+	return r;
+}
+
+function insertSpacesInArabicNumerals(s)
+{
+	s = removeLeadingWhiteSpace(s);
+	s = removeTrailingWhiteSpace(s);
+	if (s.length < 1) return "";
+	let r = "";
+	for (let i=0; i<s.length; i++)
+	{
+		let c = s[i];
+		r += c; // copy each numeral
+		if (i+1 < s.length)
+		{
+			switch(Number(s[i+1]))
+			{
+				case 2:
+				case 6: r += "\u2194"; break; // left-right arrow
+				case 3:
+				case 7: r += "\u2190\u2192"; break; // left arrow, right arrow
+				case 4:
+				case 8: r += "\u2190\u2014\u2192"; break; // left arrow, horizontal line, right arrow
+				case 9: r += "\u2190\u2014\u2014\u2192"; break;
+			}
+		}
+	}
+	return r;
+}
+
+function romanToArabicConnector(s)
+{
+	if (s.length < 1) return "";
+	if (s === emptySetSymbol) return "";
+	let r = "";
+	for (let i=0; i<s.length; i++)
+	{
+		let c = s[i];
+		if (c === " ")
+			r += c; // copy space
+		else
+		{
+			let oc = orderOfMagnitude(c);
+			let on = orderOfMagnitude(s.substring(i+1));
+			r += ((oc==on) ? "\u0337" : "\u2191"); // 2191 = hex code for unicode upward arrow
+		} // and 0337 = hex code for unicode forward slash
 	}
 	return r;
 }
@@ -107,6 +161,9 @@ function disableButtons(incrementButtonPressed)
 	document.body.style.cursor = 'progress';
 	incrementButton.style.cursor = 'progress';
 	decrementButton.style.cursor = 'progress';
+	arabicNumeralsElement.style.cursor = 'progress';
+	arabicNumeralsWithSpacesElement.style.cursor = 'progress';
+	romanToArabicConnectorElement.style.cursor = 'progress';
 	romanNumeralsElement.style.cursor = 'progress';
 	romanNumeralsWithSpacesElement.style.cursor = 'progress';
 }
@@ -127,6 +184,9 @@ function reenableButtons()
 	document.body.style.cursor = 'default';
 	incrementButton.style.cursor = 'default';
 	decrementButton.style.cursor = 'default';
+	arabicNumeralsElement.style.cursor = 'default';
+	arabicNumeralsWithSpacesElement.style.cursor = 'default';
+	romanToArabicConnectorElement.style.cursor = 'default';
 	romanNumeralsElement.style.cursor = 'default';
 	romanNumeralsWithSpacesElement.style.cursor = 'default';
 }
@@ -136,7 +196,10 @@ async function incrementNumber()
 	if (inputNumber >= largestNumberToDisplay) return;
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(true);
+	arabicNumeralsElement.textContent = "";
+	arabicNumeralsWithSpacesElement.textContent = "";
 	romanNumeralsWithSpacesElement.textContent = "";
+	romanToArabicConnectorElement.textContent = "";
 	await pause(minimumPauseTime);
 	if (inputNumber == 0)
 		romanNumeralsElement.textContent = "";
@@ -184,7 +247,11 @@ async function incrementNumber()
 	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
  	s = replaceLastChars(romanNumeralsElement.textContent, "DD", "M");
 	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
-	romanNumeralsWithSpacesElement.textContent = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
+	s = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
+	romanNumeralsWithSpacesElement.textContent = s;
+	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
+	arabicNumeralsElement.textContent = inputNumber.toString();
+	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
 	reenableButtons();
 }
 
@@ -193,13 +260,19 @@ async function decrementNumber()
 	if (inputNumber <= 0) return;
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(false);
+	arabicNumeralsElement.textContent = "";
 	romanNumeralsWithSpacesElement.textContent = "";
+	romanToArabicConnectorElement.textContent = "";
+	arabicNumeralsWithSpacesElement.textContent = "";
 	await pause(minimumPauseTime);
 	inputNumber--;
 	if (inputNumber == 0)
 	{
 		romanNumeralsElement.textContent = emptySetSymbol;
 		romanNumeralsWithSpacesElement.textContent = emptySetSymbol;
+		romanToArabicConnectorElement.textContent = "";
+		arabicNumeralsElement.textContent = inputNumber.toString();
+		arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
 		reenableButtons();
 		return;
 	}
@@ -247,7 +320,11 @@ async function decrementNumber()
 	}
 	s = romanNumeralsElement.textContent;
 	romanNumeralsElement.textContent = s.substring(0,s.length-1);
-	romanNumeralsWithSpacesElement.textContent = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
+	s = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
+	romanNumeralsWithSpacesElement.textContent = s;
+	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
+	arabicNumeralsElement.textContent = inputNumber.toString();
+	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
 	reenableButtons();
 }
 
