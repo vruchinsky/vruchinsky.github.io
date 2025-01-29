@@ -13,9 +13,12 @@
 	    .container {
 			width: 600px;
 			margin: 5px auto;
+			--component-bg-color: #E0E0E0;
+			--component-color: #101010;
+			--component-width: 500px;
 		}
 		.RomanDisplays {
-			width: 500px;
+			width: var(--component-width);
             float: left; /* Float the label to the left */
 		}
         /* Container for buttons (float them to the right) */
@@ -28,19 +31,25 @@
         #DisplayRoman, #DisplayRomanWithSpaces, #ConnectRomanToArabic,
 			#DisplayArabicWithSpaces, #DisplayArabic {
             float: left; /* Float the label to the left */
-            width: 500px;
+            width: var(--component-width);
             height: 30px;
             border: none;
             border-radius: 1px;
             padding: 0px;
-            background-color: #E0E0E0;
-            color: #404040;
+            background-color: var(--component-bg-color);
+            color: var(--component-color);
             font-size: 26px;
             font-family: "Courier New";
             resize: none; /* Prevents resizing of the box */
             overflow: auto; /* Adds scroll if text overflows */
 			text-align: right;
         }
+		canvas {
+            background-color: var(--component-bg-color);
+            color: var(--component-color);
+            width: var(--component-width);
+            height: 150px;
+		}
         /* Style for each button */
         button {
             display: block; /* Make buttons block elements */
@@ -50,8 +59,8 @@
             font-size: 21px;
             margin-bottom: 10px; /* Space between buttons */
             cursor: pointer;
-            background-color: #E0E0E0;
-            color: #404040;
+            background-color: var(--component-bg-color);
+            color: var(--component-color);
             border: none;
             border-radius: 5px;
             transition: background-color 0.3s;
@@ -84,6 +93,7 @@
 			<button id="incrementButton" onclick=incrementNumber()>+</button>
 			<button id="decrementButton" onclick=decrementNumber()>-</button>
 		</div>
+		<canvas id="tallies"></canvas>
 	</div>
 </body>
 </html>

@@ -1,10 +1,12 @@
 const largestNumberToDisplay = 4999;
 const emptySetSymbol = "\u2205"; // hex code for empty-set symbol in unicode
+
 const arabicNumeralsElement = document.getElementById("DisplayArabic");
 const arabicNumeralsWithSpacesElement = document.getElementById("DisplayArabicWithSpaces");
 const romanToArabicConnectorElement = document.getElementById("ConnectRomanToArabic");
 const romanNumeralsElement = document.getElementById("DisplayRoman");
 const romanNumeralsWithSpacesElement = document.getElementById("DisplayRomanWithSpaces");
+const talliesCanvas = document.getElementById("tallies");
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 
@@ -20,6 +22,58 @@ function initializeNumber()
 	let s = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
 	romanNumeralsWithSpacesElement.textContent = s;
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
+	writeTallies(inputNumber);
+}
+
+const tallyHeight = 25;
+const tallyWidth = 1;
+const hSpace = 3;
+const hOffset = 1;
+const vOffset = 1;
+
+function drawTally(ctx, x, y, h)
+{
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	ctx.lineTo(x, h + y);
+	ctx.stroke();
+}
+
+function writeTallies(n)
+{
+	if (talliesCanvas.getContext == null)
+	{ // fallback in case browser does not support canvas
+		let tallyMark = "|"; // simplest: write out the tally marks
+		talliesCanvas.textContent = tallyMark.repeat(n);
+		return;
+	}
+	const ctx = talliesCanvas.getContext("2d");
+	const canvasStyle = getComputedStyle(talliesCanvas);
+	const backgroundColor = canvasStyle.backgroundColor;
+	const foregroundColor = canvasStyle.color;
+	ctx.fillStyle = backgroundColor;
+	ctx.fillRect(0, 0, talliesCanvas.width, talliesCanvas.height);
+	ctx.fillStyle = foregroundColor;
+	if (n === 0)
+	{
+		ctx.font = "26px Courier New";
+		const textMetrics = ctx.measureText(emptySetSymbol);
+		const textHeight = textMetrics.fontBoundingBoxAscent + textMetrics.fontBoundingBoxDescent;
+		ctx.fillText(emptySetSymbol, talliesCanvas.width - textMetrics.width, textHeight);
+		return;
+	}
+	ctx.strokeStyle = foregroundColor;
+	ctx.lineWidth = tallyWidth;
+	let x = talliesCanvas.width - hOffset;
+	let y = vOffset;
+	let r = n % 10;
+	let wholeX = true; // whether need to adjust x-coordinate for vertical lines
+	if (x - Math.floor(x) > 0.1) wholeX = false;
+	for (let i=0; i<r; i++)
+	{
+		drawTally(ctx, wholeX ? x-0.5 : x, y, tallyHeight);
+		x = x - hSpace;
+	}
 }
 
 const replacementPauseTime = 1000; // milliseconds
@@ -252,6 +306,7 @@ async function incrementNumber()
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
 	arabicNumeralsElement.textContent = inputNumber.toString();
 	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
+	writeTallies(inputNumber);
 	reenableButtons();
 }
 
@@ -325,6 +380,7 @@ async function decrementNumber()
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
 	arabicNumeralsElement.textContent = inputNumber.toString();
 	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
+	writeTallies(inputNumber);
 	reenableButtons();
 }
 
