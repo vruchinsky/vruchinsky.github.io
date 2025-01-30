@@ -16,6 +16,8 @@
 			--component-bg-color: #E0E0E0;
 			--component-color: #101010;
 			--component-width: 500px;
+            --component-font-size: 26px;
+            --component-font-family: "Courier New";
 		}
 		.RomanDisplays {
 			width: var(--component-width);
@@ -38,8 +40,8 @@
             padding: 0px;
             background-color: var(--component-bg-color);
             color: var(--component-color);
-            font-size: 26px;
-            font-family: "Courier New";
+            font-size: var(--component-font-size);
+            font-family: var(--component-font-family);
             resize: none; /* Prevents resizing of the box */
             overflow: auto; /* Adds scroll if text overflows */
 			text-align: right;
@@ -48,7 +50,9 @@
             background-color: var(--component-bg-color);
             color: var(--component-color);
             width: var(--component-width);
-            height: 150px;
+            height: 200px;
+            font-size: var(--component-font-size);
+            font-family: var(--component-font-family);
 		}
         /* Style for each button */
         button {

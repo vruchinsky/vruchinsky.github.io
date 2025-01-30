@@ -6,12 +6,29 @@ const arabicNumeralsWithSpacesElement = document.getElementById("DisplayArabicWi
 const romanToArabicConnectorElement = document.getElementById("ConnectRomanToArabic");
 const romanNumeralsElement = document.getElementById("DisplayRoman");
 const romanNumeralsWithSpacesElement = document.getElementById("DisplayRomanWithSpaces");
-const talliesCanvas = document.getElementById("tallies");
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
+const talliesCanvas = document.getElementById("tallies");
+const noCanvas = (talliesCanvas.getContext == null);
 
 let inputNumber = 0;
 let incrementOrDecrementExecuting = false;
+
+var talliesCtx;
+function initializeCanvas()
+{
+	if (noCanvas)
+		return;
+	talliesCtx = talliesCanvas.getContext("2d");
+	const rect = talliesCanvas.getBoundingClientRect();
+	talliesCanvas.width = rect.width; // otherwise canvas width&height can be some arbitrary (possibly wrong) values
+	talliesCanvas.height = rect.height; //...and supposedly thin vertical lines look thick & shorter than horizontal lines supposedly of the same length
+	// the above problem&solution are discussed on https://stackoverflow.com/questions/35331128/incorrect-canvas-width-value
+    const style = getComputedStyle(talliesCanvas);
+	talliesCtx.font = style.fontSize + " " + style.fontFamily; // otherwise font is some arbitrary default
+	// the above solution is from code posted in https://stackoverflow.com/questions/59666877/how-to-use-in-a-canvas-a-text-element-with-a-font-described-in-css
+	// (fragment from function getFontStyle())
+}
 
 function initializeNumber()
 {
@@ -22,7 +39,44 @@ function initializeNumber()
 	let s = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
 	romanNumeralsWithSpacesElement.textContent = s;
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
-	writeTallies(inputNumber);
+	initializeCanvas();
+//	testCanvas(talliesCtx);
+	writeTallies(inputNumber, talliesCtx);
+}
+
+function drawTestPattern(c, scale)
+{
+	for (let i=0; i<20; i++)
+	{
+		c.beginPath();
+		c.moveTo(3*i / scale, 3*i / scale);
+		c.lineTo(3*i / scale, (3*i+100) / scale);
+		c.stroke();
+		c.beginPath();
+		c.moveTo(3*i / scale, 3*i / scale);
+		c.lineTo((3*i+100) / scale, 3*i / scale);
+		c.stroke();
+	}
+}
+
+function testCanvas(ctx)
+{
+	if (noCanvas)
+		return;
+	const canvasStyle = getComputedStyle(talliesCanvas);
+	const backgroundColor = canvasStyle.backgroundColor;
+	const foregroundColor = canvasStyle.color;
+	ctx.fillStyle = backgroundColor;
+	ctx.fillRect(0, 0, talliesCanvas.width, talliesCanvas.height); // clear the canvas
+	ctx.fillStyle = foregroundColor;
+	ctx.strokeStyle = foregroundColor;
+	ctx.lineWidth = 1;
+	ctx.translate(0.5, 0.5); // otherwise, for lineWidth=1, horizontal&vertical lines look a little thick and blurry
+	drawTestPattern(ctx, 1);
+	const testText = "MDCLXVI";
+	const textMetrics = ctx.measureText(testText);
+	const textHeight = textMetrics.fontBoundingBoxAscent + textMetrics.fontBoundingBoxDescent;
+	ctx.fillText(testText, talliesCanvas.width - textMetrics.width, textHeight);
 }
 
 const tallyHeight = 25;
@@ -39,24 +93,22 @@ function drawTally(ctx, x, y, h)
 	ctx.stroke();
 }
 
-function writeTallies(n)
+function writeTallies(n, ctx)
 {
-	if (talliesCanvas.getContext == null)
+	if (noCanvas)
 	{ // fallback in case browser does not support canvas
 		let tallyMark = "|"; // simplest: write out the tally marks
 		talliesCanvas.textContent = tallyMark.repeat(n);
 		return;
 	}
-	const ctx = talliesCanvas.getContext("2d");
 	const canvasStyle = getComputedStyle(talliesCanvas);
 	const backgroundColor = canvasStyle.backgroundColor;
 	const foregroundColor = canvasStyle.color;
 	ctx.fillStyle = backgroundColor;
-	ctx.fillRect(0, 0, talliesCanvas.width, talliesCanvas.height);
+	ctx.fillRect(0, 0, talliesCanvas.width, talliesCanvas.height); // clear the canvas
 	ctx.fillStyle = foregroundColor;
 	if (n === 0)
 	{
-		ctx.font = "26px Courier New";
 		const textMetrics = ctx.measureText(emptySetSymbol);
 		const textHeight = textMetrics.fontBoundingBoxAscent + textMetrics.fontBoundingBoxDescent;
 		ctx.fillText(emptySetSymbol, talliesCanvas.width - textMetrics.width, textHeight);
@@ -306,7 +358,7 @@ async function incrementNumber()
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
 	arabicNumeralsElement.textContent = inputNumber.toString();
 	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
-	writeTallies(inputNumber);
+	writeTallies(inputNumber, talliesCtx);
 	reenableButtons();
 }
 
@@ -380,7 +432,7 @@ async function decrementNumber()
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
 	arabicNumeralsElement.textContent = inputNumber.toString();
 	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
-	writeTallies(inputNumber);
+	writeTallies(inputNumber, talliesCtx);
 	reenableButtons();
 }
 
