@@ -74,8 +74,11 @@ function roundedRect(ctx, x, y, width, height, radius) // draw rectangle with ro
 const tallyHeight = 25;
 const tallyThickness = 1;
 const hSpace = 2;
+const vSpace = 3;
 const hOffset = 2;
 const vOffset = 2;
+const boundaryThickness = 1;
+const boundaryPadding = 2;
 
 function drawVline(ctx, x, y, l)
 {
@@ -83,6 +86,29 @@ function drawVline(ctx, x, y, l)
 	ctx.moveTo(x, y);
 	ctx.lineTo(x, y + l);
 	ctx.stroke();
+}
+
+function drawHline(ctx, x, y, l)
+{
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	ctx.lineTo(x + l, y);
+	ctx.stroke();
+}
+
+function extractRGBValues(rgbString) {
+  // Use a regular expression to match and extract the RGB values
+  const match = rgbString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+
+  if (match) {
+    const r = parseInt(match[1]);
+    const g = parseInt(match[2]);
+    const b = parseInt(match[3]);
+
+    return { r, g, b };
+  } else {
+    return null; // Invalid rgb string
+  }
 }
 
 function testCanvas()
@@ -94,7 +120,7 @@ function testCanvas()
 	const backgroundColor = canvasStyle.backgroundColor;
 	const foregroundColor = canvasStyle.color;
 	ctx.fillStyle = backgroundColor;
-	ctx.fillRect(0, 0, talliesCanvas.width, talliesCanvas.height); // clear the canvas
+	ctx.fillRect(-0.5, -0.5, talliesCanvas.width, talliesCanvas.height); // clear the canvas
 	ctx.fillStyle = foregroundColor;
 	ctx.strokeStyle = foregroundColor;
 	ctx.lineWidth = 1;
@@ -102,8 +128,6 @@ function testCanvas()
 	const testText = "MDCLXVI";
 	const textMetrics = ctx.measureText(testText);
 	const textHeight = textMetrics.fontBoundingBoxAscent + textMetrics.fontBoundingBoxDescent;
-	const boundaryThickness = 1;
-	const boundaryPadding = 1;
 	const textHpos = talliesCanvas.width - textMetrics.width - boundaryPadding - boundaryThickness - hOffset;
 	const textVpos = textMetrics.fontBoundingBoxAscent + boundaryThickness + boundaryPadding + vOffset;
 	const boundaryWidth = textMetrics.width + 2*boundaryPadding + boundaryThickness;
@@ -130,6 +154,36 @@ function testCanvas()
 	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 40, boundaryWidth, 2, 2);
 	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 50, boundaryWidth, 1, 2);
 	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 60, boundaryWidth, 0, 2);
+	drawBox5(ctx, boundaryHpos, vOffset + boundaryHeight + 70);
+	drawBox5(ctx, boundaryHpos + 30, vOffset + boundaryHeight + 70);
+}
+
+function drawBox5(ctx, x, y)
+{
+	const testV = "V";
+	const textVmetrics = ctx.measureText(testV);
+	const box5height = 5*tallyThickness + 4*vSpace + 2*boundaryPadding + boundaryThickness;
+	const box5width = textVmetrics.width;
+	const canvasStyle = getComputedStyle(talliesCanvas);
+	const foregroundColor = canvasStyle.color;
+	const fgc = extractRGBValues(foregroundColor);
+	const brightnessFactor = 6;
+	if (fgc !== null)
+		ctx.strokeStyle = `rgb(${Math.floor(brightnessFactor*fgc.r)} ${Math.floor(brightnessFactor*fgc.g)} ${Math.floor(brightnessFactor*fgc.b)})`;
+	roundedRect(ctx, x, y, box5width, box5height, 2);
+	ctx.strokeStyle = foregroundColor;
+	const line5length = box5width - 2*boundaryPadding - 2*boundaryThickness;
+	const lineHpos = x + boundaryPadding + boundaryThickness;
+	let lineVpos = y + boundaryPadding + boundaryThickness;
+	drawHline(ctx, lineHpos, lineVpos, line5length);
+	lineVpos = lineVpos + vSpace + tallyThickness;
+	drawHline(ctx, lineHpos, lineVpos, line5length);
+	lineVpos = lineVpos + vSpace + tallyThickness;
+	drawHline(ctx, lineHpos, lineVpos, line5length);
+	lineVpos = lineVpos + vSpace + tallyThickness;
+	drawHline(ctx, lineHpos, lineVpos, line5length);
+	lineVpos = lineVpos + vSpace + tallyThickness;
+	drawHline(ctx, lineHpos, lineVpos, line5length);
 }
 
 function writeTallies(n)
@@ -145,7 +199,7 @@ function writeTallies(n)
 	const backgroundColor = canvasStyle.backgroundColor;
 	const foregroundColor = canvasStyle.color;
 	ctx.fillStyle = backgroundColor;
-	ctx.fillRect(0, 0, talliesCanvas.width, talliesCanvas.height); // clear the canvas
+	ctx.fillRect(-0.5, -0.5, talliesCanvas.width, talliesCanvas.height); // clear the canvas
 	ctx.fillStyle = foregroundColor;
 	if (n === 0)
 	{
@@ -159,6 +213,11 @@ function writeTallies(n)
 	let x = talliesCanvas.width - hOffset;
 	let y = vOffset;
 	let r = n % 10;
+	if (r >= 5)
+	{
+//		drawBox5(ctx, boundaryHpos, vOffset + boundaryHeight + 70);
+		r = r - 5;
+	}
 	for (let i=0; i<r; i++)
 	{
 		drawVline(ctx, x, y, tallyHeight);
