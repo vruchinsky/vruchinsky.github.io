@@ -26,6 +26,7 @@ function initializeCanvas()
 	ctx.font = style.fontSize + " " + style.fontFamily; // otherwise font is some arbitrary default
 	// the above solution is from code posted in https://stackoverflow.com/questions/59666877/how-to-use-in-a-canvas-a-text-element-with-a-font-described-in-css
 	// (fragment from function getFontStyle())
+	ctx.translate(0.5, 0.5); // otherwise, for lineWidth=1, horizontal&vertical lines look a little thick and blurry
 }
 
 function initializeNumber()
@@ -57,6 +58,33 @@ function drawTestPattern(c, scale)
 	}
 }
 
+function roundedRect(ctx, x, y, width, height, radius) // draw rectangle with rounded corners
+{ // based on https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes
+	ctx.beginPath();
+	if (height < 2*radius) radius = height/2; // avoid arcs protruding outside
+	if (width < 2*radius) radius = width/2; // avoid arcs protruding outside
+	ctx.moveTo(x, y + radius);
+	ctx.arcTo(x, y + height, x + radius, y + height, radius);
+	ctx.arcTo(x + width, y + height, x + width, y + height - radius, radius);
+	ctx.arcTo(x + width, y, x + width - radius, y, radius);
+	ctx.arcTo(x, y, x, y + radius, radius);
+	ctx.stroke();
+}
+
+const tallyHeight = 25;
+const tallyThickness = 1;
+const hSpace = 2;
+const hOffset = 2;
+const vOffset = 2;
+
+function drawVline(ctx, x, y, l)
+{
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	ctx.lineTo(x, y + l);
+	ctx.stroke();
+}
+
 function testCanvas()
 {
 	if (talliesCanvas.getContext == null)
@@ -70,26 +98,38 @@ function testCanvas()
 	ctx.fillStyle = foregroundColor;
 	ctx.strokeStyle = foregroundColor;
 	ctx.lineWidth = 1;
-	ctx.translate(0.5, 0.5); // otherwise, for lineWidth=1, horizontal&vertical lines look a little thick and blurry
 	drawTestPattern(ctx, 1);
 	const testText = "MDCLXVI";
 	const textMetrics = ctx.measureText(testText);
 	const textHeight = textMetrics.fontBoundingBoxAscent + textMetrics.fontBoundingBoxDescent;
-	ctx.fillText(testText, talliesCanvas.width - textMetrics.width, textHeight);
-}
-
-const tallyHeight = 25;
-const tallyWidth = 1;
-const hSpace = 2;
-const hOffset = 1;
-const vOffset = 1;
-
-function drawTally(ctx, x, y, h)
-{
-	ctx.beginPath();
-	ctx.moveTo(x, y);
-	ctx.lineTo(x, h + y);
-	ctx.stroke();
+	const boundaryThickness = 1;
+	const boundaryPadding = 1;
+	const textHpos = talliesCanvas.width - textMetrics.width - boundaryPadding - boundaryThickness - hOffset;
+	const textVpos = textMetrics.fontBoundingBoxAscent + boundaryThickness + boundaryPadding + vOffset;
+	const boundaryWidth = textMetrics.width + 2*boundaryPadding + boundaryThickness;
+	const boundaryHeight = textHeight + 2*boundaryPadding + boundaryThickness;
+	const boundaryHpos = textHpos - boundaryPadding - boundaryThickness;
+	console.log("text width=" + textMetrics.width.toString());
+	console.log("text height=" + textHeight.toString());
+	console.log("text hpos=" + textHpos.toString());
+	console.log("text vpos=" + textVpos.toString());
+	console.log("boundary hpos=" + boundaryHpos.toString());
+	console.log("boundary width=" + boundaryWidth.toString());
+	console.log("boundary height=" + boundaryHeight.toString());
+	ctx.fillText(testText, textHpos, textVpos);
+	ctx.lineWidth = boundaryThickness;
+	roundedRect(ctx, boundaryHpos, vOffset, boundaryWidth, boundaryHeight, 2);
+	ctx.lineWidth = 1;
+	drawVline(ctx, boundaryHpos - hSpace - tallyThickness, vOffset, boundaryHeight);
+	drawVline(ctx, boundaryHpos - 2*hSpace - 2*tallyThickness, vOffset, boundaryHeight);
+	drawVline(ctx, boundaryHpos - 3*hSpace - 3*tallyThickness, vOffset, boundaryHeight);
+	ctx.lineWidth = boundaryThickness;
+	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 5, boundaryWidth, 5, 2);
+	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 20, boundaryWidth, 4, 2);
+	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 30, boundaryWidth, 3, 2);
+	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 40, boundaryWidth, 2, 2);
+	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 50, boundaryWidth, 1, 2);
+	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 60, boundaryWidth, 0, 2);
 }
 
 function writeTallies(n)
@@ -115,16 +155,14 @@ function writeTallies(n)
 		return;
 	}
 	ctx.strokeStyle = foregroundColor;
-	ctx.lineWidth = tallyWidth;
+	ctx.lineWidth = tallyThickness;
 	let x = talliesCanvas.width - hOffset;
 	let y = vOffset;
 	let r = n % 10;
-	let wholeX = true; // whether need to adjust x-coordinate for vertical lines
-	if (x - Math.floor(x) > 0.1) wholeX = false;
 	for (let i=0; i<r; i++)
 	{
-		drawTally(ctx, wholeX ? x-0.5 : x, y, tallyHeight);
-		x = x - hSpace - tallyWidth;
+		drawVline(ctx, x, y, tallyHeight);
+		x = x - hSpace - tallyThickness;
 	}
 }
 
