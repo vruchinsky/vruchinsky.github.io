@@ -39,8 +39,8 @@ function initializeNumber()
 	romanNumeralsWithSpacesElement.textContent = s;
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
 	initializeCanvas();
-//	testCanvas();
-	writeTallies(inputNumber);
+	testCanvas();
+//	writeTallies(inputNumber);
 }
 
 function drawTestPattern(c, scale)
@@ -96,19 +96,25 @@ function drawHline(ctx, x, y, l)
 	ctx.stroke();
 }
 
-function extractRGBValues(rgbString) {
-  // Use a regular expression to match and extract the RGB values
-  const match = rgbString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-
-  if (match) {
-    const r = parseInt(match[1]);
-    const g = parseInt(match[2]);
-    const b = parseInt(match[3]);
-
-    return { r, g, b };
-  } else {
-    return null; // Invalid rgb string
-  }
+function extractRGBValues(rgbString) // code obtained from generative AI in Google Chrome
+{ // (searching for "javascript function extract values from rgb string")
+	const match = rgbString.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+	if (match) // Use reg.expr. to match and extract RGB values (decimal)
+	{
+		const r = parseInt(match[1]);
+		const g = parseInt(match[2]);
+		const b = parseInt(match[3]);
+		return { r, g, b };
+	}
+	match = rgbString.match(/#([0-9A-Fa-f][0-9A-Fa-f])([0-9A-Fa-f][0-9A-Fa-f])([0-9A-Fa-f][0-9A-Fa-f])/);
+	if (match) // Use reg.expr. to match and extract RGB values (hex)
+	{
+		const r = parseInt(match[1],16);
+		const g = parseInt(match[2],16);
+		const b = parseInt(match[3],16);
+		return { r, g, b };
+	}
+	return null; // Invalid rgb string
 }
 
 function testCanvas()
@@ -158,20 +164,39 @@ function testCanvas()
 	drawBox5(ctx, boundaryHpos + 30, vOffset + boundaryHeight + 70);
 }
 
+function stringWidthOnCanvas(ctx, s)
+{
+	const metrics = ctx.measureText(s);
+	return metrics.width;
+}
+
+function weightedAverageTruncated(a, b, w) {return Math.floor((1-w)*a + w*b);}
+const foregroundWeightBoxBoundary = 0.4;
+
+function setBoxBoundaryColor(ctx, foregroundWeight)
+{
+	const canvasStyle = getComputedStyle(talliesCanvas);
+	const backgroundColor = canvasStyle.backgroundColor;
+	const foregroundColor = canvasStyle.color;
+	const bgc = extractRGBValues(backgroundColor);
+	const fgc = extractRGBValues(foregroundColor);
+	if (bgc !== null && fgc !== null)
+	{
+		const mcr = weightedAverageTruncated(bgc.r, fgc.r, foregroundWeight);
+		const mcg = weightedAverageTruncated(bgc.g, fgc.g, foregroundWeight);
+		const mcb = weightedAverageTruncated(bgc.b, fgc.b, foregroundWeight);
+		ctx.strokeStyle = `rgb(${mcr} ${mcg} ${mcb})`;
+	}
+	return foregroundColor;
+}
+
 function drawBox5(ctx, x, y)
 {
-	const testV = "V";
-	const textVmetrics = ctx.measureText(testV);
+	const box5width = stringWidthOnCanvas(ctx, "V");
 	const box5height = 5*tallyThickness + 4*vSpace + 2*boundaryPadding + boundaryThickness;
-	const box5width = textVmetrics.width;
-	const canvasStyle = getComputedStyle(talliesCanvas);
-	const foregroundColor = canvasStyle.color;
-	const fgc = extractRGBValues(foregroundColor);
-	const brightnessFactor = 6;
-	if (fgc !== null)
-		ctx.strokeStyle = `rgb(${Math.floor(brightnessFactor*fgc.r)} ${Math.floor(brightnessFactor*fgc.g)} ${Math.floor(brightnessFactor*fgc.b)})`;
+	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
 	roundedRect(ctx, x, y, box5width, box5height, 2);
-	ctx.strokeStyle = foregroundColor;
+	ctx.strokeStyle = foregroundColor; // restore foreground color
 	const line5length = box5width - 2*boundaryPadding - 2*boundaryThickness;
 	const lineHpos = x + boundaryPadding + boundaryThickness;
 	let lineVpos = y + boundaryPadding + boundaryThickness;
