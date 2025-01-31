@@ -161,7 +161,11 @@ function testCanvas()
 	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 50, boundaryWidth, 1, 2);
 	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 60, boundaryWidth, 0, 2);
 	drawBox5(ctx, boundaryHpos, vOffset + boundaryHeight + 70);
-	drawBox5(ctx, boundaryHpos + 30, vOffset + boundaryHeight + 70);
+	drawBox10(ctx, boundaryHpos + 30, vOffset + boundaryHeight + 70);
+	drawBox5(ctx, boundaryHpos + 60, vOffset + boundaryHeight + 70);
+	drawBox10(ctx, boundaryHpos + 90, vOffset + boundaryHeight + 70);
+	drawBox50(ctx, boundaryHpos - 60, vOffset);
+	drawBox50(ctx, boundaryHpos - 90, vOffset);
 }
 
 function stringWidthOnCanvas(ctx, s)
@@ -190,25 +194,74 @@ function setBoxBoundaryColor(ctx, foregroundWeight)
 	return foregroundColor;
 }
 
+function drawColumnHlines(ctx, x, y, len, n)
+{
+	for (let i=0; i<n; i++)
+	{
+		drawHline(ctx, x, y, len);
+		y = y + vSpace + tallyThickness;
+	}
+}
+
 function drawBox5(ctx, x, y)
 {
-	const box5width = stringWidthOnCanvas(ctx, "V");
-	const box5height = 5*tallyThickness + 4*vSpace + 2*boundaryPadding + boundaryThickness;
+	const boxWidth = stringWidthOnCanvas(ctx, "V");
+	const boxHeight = 5*tallyThickness + 4*vSpace + 2*boundaryPadding + boundaryThickness;
 	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
-	roundedRect(ctx, x, y, box5width, box5height, 2);
+	roundedRect(ctx, x, y, boxWidth, boxHeight, 2);
 	ctx.strokeStyle = foregroundColor; // restore foreground color
-	const line5length = box5width - 2*boundaryPadding - 2*boundaryThickness;
+	const lineLength = boxWidth - 2*boundaryPadding - 2*boundaryThickness;
+	const lineHpos = x + boundaryPadding + boundaryThickness;
+	const lineVpos = y + boundaryPadding + boundaryThickness;
+	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+}
+
+function drawBox10(ctx, x, y)
+{
+	const boxWidth = stringWidthOnCanvas(ctx, "X");
+	const boxHeight = 10*tallyThickness + 10*vSpace + 2*boundaryPadding + boundaryThickness;
+	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
+	roundedRect(ctx, x, y, boxWidth, boxHeight, 2);
+	ctx.strokeStyle = foregroundColor; // restore foreground color
+	const lineLength = boxWidth - 2*boundaryPadding - 2*boundaryThickness;
 	const lineHpos = x + boundaryPadding + boundaryThickness;
 	let lineVpos = y + boundaryPadding + boundaryThickness;
-	drawHline(ctx, lineHpos, lineVpos, line5length);
-	lineVpos = lineVpos + vSpace + tallyThickness;
-	drawHline(ctx, lineHpos, lineVpos, line5length);
-	lineVpos = lineVpos + vSpace + tallyThickness;
-	drawHline(ctx, lineHpos, lineVpos, line5length);
-	lineVpos = lineVpos + vSpace + tallyThickness;
-	drawHline(ctx, lineHpos, lineVpos, line5length);
-	lineVpos = lineVpos + vSpace + tallyThickness;
-	drawHline(ctx, lineHpos, lineVpos, line5length);
+	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
+	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+}
+
+function drawBox50(ctx, x, y)
+{
+	const boxWidth = stringWidthOnCanvas(ctx, "L");
+	const boxHeight = 25*tallyThickness + 29*vSpace + 2*boundaryPadding + boundaryThickness;
+	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
+	roundedRect(ctx, x, y, boxWidth, boxHeight, 2);
+	ctx.strokeStyle = foregroundColor; // restore foreground color
+	const lineLength = boxWidth/2 - boundaryPadding - boundaryThickness - 1;
+	const lineHpos = x + boundaryPadding + boundaryThickness;
+	let lineVpos = y + boundaryPadding + boundaryThickness;
+	const halfSpace = Math.ceil(vSpace / 2);
+	const lineHposR = lineHpos + lineLength + 2;
+	let lineVposR = lineVpos + halfSpace;
+	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
+	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
+	lineVposR = lineVpos + halfSpace;
+	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
+	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
+	lineVposR = lineVpos + halfSpace;
+	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
+	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
+	lineVposR = lineVpos + halfSpace;
+	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
+	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
+	lineVposR = lineVpos + halfSpace;
+	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
 }
 
 function writeTallies(n)
