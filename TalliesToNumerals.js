@@ -39,8 +39,8 @@ function initializeNumber()
 	romanNumeralsWithSpacesElement.textContent = s;
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
 	initializeCanvas();
-	testCanvas();
-//	writeTallies(inputNumber);
+//	testCanvas();
+	writeTallies(inputNumber);
 }
 
 function drawTestPattern(c, scale)
@@ -150,9 +150,11 @@ function testCanvas()
 	ctx.lineWidth = boundaryThickness;
 	roundedRect(ctx, boundaryHpos, vOffset, boundaryWidth, boundaryHeight, 2);
 	ctx.lineWidth = 1;
-	drawVline(ctx, boundaryHpos - hSpace - tallyThickness, vOffset, boundaryHeight);
-	drawVline(ctx, boundaryHpos - 2*hSpace - 2*tallyThickness, vOffset, boundaryHeight);
-	drawVline(ctx, boundaryHpos - 3*hSpace - 3*tallyThickness, vOffset, boundaryHeight);
+	let tw = stringWidthOnCanvas(ctx, "I");
+	drawTally(ctx, boundaryHpos - Math.floor(tw), vOffset);
+	drawTally(ctx, boundaryHpos - Math.floor(2*tw), vOffset);
+	drawTally(ctx, boundaryHpos - Math.floor(3*tw), vOffset);
+	console.log("tally width=" + tw.toString());
 	ctx.lineWidth = boundaryThickness;
 	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 5, boundaryWidth, 5, 2);
 	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 20, boundaryWidth, 4, 2);
@@ -172,6 +174,14 @@ function stringWidthOnCanvas(ctx, s)
 {
 	const metrics = ctx.measureText(s);
 	return metrics.width;
+}
+
+function drawTally(ctx, x, y)
+{
+	const w = stringWidthOnCanvas(ctx, "I");
+	ctx.lineWidth = tallyThickness;
+	drawVline(ctx, x + Math.floor(w/2), y, tallyHeight);
+	return w;
 }
 
 function weightedAverageTruncated(a, b, w) {return Math.floor((1-w)*a + w*b);}
@@ -205,40 +215,45 @@ function drawColumnHlines(ctx, x, y, len, n)
 
 function drawBox5(ctx, x, y)
 {
-	const boxWidth = stringWidthOnCanvas(ctx, "V");
+	const boxWidth = Math.floor(stringWidthOnCanvas(ctx, "V"));
+	const drawingWidth = boxWidth - 2;
 	const boxHeight = 5*tallyThickness + 4*vSpace + 2*boundaryPadding + boundaryThickness;
 	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
-	roundedRect(ctx, x, y, boxWidth, boxHeight, 2);
+	roundedRect(ctx, x, y, drawingWidth, boxHeight, 2);
 	ctx.strokeStyle = foregroundColor; // restore foreground color
-	const lineLength = boxWidth - 2*boundaryPadding - 2*boundaryThickness;
+	const lineLength = drawingWidth - 2*boundaryPadding - 2*boundaryThickness;
 	const lineHpos = x + boundaryPadding + boundaryThickness;
 	const lineVpos = y + boundaryPadding + boundaryThickness;
 	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+	return boxWidth;
 }
 
 function drawBox10(ctx, x, y)
 {
-	const boxWidth = stringWidthOnCanvas(ctx, "X");
+	const boxWidth = Math.floor(stringWidthOnCanvas(ctx, "X"));
+	const drawingWidth = boxWidth - 2;
 	const boxHeight = 10*tallyThickness + 10*vSpace + 2*boundaryPadding + boundaryThickness;
 	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
-	roundedRect(ctx, x, y, boxWidth, boxHeight, 2);
+	roundedRect(ctx, x, y, drawingWidth, boxHeight, 2);
 	ctx.strokeStyle = foregroundColor; // restore foreground color
-	const lineLength = boxWidth - 2*boundaryPadding - 2*boundaryThickness;
+	const lineLength = drawingWidth - 2*boundaryPadding - 2*boundaryThickness;
 	const lineHpos = x + boundaryPadding + boundaryThickness;
 	let lineVpos = y + boundaryPadding + boundaryThickness;
 	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
 	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
 	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+	return boxWidth;
 }
 
 function drawBox50(ctx, x, y)
 {
-	const boxWidth = stringWidthOnCanvas(ctx, "L");
+	const boxWidth = Math.floor(stringWidthOnCanvas(ctx, "L"));
+	const drawingWidth = boxWidth - 2;
 	const boxHeight = 25*tallyThickness + 29*vSpace + 2*boundaryPadding + boundaryThickness;
 	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
-	roundedRect(ctx, x, y, boxWidth, boxHeight, 2);
+	roundedRect(ctx, x, y, drawingWidth, boxHeight, 2);
 	ctx.strokeStyle = foregroundColor; // restore foreground color
-	const lineLength = boxWidth/2 - boundaryPadding - boundaryThickness - 1;
+	const lineLength = drawingWidth/2 - boundaryPadding - boundaryThickness - 1;
 	const lineHpos = x + boundaryPadding + boundaryThickness;
 	let lineVpos = y + boundaryPadding + boundaryThickness;
 	const halfSpace = Math.ceil(vSpace / 2);
@@ -262,6 +277,7 @@ function drawBox50(ctx, x, y)
 	lineVposR = lineVpos + halfSpace;
 	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
 	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
+	return boxWidth;
 }
 
 function writeTallies(n)
@@ -288,19 +304,40 @@ function writeTallies(n)
 	}
 	ctx.strokeStyle = foregroundColor;
 	ctx.lineWidth = tallyThickness;
-	let x = talliesCanvas.width - hOffset;
+	let x = talliesCanvas.width;
 	let y = vOffset;
-	let r = n % 10;
-	if (r >= 5)
-	{
-//		drawBox5(ctx, boundaryHpos, vOffset + boundaryHeight + 70);
-		r = r - 5;
-	}
+	let nw = stringWidthOnCanvas(ctx, "I");
+	let r = n % 5;
 	for (let i=0; i<r; i++)
 	{
-		drawVline(ctx, x, y, tallyHeight);
-		x = x - hSpace - tallyThickness;
+		x = x - nw;
+		drawTally(ctx, Math.floor(x), y);
 	}
+	n = Math.floor(n / 5);
+	nw = stringWidthOnCanvas(ctx, "V");
+	r = n % 2;
+	if (r > 0)
+	{
+		x = x - nw;
+		drawBox5(ctx, Math.floor(x), y);
+	}
+	n = Math.floor(n / 2);
+	nw = stringWidthOnCanvas(ctx, "X");
+	r = n % 5;
+	for (let i=0; i<r; i++)
+	{
+		x = x - nw;
+		drawBox10(ctx, Math.floor(x), y);
+	}
+	n = Math.floor(n / 5);
+	nw = stringWidthOnCanvas(ctx, "L");
+	r = n % 2;
+	if (r > 0)
+	{
+		x = x - nw;
+		drawBox50(ctx, Math.floor(x), y);
+	}
+	n = Math.floor(n / 2);
 }
 
 const replacementPauseTime = 1000; // milliseconds
