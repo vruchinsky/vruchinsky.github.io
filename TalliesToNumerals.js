@@ -39,8 +39,8 @@ function initializeNumber()
 	romanNumeralsWithSpacesElement.textContent = s;
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
 	initializeCanvas();
-//	testCanvas();
-	writeTallies(inputNumber);
+	testCanvas();
+//	writeTallies(inputNumber);
 }
 
 function drawTestPattern(c, scale)
@@ -167,7 +167,12 @@ function testCanvas()
 	drawBox5(ctx, boundaryHpos + 60, vOffset + boundaryHeight + 70);
 	drawBox10(ctx, boundaryHpos + 90, vOffset + boundaryHeight + 70);
 	drawBox50(ctx, boundaryHpos - 60, vOffset);
-	drawBox50(ctx, boundaryHpos - 90, vOffset);
+	drawBox50(ctx, boundaryHpos - 80, vOffset);
+	drawBox100(ctx, boundaryHpos - 100, vOffset);
+	drawBox100(ctx, boundaryHpos - 115, vOffset);
+	drawBox100(ctx, boundaryHpos - 130, vOffset);
+	drawBox100(ctx, boundaryHpos - 145, vOffset);
+	drawBox100(ctx, boundaryHpos - 160, vOffset);
 }
 
 function stringWidthOnCanvas(ctx, s)
@@ -239,9 +244,9 @@ function drawBox10(ctx, x, y)
 	const lineLength = drawingWidth - 2*boundaryPadding - 2*boundaryThickness;
 	const lineHpos = x + boundaryPadding + boundaryThickness;
 	let lineVpos = y + boundaryPadding + boundaryThickness;
-	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
-	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
-	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // column of five horizontal,
+	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace; // then space underneath,
+	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // then another column of five horizontal
 	return boxWidth;
 }
 
@@ -254,29 +259,50 @@ function drawBox50(ctx, x, y)
 	roundedRect(ctx, x, y, drawingWidth, boxHeight, 2);
 	ctx.strokeStyle = foregroundColor; // restore foreground color
 	const lineLength = drawingWidth/2 - boundaryPadding - boundaryThickness - 1;
-	const lineHpos = x + boundaryPadding + boundaryThickness;
-	let lineVpos = y + boundaryPadding + boundaryThickness;
+	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
+	let lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
 	const halfSpace = Math.ceil(vSpace / 2);
-	const lineHposR = lineHpos + lineLength + 2;
-	let lineVposR = lineVpos + halfSpace;
-	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
-	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
-	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
-	lineVposR = lineVpos + halfSpace;
-	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
-	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
-	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
-	lineVposR = lineVpos + halfSpace;
-	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
-	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
-	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
-	lineVposR = lineVpos + halfSpace;
-	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
-	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
-	lineVpos = lineVpos + 5*tallyThickness + 6*vSpace;
-	lineVposR = lineVpos + halfSpace;
-	drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
-	drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5);
+	const lineHposR = lineHpos + lineLength + 2; // offset right column horizontally
+	for (let i=0; i<5; i++)
+	{
+		let lineVposR = lineVpos + halfSpace; // offset right column vertically
+		drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // left column of five horizontal,
+		drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5); // right column of five horizontal,
+		lineVpos = lineVpos + 5*tallyThickness + 6*vSpace; // space underneath the columns
+	}
+	return boxWidth;
+}
+
+function drawBox100(ctx, x, y)
+{
+	const boxWidth = Math.floor(stringWidthOnCanvas(ctx, "C"));
+	const drawingWidth = boxWidth - 2;
+	const boxHeight = 50*tallyThickness + 61*vSpace + 2*boundaryPadding + boundaryThickness;
+	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
+	roundedRect(ctx, x, y, drawingWidth, boxHeight, 2);
+	ctx.strokeStyle = foregroundColor; // restore foreground color
+	const lineLength = drawingWidth/2 - boundaryPadding - boundaryThickness - 1;
+	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
+	let lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
+	const halfSpace = Math.ceil(vSpace / 2);
+	const lineHposR = lineHpos + lineLength + 2; // offset right column horizontally
+	let lineVposR = lineVpos + halfSpace; // offset right column vertically
+	for (let i=0; i<5; i++)
+	{
+		drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // left column of five horizontal,
+		drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5); // right column of five horizontal,
+		lineVpos = lineVpos + 5*tallyThickness + 6*vSpace; // space underneath the columns
+		lineVposR = lineVpos + halfSpace; // offset right column vertically
+	}
+	lineVpos = lineVpos + 2*vSpace; // extra space halfway down
+	lineVposR = lineVpos + halfSpace; // offset right column vertically
+	for (let i=0; i<5; i++)
+	{
+		drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // left column of five horizontal,
+		drawColumnHlines(ctx, lineHposR, lineVposR, lineLength, 5); // right column of five horizontal,
+		lineVpos = lineVpos + 5*tallyThickness + 6*vSpace; // space underneath the columns
+		lineVposR = lineVpos + halfSpace; // offset right column vertically
+	}
 	return boxWidth;
 }
 
