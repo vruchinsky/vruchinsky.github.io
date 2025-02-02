@@ -80,6 +80,7 @@ const vOffset = 2;
 const boundaryThickness = 1;
 const boundaryPadding = 2;
 const hSpaceInsideBox = 2;
+const longHspaceInsideBox = Math.floor(2 * hSpaceInsideBox);
 const halfVspaceInsideBox = Math.ceil(vSpace / 2);
 
 function drawVline(ctx, x, y, l)
@@ -330,18 +331,18 @@ function drawBox500(ctx, x, y) // 10 columns each of 50 short horizontal tally m
 	const rnWidth = Math.floor(stringWidthOnCanvas(ctx, "D"));
 	const boxWidth = 5 * rnWidth; // 2 columns same width as 1 Roman numeral
 	const boundingRectWidth = boxWidth - 2*boundaryThickness;
-	const lineLength = rnWidth/2 - boundaryPadding - boundaryThickness - 1;
+	const dHpos = (boundingRectWidth - 2*boundaryPadding)/5;
+	const lineLength = Math.floor((dHpos - 0.8*longHspaceInsideBox - hSpaceInsideBox)/2);
 	let lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
 	const columnSize = drawColumn100Hlines(ctx, lineHpos, lineVpos, lineLength);
-	const dHpos = Math.floor(columnSize.w + 2.5*hSpaceInsideBox);
-	lineHpos = lineHpos + dHpos; // move horizontal position
+	lineHpos = Math.round(lineHpos + dHpos); // move horizontal position
 	drawColumn100Hlines(ctx, lineHpos, lineVpos, lineLength);
-	lineHpos = lineHpos + dHpos; // move horizontal position
+	lineHpos = Math.round(lineHpos + dHpos); // move horizontal position
 	drawColumn100Hlines(ctx, lineHpos, lineVpos, lineLength);
-	lineHpos = lineHpos + dHpos; // move horizontal position
+	lineHpos = Math.round(lineHpos + dHpos); // move horizontal position
 	drawColumn100Hlines(ctx, lineHpos, lineVpos, lineLength);
-	lineHpos = lineHpos + dHpos; // move horizontal position
+	lineHpos = Math.round(lineHpos + dHpos); // move horizontal position
 	drawColumn100Hlines(ctx, lineHpos, lineVpos, lineLength);
 	const boundingRectHeight = columnSize.h + 2*boundaryPadding; // same as for 100
 	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
