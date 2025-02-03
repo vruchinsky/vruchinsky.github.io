@@ -133,49 +133,23 @@ function testCanvas()
 	ctx.fillStyle = foregroundColor;
 	ctx.strokeStyle = foregroundColor;
 	ctx.lineWidth = 1;
-	//drawTestPattern(ctx, 1);
-	const testText = "MDCLXVI";
-	const textMetrics = ctx.measureText(testText);
-	const textHeight = textMetrics.fontBoundingBoxAscent + textMetrics.fontBoundingBoxDescent;
-	const textHpos = talliesCanvas.width - textMetrics.width - boundaryPadding - boundaryThickness - hOffset;
-	const textVpos = textMetrics.fontBoundingBoxAscent + boundaryThickness + boundaryPadding + vOffset;
-	const boundaryWidth = textMetrics.width + 2*boundaryPadding + boundaryThickness;
-	const boundaryHeight = textHeight + 2*boundaryPadding + boundaryThickness;
-	const boundaryHpos = textHpos - boundaryPadding - boundaryThickness;
-	console.log("text width=" + textMetrics.width.toString());
-	console.log("text height=" + textHeight.toString());
-	console.log("text hpos=" + textHpos.toString());
-	console.log("text vpos=" + textVpos.toString());
-	console.log("boundary hpos=" + boundaryHpos.toString());
-	console.log("boundary width=" + boundaryWidth.toString());
-	console.log("boundary height=" + boundaryHeight.toString());
-	ctx.fillText(testText, textHpos, textVpos);
-	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, boundaryHpos, vOffset, boundaryWidth, boundaryHeight, 2);
-	ctx.lineWidth = 1;
-	let tw = stringWidthOnCanvas(ctx, "I");
-	drawTally(ctx, boundaryHpos - Math.floor(tw), vOffset);
-	drawTally(ctx, boundaryHpos - Math.floor(2*tw), vOffset);
-	drawTally(ctx, boundaryHpos - Math.floor(3*tw), vOffset);
-	console.log("tally width=" + tw.toString());
-	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 5, boundaryWidth, 5, 2);
-	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 20, boundaryWidth, 4, 2);
-	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 30, boundaryWidth, 3, 2);
-	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 40, boundaryWidth, 2, 2);
-	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 50, boundaryWidth, 1, 2);
-	roundedRect(ctx, boundaryHpos, vOffset + boundaryHeight + 60, boundaryWidth, 0, 2);
-	drawBox5(ctx, boundaryHpos, vOffset + boundaryHeight + 70);
-	drawBox10(ctx, boundaryHpos + 30, vOffset + boundaryHeight + 70);
-	drawBox5(ctx, boundaryHpos + 60, vOffset + boundaryHeight + 70);
-	drawBox10(ctx, boundaryHpos + 90, vOffset + boundaryHeight + 70);
-	drawBox50(ctx, boundaryHpos - 60, vOffset);
-	drawBox100(ctx, boundaryHpos - 80, vOffset);
-	drawBox500(ctx, 10, vOffset);
-/* 	drawBox100(ctx, boundaryHpos - 115, vOffset);
-	drawBox100(ctx, boundaryHpos - 130, vOffset);
-	drawBox100(ctx, boundaryHpos - 145, vOffset);
-	drawBox100(ctx, boundaryHpos - 160, vOffset); */
+	let hPos = 1;
+	let vPos = 1;
+	let sz = drawTally(ctx, hPos, vPos);
+	hPos = hPos + sz.w;
+	sz = drawTally(ctx, hPos, vPos);
+	hPos = hPos + sz.w;
+	sz = drawTally(ctx, hPos, vPos);
+	hPos = hPos + sz.w;
+	sz = drawBox5(ctx, hPos, vPos);
+	hPos = hPos + sz.w;
+	sz = drawBox10(ctx, hPos, vPos);
+	hPos = hPos + sz.w;
+	sz = drawBox50(ctx, hPos, vPos);
+	hPos = hPos + sz.w;
+	sz = drawBox100(ctx, hPos, vPos);
+	hPos = hPos + sz.w;
+	sz = drawBox500(ctx, hPos, vPos);
 }
 
 function stringWidthOnCanvas(ctx, s)
@@ -186,10 +160,11 @@ function stringWidthOnCanvas(ctx, s)
 
 function drawTally(ctx, x, y)
 {
-	const w = stringWidthOnCanvas(ctx, "I");
+	const w = stringWidthOnCanvas(ctx, "I"); // width of the drawing
 	ctx.lineWidth = tallyThickness;
-	drawVline(ctx, x + Math.floor(w/2), y, tallyHeight);
-	return w;
+	drawVline(ctx, Math.floor(x + w/2), y, tallyHeight);
+	const h = tallyHeight; // height of the drawing
+	return {w, h};
 }
 
 function weightedAverageTruncated(a, b, w) {return Math.floor((1-w)*a + w*b);}
@@ -237,7 +212,9 @@ function drawBox5(ctx, x, y)
 	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
 	ctx.lineWidth = oldlw; // restore lineWidth
 	ctx.strokeStyle = foregroundColor; // restore foreground color
-	return {boxWidth, boundingRectHeight};
+	const w = boxWidth;  // width of the drawing
+	const h = boundingRectHeight; // height of the drawing
+	return {w, h};
 }
 
 function drawBox10(ctx, x, y)
@@ -257,7 +234,9 @@ function drawBox10(ctx, x, y)
 	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
 	ctx.lineWidth = oldlw; // restore lineWidth
 	ctx.strokeStyle = foregroundColor; // restore foreground color
-	return {boxWidth, boundingRectHeight};
+	const w = boxWidth;  // width of the drawing
+	const h = boundingRectHeight; // height of the drawing
+	return {w, h};
 }
 
 function drawColumn50Hlines(ctx, x, y, len)
