@@ -60,17 +60,21 @@ function roundedRect(ctx, x, y, width, height, radius) // draw rectangle with ro
 const tallyMarkHeight = 25;
 const tallyMarkThickness = 1;
 const hSpace = 2;
-const vSpace = 3;
+const vSpaceBetweenTallyMarks = 3;
+const vSpaceBetween5s = 6;
+const vSpaceBetween50s = 6;
 const hOffset = 2;
 const vOffset = 2;
 const boundaryThickness = 1;
 const boundaryPadding = 2;
-const hSpaceInsideBox = 2;
-const longHspaceInsideBox = 3.6;
-const halfVspaceInsideBox = Math.ceil(vSpace / 2);
+const hSpaceBetween5s = 2;
+const hSpaceBetween100s = 3.6;
+const hSpaceBetween500s = 8;
+const vOffsetBetween5s = Math.ceil(vSpaceBetweenTallyMarks / 2);
 
 function drawVline(ctx, x, y, l)
 {
+	x = Math.floor(x);
 	ctx.beginPath();
 	ctx.moveTo(x, y);
 	ctx.lineTo(x, y + l);
@@ -79,6 +83,7 @@ function drawVline(ctx, x, y, l)
 
 function drawHline(ctx, x, y, l)
 {
+	y = Math.floor(y);
 	ctx.beginPath();
 	ctx.moveTo(x, y);
 	ctx.lineTo(x + l, y);
@@ -132,6 +137,8 @@ function testCanvas()
 	sz = drawBox100(ctx, hPos, vPos);
 	hPos = hPos + sz.w;
 	sz = drawBox500(ctx, hPos, vPos);
+	hPos = hPos + sz.w;
+	sz = drawBox1000(ctx, hPos, vPos);
 }
 
 function stringWidthOnCanvas(ctx, s)
@@ -174,9 +181,9 @@ function drawColumnHlines(ctx, x, y, len, n)
 	for (let i=0; i<n; i++)
 	{
 		drawHline(ctx, x, y, len);
-		y = y + vSpace + tallyMarkThickness;
+		y = y + vSpaceBetweenTallyMarks + tallyMarkThickness;
 	}
-	return (n*tallyMarkThickness + (n-1)*vSpace); // column height
+	return (n*tallyMarkThickness + (n-1)*vSpaceBetweenTallyMarks); // column height
 }
 
 function drawBox5(ctx, x, y)
@@ -207,9 +214,9 @@ function drawBox10(ctx, x, y)
 	const lineHpos = x + boundaryPadding + boundaryThickness;
 	let lineVpos = y + boundaryPadding + boundaryThickness;
 	const columnHeight1 = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // column of five horizontal,
-	lineVpos = lineVpos + columnHeight1 + 2*vSpace; // then space underneath,
+	lineVpos = lineVpos + columnHeight1 + vSpaceBetween5s; // then space underneath,
 	const columnHeight2 = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // then another column of five horizontal
-	const boundingRectHeight = columnHeight1 + columnHeight2 + 2*vSpace + 2*boundaryPadding + boundaryThickness;
+	const boundingRectHeight = columnHeight1 + columnHeight2 + vSpaceBetween5s + 2*boundaryPadding + boundaryThickness;
 	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
@@ -223,17 +230,17 @@ function drawBox10(ctx, x, y)
 
 function drawColumn50Hlines(ctx, x, y, len)
 { // used in drawBox50(), drawBox100() and drawColumn100Hlines()
-	const xr = x + len + hSpaceInsideBox; // offset right column horizontally
+	const xr = x + len + hSpaceBetween5s; // offset right column horizontally
 	let columnHeight = 0;
 	for (let i=0; i<5; i++)
 	{
 		const dHeight = drawColumnHlines(ctx, x, y, len, 5); // left column of five horizontal,
-		drawColumnHlines(ctx, xr, y + halfVspaceInsideBox, len, 5); // right column (offset horizontally&vertically),
-		y = y + dHeight + 2*vSpace; // regular vertical spacing (for visual clarity)
-		columnHeight = columnHeight + dHeight + 2*vSpace;
+		drawColumnHlines(ctx, xr, y + vOffsetBetween5s, len, 5); // right column (offset horizontally&vertically),
+		y = y + dHeight + vSpaceBetween5s; // regular vertical spacing (for visual clarity)
+		columnHeight = columnHeight + dHeight + vSpaceBetween5s;
 	}
-	const w = 2*len + hSpaceInsideBox;  // width of the drawing
-	const h = columnHeight + halfVspaceInsideBox - 2*vSpace; // height of the drawing
+	const w = 2*len + hSpaceBetween5s;  // width of the drawing
+	const h = columnHeight + vOffsetBetween5s - vSpaceBetween5s; // height of the drawing
 	return {w, h};
 }
 
@@ -258,12 +265,12 @@ function drawBox50(ctx, x, y) // column of 25 short horizontal tally marks on th
 }
 
 function drawColumn100Hlines(ctx, x, y, len)
-{ // used in drawBox100() and drawBox500()
+{ // used in drawBox100() and drawColumns500Hlines()
 	const columnSize1 = drawColumn50Hlines(ctx, x, y, len); // column of 50 horizontal tally marks,
-	y = y + columnSize1.h + 2*vSpace; // extra space halfway down,
+	y = y + columnSize1.h + vSpaceBetween50s; // extra space halfway down,
 	const columnSize2 = drawColumn50Hlines(ctx, x, y, len); // another column of 50 horizontal tally marks underneath
 	const w = columnSize1.w;  // width of the drawing
-	const h = columnSize1.h + columnSize2.h + 2*vSpace; // height of the drawing	
+	const h = columnSize1.h + columnSize2.h + vSpaceBetween50s; // height of the drawing	
 	return {w, h};
 }
 
@@ -287,24 +294,56 @@ function drawBox100(ctx, x, y) // column of 50 short horizontal tally marks on t
 	return {w, h};
 }
 
-function drawBox500(ctx, x, y) // 10 columns each of 50 short horizontal tally marks, with extra vertical...
-{//...space between each group of 5, and extra space halfway down, all enclosed in rectangular box
-	const rnWidth = Math.floor(stringWidthOnCanvas(ctx, "D"));
-	const boxWidth = Math.floor(3.9 * rnWidth);
+function drawColumns500Hlines(ctx, x, y, w)
+{// used in drawBox1000() and drawBox500()
 	const nDblCols = 5;
-	const boundingRectWidth = Math.floor(boxWidth - 2*boundaryThickness);
-	const dblColWidth = (boundingRectWidth - 2*boundaryPadding - (nDblCols-1)*longHspaceInsideBox)/nDblCols;
-	const lineLength = Math.floor((dblColWidth - hSpaceInsideBox)/2);
-	const dHpos = dblColWidth + longHspaceInsideBox;
-	let lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
-	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
-	const columnSize = drawColumn100Hlines(ctx, lineHpos, lineVpos, lineLength);
+	const dblColWidth = (w - (nDblCols-1)*hSpaceBetween100s)/nDblCols;
+	const lineLength = Math.floor((dblColWidth - hSpaceBetween5s)/2);
+	const dx = dblColWidth + hSpaceBetween100s;
+	const columnSize = drawColumn100Hlines(ctx, Math.floor(x), y, lineLength);
 	for (let i=1; i<nDblCols; i++)
 	{
-		lineHpos = Math.floor(lineHpos + dHpos); // move horizontal position
-		drawColumn100Hlines(ctx, lineHpos, lineVpos, lineLength);
+		x = x + dx; // move horizontal position
+		drawColumn100Hlines(ctx, Math.floor(x), y, lineLength);
 	}
+	const h = columnSize.h; // height of the drawing
+	return {w, h};
+}
+
+function drawBox500(ctx, x, y) // 5 double columns each of 100 short horizontal tally marks, with extra vertical...
+{//...space between each group of 5 tally marks, and extra space halfway down, all enclosed in rectangular box
+	const rnWidth = stringWidthOnCanvas(ctx, "D");
+	const boxWidth = Math.floor(3.9 * rnWidth);
+	const boundingRectWidth = Math.floor(boxWidth - 2*boundaryThickness);
+	const columns500width = boundingRectWidth - 2*boundaryPadding;
+	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
+	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
+	const columnSize = drawColumns500Hlines(ctx, lineHpos, lineVpos, columns500width);
 	const boundingRectHeight = columnSize.h + 2*boundaryPadding; // same as for 100
+	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
+	const oldlw = ctx.lineWidth;
+	ctx.lineWidth = boundaryThickness;
+	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
+	ctx.lineWidth = oldlw; // restore lineWidth
+	ctx.strokeStyle = foregroundColor; // restore foreground color
+	const w = boxWidth;  // width of the drawing
+	const h = boundingRectHeight; // height of the drawing
+	return {w, h};
+}
+
+function drawBox1000(ctx, x, y) // 10 double columns each of 100 short horizontal tally marks, with extra vertical...
+{//...space between each group of 5 tally marks, and extra space halfway down, all enclosed in rectangular box
+	const rnWidth = stringWidthOnCanvas(ctx, "M");
+	const boxWidth = Math.floor(7.6 * rnWidth);
+	const boundingRectWidth = Math.floor(boxWidth - 2*boundaryThickness);
+	const columns1000width = boundingRectWidth - 2*boundaryPadding;
+	const columns500width = Math.floor((columns1000width - hSpaceBetween500s) / 2);
+	let lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
+	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
+	const columnSize1 = drawColumns500Hlines(ctx, lineHpos, lineVpos, columns500width);
+	lineHpos = lineHpos + columns500width + hSpaceBetween500s;
+	drawColumns500Hlines(ctx, lineHpos, lineVpos, columns500width);
+	const boundingRectHeight = columnSize1.h + 2*boundaryPadding; // same as for 100
 	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
