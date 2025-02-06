@@ -32,28 +32,83 @@ function initializeCanvas()
 
 function initializeNumber()
 {
-	inputNumber = 495;
-	romanNumeralsElement.textContent = "CCCCLXXXXV"; //emptySetSymbol;
+	inputNumber = 0; //3995;
+	romanNumeralsElement.textContent = emptySetSymbol; //"MMMDCCCCLXXXXV";
 	arabicNumeralsElement.textContent = inputNumber.toString();
 	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
 	let s = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
 	romanNumeralsWithSpacesElement.textContent = s;
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
 	initializeCanvas();
-	testCanvas();
-	//clearTally(); writeTally(inputNumber);
+	//testCanvas();
+	clearTally(); writeTally(inputNumber);
 }
 
-function roundedRect(ctx, x, y, width, height, radius) // draw rectangle with rounded corners
+const fpTolerance = 0.0001;
+function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclude) // draw rectangle with rounded corners
 { // based on https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes
+	let occlude = typeof widthOcclude !== "undefined" && typeof heightOcclude !== "undefined";
+	widthOcclude = typeof widthOcclude !== "undefined" ? widthOcclude : 0; // measuring from the corner closest to (0,0)
+	heightOcclude = typeof heightOcclude !== "undefined" ? heightOcclude : 0; // measuring from the corner closest to (0,0)
+	if (widthOcclude < 1 || heightOcclude < 1) occlude = false;
 	ctx.beginPath();
 	if (height < 2*radius) radius = height/2; // avoid arcs protruding outside
 	if (width < 2*radius) radius = width/2; // avoid arcs protruding outside
-	ctx.moveTo(x, y + radius);
-	ctx.arcTo(x, y + height, x + radius, y + height, radius);
-	ctx.arcTo(x + width, y + height, x + width, y + height - radius, radius);
-	ctx.arcTo(x + width, y, x + width - radius, y, radius);
-	ctx.arcTo(x, y, x, y + radius, radius);
+	const x0 = x + radius;
+	const x1 = x + width - radius;
+	const y0 = y + radius;
+	const y1 = y + height - radius;
+	const heightVisible = height - heightOcclude;
+	const widthVisible = width - widthOcclude;
+	const ys = occlude ? ((0 <= heightVisible-radius+fpTolerance) ? y+heightOcclude : y1): y0;
+	ctx.moveTo(x, y0);
+	if (ys-fpTolerance > y0) ctx.moveTo(x, ys);
+	if (ys < y1-fpTolerance) ctx.lineTo(x, y1); // 1st line
+	else ctx.moveTo(x, y1);
+	if (radius > fpTolerance && 0 <= heightVisible + fpTolerance)
+	{ // 1st rounded corner
+		let startAngle = Math.PI;
+		if (heightVisible - fpTolerance <= radius)
+		{
+			const s = (radius - heightVisible) / radius;
+			const c = Math.sqrt(1 - s*s);
+			if (widthOcclude + fpTolerance < radius*(1-c))
+				startAngle = Math.acos((radius - widthOcclude) / radius);
+			else startAngle = Math.asin(s);
+		}
+		ctx.arc(x0, y1, radius, startAngle, 0.5*Math.PI, true);
+	} else ctx.moveTo(x0, y + height);
+	if (occlude == false || fpTolerance < heightVisible)
+		ctx.lineTo(x1, y + height); // 2nd line
+	else ctx.moveTo(x1, y + height);
+	if (radius > fpTolerance && fpTolerance < widthVisible && fpTolerance < heightVisible)
+		ctx.arc(x1, y1, radius, 0.5*Math.PI, 0, true); // 2nd rounded corner
+	else
+		ctx.moveTo(x + width, y1);
+	if (occlude == false || fpTolerance < widthVisible)
+		ctx.lineTo(x + width, y0); // 3rd line
+	else ctx.moveTo(x + width, y0);
+	if (radius > fpTolerance && 0 <= widthVisible + fpTolerance)
+	{ // 3rd rounded corner
+		let endAngle = 1.5*Math.PI;
+		if (widthVisible - fpTolerance <= radius)
+		{
+			const c = (radius - widthVisible) / radius;
+			const s = Math.sqrt(1 - c*c);
+			if (heightOcclude + fpTolerance < radius*(1-s))
+				endAngle = Math.asin((radius - heightOcclude) / radius);
+			else endAngle = Math.acos(c);
+			endAngle = 2*Math.PI - endAngle;
+		}
+		ctx.arc(x1, y0, radius, 0, endAngle, true);
+	} else ctx.moveTo(x1, y);
+	const xf = occlude ? ((widthOcclude - fpTolerance <= width-radius) ? x+widthOcclude : x1): x0;
+	if (x1 > xf + fpTolerance) ctx.lineTo(xf, y); // 4th line
+	else ctx.moveTo(xf, y);
+	if (xf > x0 + fpTolerance) ctx.moveTo(x0, y);
+	if (occlude == false && radius > fpTolerance)
+		ctx.arc(x0, y0, radius, 1.5*Math.PI, Math.PI, true); // 4th rounded corner
+	else ctx.moveTo(x, y0);
 	ctx.stroke();
 }
 
@@ -138,7 +193,8 @@ function testCanvas()
 	hPos = hPos + sz.w;
 	sz = drawBox500(ctx, hPos, vPos);
 	hPos = hPos + sz.w;
-	sz = drawBox1000(ctx, hPos, vPos);
+	sz = drawBox1000(ctx, hPos, vPos, 10);
+	hPos = hPos + sz.w;
 }
 
 function stringWidthOnCanvas(ctx, s)
@@ -331,10 +387,14 @@ function drawBox500(ctx, x, y) // 5 double columns each of 100 short horizontal 
 	return {w, h};
 }
 
-function drawBox1000(ctx, x, y) // 10 double columns each of 100 short horizontal tally marks, with extra vertical...
+function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizontal tally marks, with extra vertical...
 {//...space between each group of 5 tally marks, and extra space halfway down, all enclosed in rectangular box
+	let w = 0;  // width of the drawing
+	let h = 0; // height of the drawing
+	n = typeof n !== "undefined" ? n : 1; // default value
+	if (n < 1) return {w, h};
 	const rnWidth = stringWidthOnCanvas(ctx, "M");
-	const boxWidth = Math.floor(7.6 * rnWidth);
+	const boxWidth = Math.floor(7.6 * rnWidth); // for 1 rectangular box of 1000 tally marks
 	const boundingRectWidth = Math.floor(boxWidth - 2*boundaryThickness);
 	const columns1000width = boundingRectWidth - 2*boundaryPadding;
 	const columns500width = Math.floor((columns1000width - hSpaceBetween500s) / 2);
@@ -343,15 +403,34 @@ function drawBox1000(ctx, x, y) // 10 double columns each of 100 short horizonta
 	const columnSize1 = drawColumns500Hlines(ctx, lineHpos, lineVpos, columns500width);
 	lineHpos = lineHpos + columns500width + hSpaceBetween500s;
 	drawColumns500Hlines(ctx, lineHpos, lineVpos, columns500width);
-	const boundingRectHeight = columnSize1.h + 2*boundaryPadding; // same as for 100
+	const boundingRectHeight = columnSize1.h + 2*boundaryPadding; // for 1 rectangular box of 1000 tally marks, same as for 100
 	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
 	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
+	// draw additional rectangular boxes looking like they are stacked under the one already drawn but a little offset
+	const hShift = boundaryPadding + boundaryThickness;
+	const vShift = boundaryPadding + boundaryThickness;
+	const widthOcclude = boundingRectWidth - hShift;
+	const heightOcclude = boundingRectHeight - vShift;
+	for (let i=1; i<n; i++)
+	{
+		if (i%5==0)
+		{ // extra offset between groups of 5
+			x = x + hShift + 1;
+			y = y + vShift + 1;
+		}
+		else
+		{
+			x = x + hShift;
+			y = y + vShift;
+		}
+		roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2, widthOcclude, heightOcclude);
+	}
 	ctx.lineWidth = oldlw; // restore lineWidth
 	ctx.strokeStyle = foregroundColor; // restore foreground color
-	const w = boxWidth;  // width of the drawing
-	const h = boundingRectHeight; // height of the drawing
+	w = boxWidth + n*hShift;  // width of the drawing
+	h = boundingRectHeight + n*vShift; // height of the drawing
 	return {w, h};
 }
 
@@ -383,49 +462,68 @@ function writeTally(n)
 	if (n === 0) return;
 	ctx.strokeStyle = foregroundColor;
 	ctx.lineWidth = tallyMarkThickness;
-	let sz;
 	let r = n % 5;
+	let dx = stringWidthOnCanvas(ctx, "I");
 	for (let i=0; i<r; i++)
 	{
-		sz = drawTallyMark(ctx, Math.floor(x), y);
-		x = x + sz.w;
+		drawTallyMark(ctx, x, y);
+		x = x + dx;
 	}
 	n = Math.floor(n / 5);
 	r = n % 2;
+	dx = stringWidthOnCanvas(ctx, "V");
 	if (r > 0)
 	{
-		sz = drawBox5(ctx, Math.floor(x), y);
+		drawBox5(ctx, x, y);
+		x = x + dx;
+	}
+	n = Math.floor(n / 2);
+	r = n % 5;
+	dx = stringWidthOnCanvas(ctx, "X");
+	for (let i=0; i<r; i++)
+	{
+		drawBox10(ctx, x, y);
+		x = x + dx;
+	}
+	n = Math.floor(n / 5);
+	r = n % 2;
+	dx = stringWidthOnCanvas(ctx, "L");
+	if (r > 0)
+	{
+		drawBox50(ctx, x, y);
+		x = x + dx;
+	}
+	n = Math.floor(n / 2);
+	r = n % 5;
+	dx = stringWidthOnCanvas(ctx, "C");
+	for (let i=0; i<r; i++)
+	{
+		drawBox100(ctx, x, y);
+		x = x + dx;
+	}
+	n = Math.floor(n / 5);
+	r = n % 2;
+	dx = stringWidthOnCanvas(ctx, "D");
+	let sz;
+	if (r > 0)
+	{
+		sz = drawBox500(ctx, x, y);
 		x = x + sz.w;
 	}
 	n = Math.floor(n / 2);
 	r = n % 5;
-	for (let i=0; i<r; i++)
+	if (r > 0)
 	{
-		sz = drawBox10(ctx, Math.floor(x), y);
+		sz = drawBox1000(ctx, x, y, r);
 		x = x + sz.w;
 	}
 	n = Math.floor(n / 5);
 	r = n % 2;
 	if (r > 0)
 	{
-		sz = drawBox50(ctx, Math.floor(x), y);
+		sz = drawBox1000(ctx, x, y, 10);
 		x = x + sz.w;
 	}
-	n = Math.floor(n / 2);
-	r = n % 5;
-	for (let i=0; i<r; i++)
-	{
-		sz = drawBox100(ctx, Math.floor(x), y);
-		x = x + sz.w;
-	}
-	n = Math.floor(n / 5);
-	r = n % 2;
-	if (r > 0)
-	{
-		sz = drawBox500(ctx, Math.floor(x), y);
-		x = x + sz.w;
-	}
-	n = Math.floor(n / 2);
 }
 
 const replacementPauseTime = 1000; // milliseconds
