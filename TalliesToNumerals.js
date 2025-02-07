@@ -1,4 +1,5 @@
 const largestNumberToDisplay = 4999;
+const smallestNumberToDisplay = 0;
 const emptySetSymbol = "\u2205"; // hex code for empty-set symbol in unicode
 
 const arabicNumeralsElement = document.getElementById("DisplayArabic");
@@ -30,18 +31,22 @@ function initializeCanvas()
 	ctx.translate(0.5, 0.5); // otherwise, for lineWidth=1, horizontal&vertical lines look a little thick and blurry
 }
 
-function initializeNumber()
+function setNumber(n)
 {
-	inputNumber = 0; //3995;
-	romanNumeralsElement.textContent = emptySetSymbol; //"MMMDCCCCLXXXXV";
-	arabicNumeralsElement.textContent = inputNumber.toString();
+	let newNumber = false;
+	if (typeof n !== "undefined")
+	{
+		newNumber = true;
+		inputNumber = n;
+		romanNumeralsElement.textContent = getRomanNumeralsAdditive(inputNumber);
+	}
+	arabicNumeralsElement.value = inputNumber.toString();
 	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
 	let s = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
 	romanNumeralsWithSpacesElement.textContent = s;
 	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
-	initializeCanvas();
-	//testCanvas();
-	clearTally(); writeTally(inputNumber);
+	if (newNumber) clearTally();
+	writeTally(inputNumber);
 }
 
 const fpTolerance = 0.0001;
@@ -553,6 +558,31 @@ function orderOfMagnitude(c)
 	return -1; // value to signify error
 }
 
+function getRomanNumeralsAdditive(n)
+{
+	if (typeof n === "undefined") n = inputNumber;
+	if (n === 0) return emptySetSymbol;
+	let a = [];
+	let r = n % 5;
+	for (let i=0; i<r; i++) a.push("I");
+	n = Math.floor(n / 5);
+	if (n % 2 > 0) a.push("V");
+	n = Math.floor(n / 2);
+	r = n % 5;
+	for (let i=0; i<r; i++) a.push("X");
+	n = Math.floor(n / 5);
+	if (n % 2 > 0) a.push("L");
+	n = Math.floor(n / 2);
+	r = n % 5;
+	for (let i=0; i<r; i++) a.push("C");
+	n = Math.floor(n / 5);
+	if (n % 2 > 0) a.push("D");
+	n = Math.floor(n / 2);
+	r = n % 5;
+	for (let i=0; i<r; i++) a.push("M");
+	return a.reverse().join('');
+}
+
 function removeLeadingWhiteSpace(s)
 {
 	while (s.length > 0 && s[0] === ' ')
@@ -700,7 +730,7 @@ async function incrementNumber()
 	if (inputNumber >= largestNumberToDisplay) return;
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(true);
-	arabicNumeralsElement.textContent = "";
+	arabicNumeralsElement.value = "";
 	arabicNumeralsWithSpacesElement.textContent = "";
 	romanNumeralsWithSpacesElement.textContent = "";
 	romanToArabicConnectorElement.textContent = "";
@@ -752,21 +782,16 @@ async function incrementNumber()
 	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
  	s = replaceLastChars(romanNumeralsElement.textContent, "DD", "M");
 	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
-	s = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
-	romanNumeralsWithSpacesElement.textContent = s;
-	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
-	arabicNumeralsElement.textContent = inputNumber.toString();
-	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
-	writeTally(inputNumber);
+	setNumber();
 	reenableButtons();
 }
 
 async function decrementNumber()
 {
-	if (inputNumber <= 0) return;
+	if (inputNumber <= smallestNumberToDisplay) return;
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(false);
-	arabicNumeralsElement.textContent = "";
+	arabicNumeralsElement.value = "";
 	romanNumeralsWithSpacesElement.textContent = "";
 	romanToArabicConnectorElement.textContent = "";
 	arabicNumeralsWithSpacesElement.textContent = "";
@@ -778,7 +803,7 @@ async function decrementNumber()
 		romanNumeralsElement.textContent = emptySetSymbol;
 		romanNumeralsWithSpacesElement.textContent = emptySetSymbol;
 		romanToArabicConnectorElement.textContent = "";
-		arabicNumeralsElement.textContent = inputNumber.toString();
+		arabicNumeralsElement.value = inputNumber.toString();
 		arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
 		reenableButtons();
 		return;
@@ -827,13 +852,36 @@ async function decrementNumber()
 	}
 	s = romanNumeralsElement.textContent;
 	romanNumeralsElement.textContent = s.substring(0,s.length-1);
-	s = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
-	romanNumeralsWithSpacesElement.textContent = s;
-	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
-	arabicNumeralsElement.textContent = inputNumber.toString();
-	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
-	writeTally(inputNumber);
+	setNumber();
 	reenableButtons();
 }
 
-initializeNumber();
+function processNumberArabic()
+{
+	const s = arabicNumeralsElement.value;
+	const s0 = s.replace(/\s+/g, ''); // remove all whitespace
+	const m = s0.match(/[^0-9]/); // check for invalid input
+	if (m) inputNumber = smallestNumberToDisplay;
+	else
+	{
+		const m0 = s0.match(/\d+/);
+		if (m0) // use reg.expr. to match and extract the value
+		{
+			const r = parseInt(m0[0]);
+			if (r < smallestNumberToDisplay)
+				inputNumber = smallestNumberToDisplay;
+			else if (largestNumberToDisplay < r)
+				inputNumber = largestNumberToDisplay;
+			else inputNumber = r;
+		} else inputNumber = smallestNumberToDisplay;
+	}
+	setNumber(inputNumber);
+}
+
+initializeCanvas();
+//testCanvas();
+setNumber(0);
+//the code to bind keyup listener to input text element is based on example from
+//https://blog.devgenius.io/how-to-detect-the-pressing-of-the-enter-key-in-a-text-input-field-with-javascript-380fb2be2b9e
+arabicNumeralsElement.addEventListener("keyup",
+	(event) => {if (event.keyCode === 13) processNumberArabic();});
