@@ -19,10 +19,6 @@
             --component-font-size: 26px;
             --component-font-family: "Courier New";
 		}
-		.RomanDisplays {
-			width: var(--component-width);
-            float: left; /* Float the label to the left */
-		}
         /* Container for buttons (float them to the right) */
         .buttons {
 			width: 30px;
@@ -30,8 +26,7 @@
             margin-left: 0px; /* Adds space between the text box and buttons */
         }
         /* Style for roman numerals text display box */
-        #DisplayRoman, #DisplayRomanWithSpaces, #ConnectRomanToArabic,
-			#DisplayArabicWithSpaces, #DisplayArabic {
+        #DisplayRoman, #ConnectRomanToArabic, #DisplayArabic {
             float: left; /* Float the label to the left */
             width: var(--component-width);
             height: 30px;
@@ -85,13 +80,8 @@
 <body>
 	<div class="container">
 		<input type="text" id="DisplayArabic" maxlength="10"/>
-		<textarea id="DisplayArabicWithSpaces" readonly></textarea>
-		<textarea id="ConnectRomanToArabic" readonly></textarea>
-		<!-- Text display boxes -->
-		<div class="RomanDisplays">
-			<textarea id="DisplayRomanWithSpaces" readonly></textarea>
-			<textarea id="DisplayRoman" readonly></textarea>
-		</div>
+		<canvas id="ConnectRomanToArabic"></canvas>
+		<textarea id="DisplayRoman" readonly></textarea>
 		<!-- Buttons placed to the right using float -->
 		<div class="buttons">
 			<button id="incrementButton" onclick=incrementNumber()>+</button>

@@ -3,10 +3,8 @@ const smallestNumberToDisplay = 0;
 const emptySetSymbol = "\u2205"; // hex code for empty-set symbol in unicode
 
 const arabicNumeralsElement = document.getElementById("DisplayArabic");
-const arabicNumeralsWithSpacesElement = document.getElementById("DisplayArabicWithSpaces");
-const romanToArabicConnectorElement = document.getElementById("ConnectRomanToArabic");
+const romanToArabicConnectorCanvas = document.getElementById("ConnectRomanToArabic");
 const romanNumeralsElement = document.getElementById("DisplayRoman");
-const romanNumeralsWithSpacesElement = document.getElementById("DisplayRomanWithSpaces");
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 const tallyCanvas = document.getElementById("tallies");
@@ -14,21 +12,33 @@ const tallyCanvas = document.getElementById("tallies");
 let inputNumber = 0;
 let incrementOrDecrementExecuting = false;
 
-function initializeCanvas()
+function initializeCanvas(cv)
 {
-	if (tallyCanvas.getContext == null)
+	if (cv.getContext == null)
 		return;
-	const ctx = tallyCanvas.getContext("2d");
-	const rect = tallyCanvas.getBoundingClientRect();
-	tallyCanvas.width = rect.width; // otherwise canvas width&height can be some arbitrary (possibly wrong) values
-	tallyCanvas.height = rect.height; //...and supposedly thin vertical lines look thick & shorter than horizontal lines supposedly of the same length
+	const ctx = cv.getContext("2d");
+	const rect = cv.getBoundingClientRect();
+	cv.width = rect.width; // otherwise canvas width&height can be some arbitrary (possibly wrong) values
+	cv.height = rect.height; //...and supposedly thin vertical lines look thick & shorter than horizontal lines supposedly of the same length
 	// the above problem&solution are discussed on https://stackoverflow.com/questions/35331128/incorrect-canvas-width-value
-    const style = getComputedStyle(tallyCanvas);
+    const style = getComputedStyle(cv);
 	ctx.font = style.fontSize + " " + style.fontFamily; // otherwise font is some arbitrary default
 	// the above solution is from code posted in https://stackoverflow.com/questions/59666877/how-to-use-in-a-canvas-a-text-element-with-a-font-described-in-css
 	// (fragment from function getFontStyle())
-	ctx.translate(tallyCanvas.width, 0); ctx.scale(-1, 1); // put grid origin at top-right corner
+	ctx.translate(cv.width, 0); ctx.scale(-1, 1); // put grid origin at top-right corner
 	ctx.translate(0.5, 0.5); // otherwise, for lineWidth=1, horizontal&vertical lines look a little thick and blurry
+}
+
+function clearCanvas(cv)
+{
+	if (cv.getContext == null) return;
+	const ctx = cv.getContext("2d");
+	const canvasStyle = getComputedStyle(cv);
+	const backgroundColor = canvasStyle.backgroundColor;
+	const oldFillStyle = ctx.fillStyle;
+	ctx.fillStyle = backgroundColor;
+	ctx.fillRect(-0.5, -0.5, cv.width, cv.height); // clear the canvas
+	ctx.fillStyle = oldFillStyle; // undo the change to the canvas context
 }
 
 function setNumber(n)
@@ -38,18 +48,23 @@ function setNumber(n)
 	{
 		newNumber = true;
 		inputNumber = n;
-		romanNumeralsElement.textContent = getRomanNumeralsAdditive(inputNumber);
+		romanNumeralsElement.textContent = convertToRomanNumeralsAdditive(inputNumber);
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
-	arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
-	let s = insertSpacesInRomanNumerals(romanNumeralsElement.textContent);
-	romanNumeralsWithSpacesElement.textContent = s;
-	romanToArabicConnectorElement.textContent = romanToArabicConnector(s);
-	if (newNumber) clearTally();
+	if (newNumber)
+	{
+		clearCanvas(tallyCanvas);
+		clearCanvas(romanToArabicConnectorCanvas);
+	}
+	connectRomanToArabic();
 	writeTally(inputNumber);
 }
 
 const fpTolerance = 0.0001;
+function fpEqual(a, b, tol) {return (a < b + tol && b < a + tol);}
+function fpLess(a, b, tol) {return (a + tol < b);}
+function fpLessEq(a, b, tol) {return !fpLess(b, a, tol);}
+
 function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclude) // draw rectangle with rounded corners
 { // based on https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes
 	let occlude = typeof widthOcclude !== "undefined" && typeof heightOcclude !== "undefined";
@@ -57,61 +72,61 @@ function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclu
 	heightOcclude = typeof heightOcclude !== "undefined" ? heightOcclude : 0; // measuring from the corner closest to (0,0)
 	if (widthOcclude < 1 || heightOcclude < 1) occlude = false;
 	ctx.beginPath();
-	if (height < 2*radius) radius = height/2; // avoid arcs protruding outside
-	if (width < 2*radius) radius = width/2; // avoid arcs protruding outside
+	if (fpLess(height, 2*radius, fpTolerance)) radius = height/2; // avoid arcs protruding outside
+	if (fpLess(width, 2*radius, fpTolerance)) radius = width/2; // avoid arcs protruding outside
 	const x0 = x + radius;
 	const x1 = x + width - radius;
 	const y0 = y + radius;
 	const y1 = y + height - radius;
 	const heightVisible = height - heightOcclude;
 	const widthVisible = width - widthOcclude;
-	const ys = occlude ? ((0 <= heightVisible-radius+fpTolerance) ? y+heightOcclude : y1): y0;
+	const ys = occlude ? (fpLessEq(radius, heightVisible, fpTolerance) ? y+heightOcclude : y1): y0;
 	ctx.moveTo(x, y0);
-	if (ys-fpTolerance > y0) ctx.moveTo(x, ys);
-	if (ys < y1-fpTolerance) ctx.lineTo(x, y1); // 1st line
+	if (fpLess(y0, ys, fpTolerance)) ctx.moveTo(x, ys);
+	if (fpLess(ys, y1, fpTolerance)) ctx.lineTo(x, y1); // 1st line
 	else ctx.moveTo(x, y1);
-	if (radius > fpTolerance && 0 <= heightVisible + fpTolerance)
+	if (fpLess(0, radius, fpTolerance) && fpLess(0, heightVisible, fpTolerance))
 	{ // 1st rounded corner
 		let startAngle = Math.PI;
 		if (heightVisible - fpTolerance <= radius)
 		{
 			const s = (radius - heightVisible) / radius;
 			const c = Math.sqrt(1 - s*s);
-			if (widthOcclude + fpTolerance < radius*(1-c))
+			if (fpLess(widthOcclude, radius*(1-c), fpTolerance))
 				startAngle = Math.acos((radius - widthOcclude) / radius);
 			else startAngle = Math.asin(s);
 		}
 		ctx.arc(x0, y1, radius, startAngle, 0.5*Math.PI, true);
 	} else ctx.moveTo(x0, y + height);
-	if (occlude == false || fpTolerance < heightVisible)
+	if (occlude == false || fpLess(0, heightVisible, fpTolerance))
 		ctx.lineTo(x1, y + height); // 2nd line
 	else ctx.moveTo(x1, y + height);
-	if (radius > fpTolerance && fpTolerance < widthVisible && fpTolerance < heightVisible)
+	if (fpLess(0, radius, fpTolerance) && fpLess(0, widthVisible, fpTolerance) && fpLess(0, heightVisible, fpTolerance))
 		ctx.arc(x1, y1, radius, 0.5*Math.PI, 0, true); // 2nd rounded corner
 	else
 		ctx.moveTo(x + width, y1);
-	if (occlude == false || fpTolerance < widthVisible)
+	if (occlude == false || fpLess(0, widthVisible, fpTolerance))
 		ctx.lineTo(x + width, y0); // 3rd line
 	else ctx.moveTo(x + width, y0);
-	if (radius > fpTolerance && 0 <= widthVisible + fpTolerance)
+	if (fpLess(0, radius, fpTolerance) && fpLess(0, widthVisible, fpTolerance))
 	{ // 3rd rounded corner
 		let endAngle = 1.5*Math.PI;
-		if (widthVisible - fpTolerance <= radius)
+		if (fpLessEq(widthVisible, radius, fpTolerance))
 		{
 			const c = (radius - widthVisible) / radius;
 			const s = Math.sqrt(1 - c*c);
-			if (heightOcclude + fpTolerance < radius*(1-s))
+			if (fpLess(heightOcclude, radius*(1-s), fpTolerance))
 				endAngle = Math.asin((radius - heightOcclude) / radius);
 			else endAngle = Math.acos(c);
 			endAngle = 2*Math.PI - endAngle;
 		}
 		ctx.arc(x1, y0, radius, 0, endAngle, true);
 	} else ctx.moveTo(x1, y);
-	const xf = occlude ? ((widthOcclude - fpTolerance <= width-radius) ? x+widthOcclude : x1): x0;
-	if (x1 > xf + fpTolerance) ctx.lineTo(xf, y); // 4th line
+	const xf = occlude ? (fpLessEq(radius, widthVisible, fpTolerance) ? x+widthOcclude : x1): x0;
+	if (fpLess(xf, x1, fpTolerance)) ctx.lineTo(xf, y); // 4th line
 	else ctx.moveTo(xf, y);
-	if (xf > x0 + fpTolerance) ctx.moveTo(x0, y);
-	if (occlude == false && radius > fpTolerance)
+	if (fpLess(x0, xf, fpTolerance)) ctx.moveTo(x0, y);
+	if (occlude == false && fpLess(0, radius, fpTolerance))
 		ctx.arc(x0, y0, radius, 1.5*Math.PI, Math.PI, true); // 4th rounded corner
 	else ctx.moveTo(x, y0);
 	ctx.stroke();
@@ -171,18 +186,67 @@ function extractRGBValues(rgbString) // code obtained from generative AI in Goog
 	return null; // Invalid rgb string
 }
 
+const braceArcRadius = 4; // radius of each arc of a long brace
+function drawHorizontalBraceUp(ctx, x, y, l)
+{
+	let r = braceArcRadius;
+	if (2*r > l + fpTolerance) r = Math.floor(l/2);
+	y = Math.floor(y);
+	saveLineWidth = ctx.lineWidth;
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	ctx.arc(x + r, y, r, Math.PI, 1.5*Math.PI, false);
+	ctx.lineTo(x + l - r, y - r);
+	ctx.arc(x + l - r, y, r, 1.5*Math.PI, 0, false);
+	ctx.stroke();
+	ctx.lineWidth = saveLineWidth;
+}
+
+const arrowTipLength = 5;
+const arrowTipWidth = 3;
+function drawArrow(ctx, xi, yi, xf, yf) // from (xi,yi) to (xf,yf)
+{//with simple arrow-tip: two short straight lines converging on (xf,yf)
+	if (fpEqual(yi, yf, fpTolerance))
+	{//make vertical line look crisp
+		yi = Math.floor(yi);
+		yf = Math.floor(yf);
+	}
+	if (fpEqual(xi, xf, fpTolerance))
+	{//make horizontal line look crisp
+		xi = Math.floor(xi);
+		xf = Math.floor(xf);
+	}
+	const dx = xf - xi;
+	const dy = yf - yi;
+	const l = Math.sqrt(dy**2 + dx**2); // arrow total length
+	if (fpLess(0, l, fpTolerance)==false) return; // 0-length arrow
+	const atl = fpLess(l, arrowTipLength, fpTolerance) ? l/2 : arrowTipLength; // arrow-tip cannot be longer than arrow
+	const w = atl/l; // scaled down distance of (xm,ym) from (xf,yf)
+	const w1 = 1 - w;
+	const xm = xf*w1 + xi*w; //(xm,ym) is midway between the flaring endpoints of the two short lines of the arrow-tip
+	const ym = yf*w1 + yi*w;
+	const u = 0.5*arrowTipWidth/l; // scaled down distance of (x1,y1) and of (x2,y2) from (xm,ym)
+	const udy = u*dy; // horizontal component of displacement from (xm,ym) to (x1,y1)
+	const udx = u*dx; // vertical component of displacement from (x1,y1) to (xm,ym)
+	const x1 = xm + udy; // (x1,y1) and (x2,y2) are the flaring endpoints of the two short lines of the arrow-tip
+	const y1 = ym - udx;
+	const x2 = xm - udy; // (x1,y1) - (xm,ym) = (xm,ym) - (x2,y2)
+	const y2 = ym + udx;
+	ctx.beginPath();
+	ctx.moveTo(xi, yi);
+	ctx.lineTo(xf, yf);
+	ctx.lineTo(x1, y1);
+	ctx.moveTo(x2, y2);
+	ctx.lineTo(xf, yf);
+	ctx.stroke();
+}
+
 function testCanvas()
 {
 	if (tallyCanvas.getContext == null)
 		return;
-	const ctx = tallyCanvas.getContext("2d");
-	const canvasStyle = getComputedStyle(tallyCanvas);
-	const backgroundColor = canvasStyle.backgroundColor;
-	const foregroundColor = canvasStyle.color;
-	ctx.fillStyle = backgroundColor;
-	ctx.fillRect(-0.5, -0.5, tallyCanvas.width, tallyCanvas.height); // clear the canvas
-	ctx.fillStyle = foregroundColor;
-	ctx.strokeStyle = foregroundColor;
+	let ctx = tallyCanvas.getContext("2d");
 	ctx.lineWidth = 1;
 	let hPos = 1;
 	let vPos = 1;
@@ -200,6 +264,20 @@ function testCanvas()
 	hPos = hPos + sz.w;
 	sz = drawBox1000(ctx, hPos, vPos, 10);
 	hPos = hPos + sz.w;
+
+	if (romanToArabicConnectorCanvas.getContext == null)
+		return;
+	ctx = romanToArabicConnectorCanvas.getContext("2d");
+	ctx.lineWidth = 1;
+	hPos = 0;
+	vPos = romanToArabicConnectorCanvas.height;
+	const oldlw = ctx.lineWidth;
+	ctx.lineWidth = 1;
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
+	drawHorizontalBraceUp(ctx, hPos, vPos, 60);
+	drawArrow(ctx, 30, vPos-braceArcRadius, 5, 1);
+	ctx.lineWidth = oldlw;
+	ctx.strokeStyle = foregroundColor; // restore foreground color
 }
 
 function stringWidthOnCanvas(ctx, s)
@@ -219,8 +297,9 @@ function drawTallyMark(ctx, x, y)
 
 function weightedAverageTruncated(a, b, w) {return Math.floor((1-w)*a + w*b);}
 const foregroundWeightBoxBoundary = 0.3;
+const foregroundWeightConnector = 0.3;
 
-function setBoxBoundaryColor(ctx, foregroundWeight)
+function setIntermediateColor(ctx, foregroundWeight)
 {
 	const canvasStyle = getComputedStyle(tallyCanvas);
 	const backgroundColor = canvasStyle.backgroundColor;
@@ -256,7 +335,7 @@ function drawBox5(ctx, x, y)
 	const lineVpos = y + boundaryPadding + boundaryThickness;
 	const columnHeight = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
 	const boundingRectHeight = columnHeight + 2*boundaryPadding + boundaryThickness;
-	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
 	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
@@ -278,7 +357,7 @@ function drawBox10(ctx, x, y)
 	lineVpos = lineVpos + columnHeight1 + vSpaceBetween5s; // then space underneath,
 	const columnHeight2 = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // then another column of five horizontal
 	const boundingRectHeight = columnHeight1 + columnHeight2 + vSpaceBetween5s + 2*boundaryPadding + boundaryThickness;
-	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
 	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
@@ -314,7 +393,7 @@ function drawBox50(ctx, x, y) // column of 25 short horizontal tally marks on th
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
 	const columnSize = drawColumn50Hlines(ctx, lineHpos, lineVpos, lineLength);
 	const boundingRectHeight = columnSize.h + 2*boundaryPadding + boundaryThickness;
-	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
 	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
@@ -344,7 +423,7 @@ function drawBox100(ctx, x, y) // column of 50 short horizontal tally marks on t
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
 	const columnSize = drawColumn100Hlines(ctx, lineHpos, lineVpos, lineLength);
 	const boundingRectHeight = columnSize.h + 2*boundaryPadding;
-	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
 	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
@@ -381,7 +460,7 @@ function drawBox500(ctx, x, y) // 5 double columns each of 100 short horizontal 
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
 	const columnSize = drawColumns500Hlines(ctx, lineHpos, lineVpos, columns500width);
 	const boundingRectHeight = columnSize.h + 2*boundaryPadding; // same as for 100
-	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
 	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
@@ -409,7 +488,7 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	lineHpos = lineHpos + columns500width + hSpaceBetween500s;
 	drawColumns500Hlines(ctx, lineHpos, lineVpos, columns500width);
 	const boundingRectHeight = columnSize1.h + 2*boundaryPadding; // for 1 rectangular box of 1000 tally marks, same as for 100
-	const foregroundColor = setBoxBoundaryColor(ctx, foregroundWeightBoxBoundary);
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
 	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
@@ -439,18 +518,6 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	return {w, h};
 }
 
-function clearTally()
-{
-	if (tallyCanvas.getContext == null) return;
-	const ctx = tallyCanvas.getContext("2d");
-	const canvasStyle = getComputedStyle(tallyCanvas);
-	const backgroundColor = canvasStyle.backgroundColor;
-	const oldFillStyle = ctx.fillStyle;
-	ctx.fillStyle = backgroundColor;
-	ctx.fillRect(-0.5, -0.5, tallyCanvas.width, tallyCanvas.height); // clear the canvas
-	ctx.fillStyle = oldFillStyle; // undo the change to the canvas context
-}
-
 function writeTally(n)
 {
 	if (tallyCanvas.getContext == null)
@@ -464,7 +531,7 @@ function writeTally(n)
 	const foregroundColor = canvasStyle.color;
 	let x = hOffset;
 	let y = vOffset;
-	if (n === 0) return;
+	if (n < smallestNumberToDisplay || n===0) return;
 	ctx.strokeStyle = foregroundColor;
 	ctx.lineWidth = tallyMarkThickness;
 	let r = n % 5;
@@ -558,7 +625,7 @@ function orderOfMagnitude(c)
 	return -1; // value to signify error
 }
 
-function getRomanNumeralsAdditive(n)
+function convertToRomanNumeralsAdditive(n)
 {
 	if (typeof n === "undefined") n = inputNumber;
 	if (n === 0) return emptySetSymbol;
@@ -597,66 +664,17 @@ function removeTrailingWhiteSpace(s)
 	return s;
 }
 
-function insertSpacesInRomanNumerals(s)
+function connectRomanToArabic()
 {
-	s = removeLeadingWhiteSpace(s);
-	s = removeTrailingWhiteSpace(s);
-	if (s.length < 1) return "";
-	if (s === emptySetSymbol) return emptySetSymbol;
-	let r = "";
-	for (let i=0; i<s.length; i++)
-	{
-		let c = s[i];
-		r += c; // copy each numeral
-		let oc = orderOfMagnitude(c);
-		let on = orderOfMagnitude(s.substring(i+1));
-		let od = oc - on;
-		while (od > 1) // and check whether to insert
-		{ // spaces for lower orders of magnitude
-			r += " ";
-			od--;
-		}
-	}
-	return r;
-}
-
-function insertSpacesInArabicNumerals(s)
-{
-	s = removeLeadingWhiteSpace(s);
-	s = removeTrailingWhiteSpace(s);
-	if (s.length < 1) return "";
-	let r = "";
-	for (let i=0; i<s.length; i++)
-	{
-		let c = s[i];
-		r += c; // copy each numeral
-		if (i+1 < s.length)
-		{
-			switch(Number(s[i+1]))
-			{
-				case 2:
-				case 6: r += "\u2194"; break; // left-right arrow
-				case 3:
-				case 7: r += "\u2190\u2192"; break; // left arrow, right arrow
-				case 4:
-				case 8: r += "\u2190\u2014\u2192"; break; // left arrow, horizontal line, right arrow
-				case 9: r += "\u2190\u2014\u2014\u2192"; break;
-			}
-		}
-	}
-	return r;
-}
-
-function romanToArabicConnector(s)
-{
+	return ""; // stub for now
+	const s = romanNumeralsElement.textContent;
 	if (s.length < 1) return "";
 	if (s === emptySetSymbol) return "";
-	let r = "";
-	for (let i=0; i<s.length; i++)
+	for (let i=s.length-1; i>=0; i--)
 	{
 		let c = s[i];
 		if (c === " ")
-			r += c; // copy space
+			;
 		else
 		{
 			let oc = orderOfMagnitude(c);
@@ -696,10 +714,8 @@ function disableButtons(incrementButtonPressed)
 	incrementButton.style.cursor = 'progress';
 	decrementButton.style.cursor = 'progress';
 	arabicNumeralsElement.style.cursor = 'progress';
-	arabicNumeralsWithSpacesElement.style.cursor = 'progress';
-	romanToArabicConnectorElement.style.cursor = 'progress';
+	romanToArabicConnectorCanvas.style.cursor = 'progress';
 	romanNumeralsElement.style.cursor = 'progress';
-	romanNumeralsWithSpacesElement.style.cursor = 'progress';
 }
 
 function reenableButtons()
@@ -719,10 +735,8 @@ function reenableButtons()
 	incrementButton.style.cursor = 'default';
 	decrementButton.style.cursor = 'default';
 	arabicNumeralsElement.style.cursor = 'default';
-	arabicNumeralsWithSpacesElement.style.cursor = 'default';
-	romanToArabicConnectorElement.style.cursor = 'default';
+	romanToArabicConnectorCanvas.style.cursor = 'default';
 	romanNumeralsElement.style.cursor = 'default';
-	romanNumeralsWithSpacesElement.style.cursor = 'default';
 }
 
 async function incrementNumber()
@@ -731,10 +745,8 @@ async function incrementNumber()
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(true);
 	arabicNumeralsElement.value = "";
-	arabicNumeralsWithSpacesElement.textContent = "";
-	romanNumeralsWithSpacesElement.textContent = "";
-	romanToArabicConnectorElement.textContent = "";
-	clearTally();
+	clearCanvas(romanToArabicConnectorCanvas);
+	clearCanvas(tallyCanvas);
 	await pause(minimumPauseTime);
 	if (inputNumber == 0)
 		romanNumeralsElement.textContent = "";
@@ -767,7 +779,7 @@ async function incrementNumber()
 	s = replaceLastChars(romanNumeralsElement.textContent, "XXXXX", "L");
 	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
  	s = replaceLastChars(romanNumeralsElement.textContent, "LL", "\u0393L"); // \u0393 = capital letter gamma
-	if (s != null)
+ 	if (s != null)
 	{ // LL -> C multistep text-character-based animation
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
 		romanNumeralsElement.textContent = s;
@@ -792,19 +804,14 @@ async function decrementNumber()
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(false);
 	arabicNumeralsElement.value = "";
-	romanNumeralsWithSpacesElement.textContent = "";
-	romanToArabicConnectorElement.textContent = "";
-	arabicNumeralsWithSpacesElement.textContent = "";
-	clearTally();
+	clearCanvas(romanToArabicConnectorCanvas);
+	clearCanvas(tallyCanvas);
 	await pause(minimumPauseTime);
 	inputNumber--;
 	if (inputNumber == 0)
 	{
 		romanNumeralsElement.textContent = emptySetSymbol;
-		romanNumeralsWithSpacesElement.textContent = emptySetSymbol;
-		romanToArabicConnectorElement.textContent = "";
 		arabicNumeralsElement.value = inputNumber.toString();
-		arabicNumeralsWithSpacesElement.textContent = insertSpacesInArabicNumerals(inputNumber.toString());
 		reenableButtons();
 		return;
 	}
@@ -878,9 +885,10 @@ function processNumberArabic()
 	setNumber(inputNumber);
 }
 
-initializeCanvas();
-//testCanvas();
-setNumber(0);
+initializeCanvas(tallyCanvas);
+initializeCanvas(romanToArabicConnectorCanvas);
+testCanvas();
+//setNumber(0);
 //the code to bind keyup listener to input text element is based on example from
 //https://blog.devgenius.io/how-to-detect-the-pressing-of-the-enter-key-in-a-text-input-field-with-javascript-380fb2be2b9e
 arabicNumeralsElement.addEventListener("keyup",
