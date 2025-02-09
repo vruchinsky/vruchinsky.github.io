@@ -187,7 +187,7 @@ function extractRGBValues(rgbString) // code obtained from generative AI in Goog
 }
 
 const braceArcRadius = 4; // radius of each arc of a long brace
-function drawHorizontalBraceUp(ctx, x, y, l)
+function drawHorizontalBrace(ctx, x, y, l, up)
 {
 	let r = braceArcRadius;
 	if (2*r > l + fpTolerance) r = Math.floor(l/2);
@@ -196,17 +196,41 @@ function drawHorizontalBraceUp(ctx, x, y, l)
 	ctx.lineWidth = 1;
 	ctx.beginPath();
 	ctx.moveTo(x, y);
-	ctx.arc(x + r, y, r, Math.PI, 1.5*Math.PI, false);
-	ctx.lineTo(x + l - r, y - r);
-	ctx.arc(x + l - r, y, r, 1.5*Math.PI, 0, false);
+	ctx.arc(x + r, y, r, Math.PI, (up ? 1.5 : 0.5) * Math.PI, !up);
+	ctx.lineTo(x + l - r, up ? y - r : y + r);
+	ctx.arc(x + l - r, y, r, (up ? 1.5 : 0.5) * Math.PI, 0, !up);
 	ctx.stroke();
 	ctx.lineWidth = saveLineWidth;
 }
 
-const arrowTipLength = 5;
-const arrowTipWidth = 3;
-function drawArrow(ctx, xi, yi, xf, yf) // from (xi,yi) to (xf,yf)
-{//with simple arrow-tip: two short straight lines converging on (xf,yf)
+const arrowHeadLength = 5;
+const arrowHeadWidth = 3;
+function drawArrow(ctx, xi, yi, xf, yf) // from (Xi,Yi) to (Xf,Yf)
+{//with simple arrow-tip: two short straight lines converging on (Xf,Yf)
+
+// (Xm,Ym) is midway between (X1,Y1) and (X2,Y2)            (X2,Y2) o
+// the distance from (Xf,Yf) to (Xm,Ym) is arrowHeadLength            \
+// the distance from (X1,Y1) and (X2,Y2) is arrowHeadWidth             \
+// the line segment from (X1,Y1) to (X2,Y2) is perpendicular...        \
+// ...to the line segment from (Xi,Yi) to (Xf,Yf)                       \
+//                                                                       \
+//                                                                        \
+//                                                                         \
+//                                                                          \
+//                                                                           \
+// (Xi,Yi)                                                       (Xm,Ym)      \
+//    o-------------------------------------------------------------o----------> (Xf,Yf)
+//                                                                            /
+//                                                                           /
+//                                                                          /
+//                                                                         /
+//                                                                        /
+//                                                                       /
+//                                                                      /
+//                                                                     /
+//                                                                    /
+//                                                                   /
+//                                                          (X1,Y1) o
 	if (fpEqual(yi, yf, fpTolerance))
 	{//make vertical line look crisp
 		yi = Math.floor(yi);
@@ -221,17 +245,17 @@ function drawArrow(ctx, xi, yi, xf, yf) // from (xi,yi) to (xf,yf)
 	const dy = yf - yi;
 	const l = Math.sqrt(dy**2 + dx**2); // arrow total length
 	if (fpLess(0, l, fpTolerance)==false) return; // 0-length arrow
-	const atl = fpLess(l, arrowTipLength, fpTolerance) ? l/2 : arrowTipLength; // arrow-tip cannot be longer than arrow
-	const w = atl/l; // scaled down distance of (xm,ym) from (xf,yf)
+	const ahl = fpLess(l, arrowHeadLength, fpTolerance) ? l/2 : arrowHeadLength; // arrow-head cannot be longer than arrow
+	const w = ahl/l; // scaled down distance of (Xm,Ym) from (Xf,Yf)
 	const w1 = 1 - w;
-	const xm = xf*w1 + xi*w; //(xm,ym) is midway between the flaring endpoints of the two short lines of the arrow-tip
+	const xm = xf*w1 + xi*w; //(Xm,Ym)
 	const ym = yf*w1 + yi*w;
-	const u = 0.5*arrowTipWidth/l; // scaled down distance of (x1,y1) and of (x2,y2) from (xm,ym)
-	const udy = u*dy; // horizontal component of displacement from (xm,ym) to (x1,y1)
-	const udx = u*dx; // vertical component of displacement from (x1,y1) to (xm,ym)
-	const x1 = xm + udy; // (x1,y1) and (x2,y2) are the flaring endpoints of the two short lines of the arrow-tip
+	const u = 0.5*arrowHeadWidth/l; // scaled down distance of (X1,Y1) and of (X2,Y2) from (Xm,Ym)
+	const udy = u*dy; // horizontal component of displacement from (Xm,Ym) to (X1,Y1)
+	const udx = u*dx; // vertical component of displacement from (X1,Y1) to (Xm,Ym)
+	const x1 = xm + udy;
 	const y1 = ym - udx;
-	const x2 = xm - udy; // (x1,y1) - (xm,ym) = (xm,ym) - (x2,y2)
+	const x2 = xm - udy; // (X1,Y1) - (Xm,Ym) = (Xm,Ym) - (X2,Y2)
 	const y2 = ym + udx;
 	ctx.beginPath();
 	ctx.moveTo(xi, yi);
@@ -264,7 +288,6 @@ function testCanvas()
 	hPos = hPos + sz.w;
 	sz = drawBox1000(ctx, hPos, vPos, 10);
 	hPos = hPos + sz.w;
-
 	if (romanToArabicConnectorCanvas.getContext == null)
 		return;
 	ctx = romanToArabicConnectorCanvas.getContext("2d");
@@ -274,8 +297,9 @@ function testCanvas()
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = 1;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
-	drawHorizontalBraceUp(ctx, hPos, vPos, 60);
+	drawHorizontalBrace(ctx, hPos, vPos, 60, true);
 	drawArrow(ctx, 30, vPos-braceArcRadius, 5, 1);
+	drawHorizontalBrace(ctx, 70, 1, 60, false);
 	ctx.lineWidth = oldlw;
 	ctx.strokeStyle = foregroundColor; // restore foreground color
 }
@@ -664,25 +688,83 @@ function removeTrailingWhiteSpace(s)
 	return s;
 }
 
+function drawConnectorForOrderOfMagnitude(ctx, cvHeight, anHeight, OoM, start, end, rn, an)
+{
+	if (start < 0) return;
+	if (start > end) return;
+	if (end >= rn.length) return;
+	if (OoM < 1) return;
+	if (OoM > an.length) return;
+	const toY = 1;
+	const fromY = cvHeight - braceArcRadius;
+	let fromX, fromX1, fromX2, toX, toX1, toX2, toXm, dx, fromI;
+	toX1 = (OoM>1) ? stringWidthOnCanvas(ctx, an.substring(an.length-OoM+1)) : 0;
+	toX2 = stringWidthOnCanvas(ctx, an.substring(an.length-OoM));
+	toXd = toX2 - toX1;
+	toXm = (toX1 + toX2) / 2;
+	fromX1 = (end<rn.length-1) ? stringWidthOnCanvas(ctx, rn.substring(end+1)) : 0;
+	fromX2 = stringWidthOnCanvas(ctx, rn.substring(start));
+	fromXd = fromX2 - fromX1;
+	fromXm = (fromX1 + fromX2) / 2;
+	fromI = rn.length - ((start + end) / 2);
+	toX = (OoM>fromI+1) ? toX1 : ((fromI>OoM+1) ? toX2 : toXm);
+	fromX = (OoM>fromI+1) ? fromX2 : ((fromI>OoM+1) ? fromX1 : fromXm);
+	drawHorizontalBrace(ctx, fromX1, cvHeight, fromXd, true);
+	drawArrow(ctx, fromX, fromY, toX, toY+braceArcRadius);
+	drawHorizontalBrace(ctx, toX1, toY, toXd, false);
+}
+
+//tried a couple of different ways to draw the connecting arrows when the angle is very oblique:
+//1) aiming the arrow at the closest lower corner of the bounding box of the given Arabic numeral
+//2) aiming the arrow towards the middle of the bounding box of the given Arabic numeral
+//Neither of these two methods produces pictures which are clear for all the test cases. Each of these methods works well for some examples but poorly for others.
+//So programmed a simpler method: draw a horizontal brace under the given Arabic numeral and aim the arrow as in the first method
 function connectRomanToArabic()
 {
-	return ""; // stub for now
-	const s = romanNumeralsElement.textContent;
-	if (s.length < 1) return "";
-	if (s === emptySetSymbol) return "";
-	for (let i=s.length-1; i>=0; i--)
-	{
-		let c = s[i];
-		if (c === " ")
-			;
-		else
-		{
-			let oc = orderOfMagnitude(c);
-			let on = orderOfMagnitude(s.substring(i+1));
-			r += ((oc==on) ? "\u0337" : "\u2191"); // 2191 = hex code for unicode upward arrow
-		} // and 0337 = hex code for unicode forward slash
+	//return; // stub for now
+	if (romanToArabicConnectorCanvas.getContext == null)
+	{ // fallback in case browser does not support canvas
+		return;
 	}
-	return r;
+	const ctx = romanToArabicConnectorCanvas.getContext("2d");
+	const canvasStyle = getComputedStyle(romanToArabicConnectorCanvas);
+	ctx.lineWidth = 1;
+	const an = arabicNumeralsElement.value;
+	const rn = romanNumeralsElement.textContent;
+	if (rn.length < 1) return "";
+	if (rn === emptySetSymbol) return "";
+	let lastOoMcnctd = 0; // last order of magnitude for which connection was drawn
+	let curOoM = 0; // order of magnitude of currently scanned Roman numeral (rn[i])
+	let lastOoM = 0; // order of magnitude of previously scanned Roman numeral (rn[i+1])
+	let start = rn.length; // index of the first numeral in most recently scanned order of magnitude
+	let end = rn.length; // index of the last numeral in most recently scanned order of magnitude
+	let i, c;
+	const h = romanToArabicConnectorCanvas.height;
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
+	const ha = 0.3 * arabicNumeralsElement.offsetHeight;
+	for (i=rn.length-1; i>=0; i--)
+	{
+		c = rn[i];
+		curOoM = orderOfMagnitude(c);
+		if (curOoM > lastOoM && i < rn.length-1)
+		{
+			end = start - 1;
+			start = i + 1;
+			if (lastOoMcnctd + 1 < lastOoM)
+			{
+				lastOoMcnctd = lastOoM;
+				drawConnectorForOrderOfMagnitude(ctx, h, ha, lastOoM, start, end, rn, an);
+			}
+		}
+		lastOoM = curOoM;
+	}
+	if (lastOoMcnctd + 1 < lastOoM)
+	{
+		end = start - 1;
+		drawConnectorForOrderOfMagnitude(ctx, h, ha, lastOoM, 0, end, rn, an);
+	}
+	ctx.strokeStyle = foregroundColor; // restore foreground color
+	return;
 }
 
 const buttonNormalColor = "#E0E0E0";
@@ -887,8 +969,8 @@ function processNumberArabic()
 
 initializeCanvas(tallyCanvas);
 initializeCanvas(romanToArabicConnectorCanvas);
-testCanvas();
-//setNumber(0);
+//testCanvas();
+setNumber(0);
 //the code to bind keyup listener to input text element is based on example from
 //https://blog.devgenius.io/how-to-detect-the-pressing-of-the-enter-key-in-a-text-input-field-with-javascript-380fb2be2b9e
 arabicNumeralsElement.addEventListener("keyup",
