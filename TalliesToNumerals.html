@@ -41,7 +41,7 @@
             overflow: auto; /* Adds scroll if text overflows */
 			text-align: right;
         }
-		canvas {
+		#tally {
             background-color: var(--component-bg-color);
             color: var(--component-color);
             width: var(--component-width);
@@ -81,13 +81,13 @@
 	<div class="container">
 		<input type="text" id="DisplayArabic" maxlength="10"/>
 		<canvas id="ConnectRomanToArabic"></canvas>
-		<textarea id="DisplayRoman" readonly></textarea>
+		<canvas id="DisplayRoman"></canvas>
 		<!-- Buttons placed to the right using float -->
 		<div class="buttons">
 			<button id="incrementButton" onclick=incrementNumber()>+</button>
 			<button id="decrementButton" onclick=decrementNumber()>-</button>
 		</div>
-		<canvas id="tallies"></canvas>
+		<canvas id="tally"></canvas>
 	</div>
 </body>
 </html>

@@ -7,15 +7,17 @@ const romanToArabicConnectorCanvas = document.getElementById("ConnectRomanToArab
 const romanNumeralsElement = document.getElementById("DisplayRoman");
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
-const tallyCanvas = document.getElementById("tallies");
+const tallyCanvas = document.getElementById("tally");
 
 let inputNumber = 0;
+let romanNumeralsAdditive = "";
 let incrementOrDecrementExecuting = false;
 
-function initializeCanvas(cv)
+function initializeCanvas(cv, flipHorizontalAxis)
 {
 	if (cv.getContext == null)
 		return;
+	if (typeof(flipHorizontalAxis) === "undefined") flipHorizontalAxis = false; // default value
 	const ctx = cv.getContext("2d");
 	const rect = cv.getBoundingClientRect();
 	cv.width = rect.width; // otherwise canvas width&height can be some arbitrary (possibly wrong) values
@@ -25,7 +27,11 @@ function initializeCanvas(cv)
 	ctx.font = style.fontSize + " " + style.fontFamily; // otherwise font is some arbitrary default
 	// the above solution is from code posted in https://stackoverflow.com/questions/59666877/how-to-use-in-a-canvas-a-text-element-with-a-font-described-in-css
 	// (fragment from function getFontStyle())
-	ctx.translate(cv.width, 0); ctx.scale(-1, 1); // put grid origin at top-right corner
+	if (flipHorizontalAxis)
+	{ // put grid origin at top-right corner
+		ctx.translate(cv.width, 0);
+		ctx.scale(-1, 1);
+	}
 	ctx.translate(0.5, 0.5); // otherwise, for lineWidth=1, horizontal&vertical lines look a little thick and blurry
 }
 
@@ -41,6 +47,14 @@ function clearCanvas(cv)
 	ctx.fillStyle = oldFillStyle; // undo the change to the canvas context
 }
 
+function ereaseDrawings()
+{
+	clearCanvas(tallyCanvas);
+	clearCanvas(romanToArabicConnectorCanvas);
+	box1000hPos = 0;
+	box1000width = 0;
+}
+
 function setNumber(n)
 {
 	let newNumber = false;
@@ -48,16 +62,15 @@ function setNumber(n)
 	{
 		newNumber = true;
 		inputNumber = n;
-		romanNumeralsElement.textContent = convertToRomanNumeralsAdditive(inputNumber);
+		const s = convertToRomanNumeralsAdditive(inputNumber);
+		setRomanNumeralsAdditive(s);
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
 	if (newNumber)
-	{
-		clearCanvas(tallyCanvas);
-		clearCanvas(romanToArabicConnectorCanvas);
-	}
-	connectRomanToArabic();
+		ereaseDrawings();
 	writeTally(inputNumber);
+	connectRomanToArabic();
+	connectRomanToTally();
 }
 
 const fpTolerance = 0.0001;
@@ -146,6 +159,12 @@ const hSpaceBetween5s = 2;
 const hSpaceBetween100s = 3.6;
 const hSpaceBetween500s = 8;
 const vOffsetBetween5s = Math.ceil(vSpaceBetweenTallyMarks / 2);
+const connectingLineBeginningVerticalSectionLength = 3;
+const connectingLineEndingVerticalSectionLength = 3;
+const boxCornerRadius = 2;
+const braceArcRadius = 4; // radius of each arc of a long brace
+let box1000hPos = 0;
+let box1000width = 0;
 
 function drawVline(ctx, x, y, l)
 {
@@ -186,7 +205,6 @@ function extractRGBValues(rgbString) // code obtained from generative AI in Goog
 	return null; // Invalid rgb string
 }
 
-const braceArcRadius = 4; // radius of each arc of a long brace
 function drawHorizontalBrace(ctx, x, y, l, up)
 {
 	let r = braceArcRadius;
@@ -215,12 +233,12 @@ function drawConnectingLine(ctx, xi, yi, xf, yf, bvLen, evLen) // from (Xi,Yi) t
 		xi = Math.floor(xi);
 		xf = Math.floor(xf);
 	}
-	if (fpLess(bvLen, 0)) bvLen = -bvLen;
-	if (fpLess(evLen, 0)) evLen = -evLen;
+	if (fpLess(bvLen, 0, fpTolerance)) bvLen = -bvLen;
+	if (fpLess(evLen, 0, fpTolerance)) evLen = -evLen;
 	const dy = yf - yi;
 	const ady = Math.abs(dy);
-	if (fpLess(ady, bvLen + evLen)) bvLen = evLen = ady / 3;
-	const YiLessThanYf = fpLess(yi,yf);
+	if (fpLess(ady, bvLen + evLen, fpTolerance)) bvLen = evLen = ady / 3;
+	const YiLessThanYf = fpLess(yi,yf, fpTolerance);
 	const y0 = YiLessThanYf ? yi+bvLen : yi-bvLen;
 	const y1 = YiLessThanYf ? yf-evLen : yf+evLen;
 	ctx.beginPath();
@@ -326,7 +344,7 @@ function drawBox5(ctx, x, y)
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
+	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
 	ctx.lineWidth = oldlw; // restore lineWidth
 	ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
@@ -348,7 +366,7 @@ function drawBox10(ctx, x, y)
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
+	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
 	ctx.lineWidth = oldlw; // restore lineWidth
 	ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
@@ -384,7 +402,7 @@ function drawBox50(ctx, x, y) // column of 25 short horizontal tally marks on th
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
+	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
 	ctx.lineWidth = oldlw; // restore lineWidth
 	ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
@@ -414,7 +432,7 @@ function drawBox100(ctx, x, y) // column of 50 short horizontal tally marks on t
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
+	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
 	ctx.lineWidth = oldlw; // restore lineWidth
 	ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
@@ -451,7 +469,7 @@ function drawBox500(ctx, x, y) // 5 double columns each of 100 short horizontal 
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
+	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
 	ctx.lineWidth = oldlw; // restore lineWidth
 	ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
@@ -479,7 +497,7 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2);
+	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
 	// draw additional rectangular boxes looking like they are stacked under the one already drawn but a little offset
 	const hShift = boundaryPadding + boundaryThickness;
 	const vShift = boundaryPadding + boundaryThickness;
@@ -497,7 +515,7 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 			x = x + hShift;
 			y = y + vShift;
 		}
-		roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, 2, widthOcclude, heightOcclude);
+		roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius, widthOcclude, heightOcclude);
 	}
 	ctx.lineWidth = oldlw; // restore lineWidth
 	ctx.strokeStyle = foregroundColor; // restore foreground color
@@ -575,6 +593,8 @@ function writeTally(n)
 	if (r > 0)
 	{
 		sz = drawBox1000(ctx, x, y, r);
+		box1000hPos = x;
+		box1000width = sz.w;
 		x = x + sz.w;
 	}
 	n = Math.floor(n / 5);
@@ -654,24 +674,19 @@ function removeTrailingWhiteSpace(s)
 
 function drawConnectorForOrderOfMagnitude(ctx, cvHeight, OoM, start, end, rn, an)
 {
-	const connectingLineBeginningVerticalSectionLength = 3;
-	const connectingLineEndingVerticalSectionLength = 3;
 	if (start < 0) return;
 	if (start > end) return;
 	if (end >= rn.length) return;
 	if (OoM < 1) return;
 	if (OoM > an.length) return;
 	const toY = 1;
-	let fromX, fromX1, fromX2, toX1, toX2, toXm, dx;
-	toX1 = (OoM>1) ? stringWidthOnCanvas(ctx, an.substring(an.length-OoM+1)) : 0;
-	toX2 = stringWidthOnCanvas(ctx, an.substring(an.length-OoM));
-	toXd = toX2 - toX1;
-	toXm = (toX1 + toX2) / 2;
+	let fromX;
+	const toX1 = (OoM>1) ? stringWidthOnCanvas(ctx, an.substring(an.length-OoM+1)) : 0;
+	const toX2 = stringWidthOnCanvas(ctx, an.substring(an.length-OoM));
+	const toXm = 0.5 * (toX1 + toX2);
 	const nPastEnd = rn.length - 1 - end;
-	fromX1 = (0<nPastEnd) ? stringWidthOnCanvas(ctx, rn.substring(end+1)) : 0;
-	fromX2 = stringWidthOnCanvas(ctx, rn.substring(start));
-	fromXd = fromX2 - fromX1;
-	fromXm = (fromX1 + fromX2) / 2;
+	const fromX1 = (0<nPastEnd) ? stringWidthOnCanvas(ctx, rn.substring(end+1)) : 0;
+	const fromX2 = stringWidthOnCanvas(ctx, rn.substring(start));
 	let fromY = cvHeight;
 	let bLen = connectingLineBeginningVerticalSectionLength;
 	const eLen = connectingLineEndingVerticalSectionLength;
@@ -679,9 +694,9 @@ function drawConnectorForOrderOfMagnitude(ctx, cvHeight, OoM, start, end, rn, an
 	{
 		fromY = cvHeight - braceArcRadius;
 		bLen = 0;
-		drawHorizontalBrace(ctx, fromX1, cvHeight, fromXd, true);
+		drawHorizontalBrace(ctx, fromX1, cvHeight, fromX2-fromX1, true);
 		fromX = (OoM<nPastEnd+1) ? fromX1+braceArcRadius : ((rn.length-start<OoM) ? fromX2-braceArcRadius : toXm);
-	} else fromX = fromXm;
+	} else fromX = 0.5 * (fromX1 + fromX2);
 	drawConnectingLine(ctx, fromX, fromY, toXm, toY, bLen, eLen);
 }
 
@@ -695,7 +710,7 @@ function connectRomanToArabic()
 	const canvasStyle = getComputedStyle(romanToArabicConnectorCanvas);
 	ctx.lineWidth = 1;
 	const an = arabicNumeralsElement.value;
-	const rn = romanNumeralsElement.textContent;
+	const rn = romanNumeralsAdditive;
 	if (rn.length < 1) return "";
 	if (rn === emptySetSymbol) return "";
 	let lastOoMcnctd = 0; // last order of magnitude for which connection was drawn
@@ -729,6 +744,74 @@ function connectRomanToArabic()
 	}
 	ctx.strokeStyle = foregroundColor; // restore foreground color
 	return;
+}
+
+function connectRomanToTally()
+{
+	if (romanNumeralsElement.getContext == null)
+	{ // fallback in case browser does not support canvas
+		romanNumeralsElement.textContent = s;
+		return;
+	}
+	const rn = romanNumeralsAdditive;
+	if (rn.length < 1) return;
+	let start = -1;
+	let end = -1;
+	let c;
+	for (let i=0; i<rn.length && end<0; i++)
+	{
+		if (rn[i] === 'M')
+		{
+			if (start < 0)
+				start = i;
+		}
+		else if (start >= 0)
+			end = i-1;
+	}
+	if (start < 0) return; // no Ms so connections to draw here
+	const ctx = romanNumeralsElement.getContext("2d");
+	const nPastEnd = rn.length - 1 - end;
+	const fromX1 = (0<nPastEnd) ? stringWidthOnCanvas(ctx, rn.substring(end+1)) : 0;
+	const lessOrEqX1 = fpLessEq(box1000hPos, fromX1, fpTolerance);
+	if (lessOrEqX1) return; // box1000 is directly under the Ms
+	const metrics = ctx.measureText(rn);
+	let fromY = metrics.actualBoundingBoxAscent + 2;
+	const fromX2 = stringWidthOnCanvas(ctx, rn.substring(start));
+	const fromXm = 0.5 * (fromX1 + fromX2);
+	const rFromXm = romanNumeralsElement.width - fromXm - hOffset;
+	const rFromX2 = romanNumeralsElement.width - fromX2 - hOffset;
+	const toY = romanNumeralsElement.height;
+	const rToX = romanNumeralsElement.width - box1000hPos - hOffset;
+	ctx.lineWidth = 1;
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
+	let bLen = connectingLineBeginningVerticalSectionLength;
+	const eLen = connectingLineEndingVerticalSectionLength;
+	let rFromX;
+	if (start < end)
+	{
+		bLen = 0;
+		drawHorizontalBrace(ctx, rFromX2, fromY, fromX2-fromX1, false);
+		fromY = fromY + braceArcRadius;
+		const lessOrEqX2 = fpLessEq(box1000hPos+boxCornerRadius, fromX2-braceArcRadius, fpTolerance);
+		rFromX = lessOrEqX2 ? (rToX - boxCornerRadius) : (rFromX2 + braceArcRadius);
+	} else rFromX = rFromXm;
+	drawConnectingLine(ctx, rFromX, fromY, rToX - boxCornerRadius, toY, bLen, eLen);
+}
+
+function displayRomanNumeralsAdditive(s)
+{
+	if (romanNumeralsElement.getContext == null)
+	{ // fallback in case browser does not support canvas
+		romanNumeralsElement.textContent = s;
+		return;
+	}
+	clearCanvas(romanNumeralsElement);
+	const ctx = romanNumeralsElement.getContext("2d");
+	if (s.length < 1) return;
+	const metrics = ctx.measureText(s);
+	const hPos = romanNumeralsElement.width - metrics.width - hOffset;
+	const vPos = metrics.actualBoundingBoxAscent;
+	ctx.fillText(s, hPos, vPos);
 }
 
 const buttonNormalColor = "#E0E0E0";
@@ -785,61 +868,66 @@ function reenableButtons()
 	romanNumeralsElement.style.cursor = 'default';
 }
 
+function setRomanNumeralsAdditive(s)
+{
+	romanNumeralsAdditive = s;
+	displayRomanNumeralsAdditive(s);
+}
+
 async function incrementNumber()
 {
 	if (inputNumber >= largestNumberToDisplay) return;
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(true);
 	arabicNumeralsElement.value = "";
-	clearCanvas(romanToArabicConnectorCanvas);
-	clearCanvas(tallyCanvas);
+	ereaseDrawings();
 	await pause(minimumPauseTime);
 	if (inputNumber == 0)
-		romanNumeralsElement.textContent = "";
+		setRomanNumeralsAdditive("");
 	inputNumber++;
-    romanNumeralsElement.textContent += "I";
-	let s = replaceLastChars(romanNumeralsElement.textContent, "IIIII", "\\ ////");
+	setRomanNumeralsAdditive(romanNumeralsAdditive + "I");
+	let s = replaceLastChars(romanNumeralsAdditive, "IIIII", "\\ ////");
 	if (s != null)
 	{ // IIIII -> V multistep text-character-based animation
 		await pause(intermediateReplacementPauseTime);
-		romanNumeralsElement.textContent = s;
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsElement.textContent, "\\ ////", "\\/");
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\\ ////", "\\/");
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsElement.textContent, "\\/", "V");
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\\/", "V");
+		setRomanNumeralsAdditive(s);
 	}
- 	s = replaceLastChars(romanNumeralsElement.textContent, "VV", "\u039bV"); // \u039b = capital letter lambda
+ 	s = replaceLastChars(romanNumeralsAdditive, "VV", "\u039bV"); // \u039b = capital letter lambda
 	if (s != null)
 	{ // VV -> X multistep text-character-based animation
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		romanNumeralsElement.textContent = s;
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsElement.textContent, "\u039bV", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\u039bV", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsElement.textContent, "\u1D27\u2C7D", "X"); // \u2C7D = superscript letter v
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\u1D27\u2C7D", "X"); // \u2C7D = superscript letter v
+		setRomanNumeralsAdditive(s);
 	}
-	s = replaceLastChars(romanNumeralsElement.textContent, "XXXXX", "L");
-	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
- 	s = replaceLastChars(romanNumeralsElement.textContent, "LL", "\u0393L"); // \u0393 = capital letter gamma
+	s = replaceLastChars(romanNumeralsAdditive, "XXXXX", "L");
+	if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
+ 	s = replaceLastChars(romanNumeralsAdditive, "LL", "\u0393L"); // \u0393 = capital letter gamma
  	if (s != null)
 	{ // LL -> C multistep text-character-based animation
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		romanNumeralsElement.textContent = s;
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsElement.textContent, "\u0393L", "\u228f"); // \u228f = square subset symbol
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\u0393L", "\u228f"); // \u228f = square subset symbol
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsElement.textContent, "\u228f", "C");
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\u228f", "C");
+		setRomanNumeralsAdditive(s);
 	}
-	s = replaceLastChars(romanNumeralsElement.textContent, "CCCCC", "D");
-	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
- 	s = replaceLastChars(romanNumeralsElement.textContent, "DD", "M");
-	if (s != null) {await pause(replacementPauseTime); romanNumeralsElement.textContent = s;}
+	s = replaceLastChars(romanNumeralsAdditive, "CCCCC", "D");
+	if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
+ 	s = replaceLastChars(romanNumeralsAdditive, "DD", "M");
+	if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
 	setNumber();
 	reenableButtons();
 }
@@ -850,61 +938,60 @@ async function decrementNumber()
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(false);
 	arabicNumeralsElement.value = "";
-	clearCanvas(romanToArabicConnectorCanvas);
-	clearCanvas(tallyCanvas);
+	ereaseDrawings();
 	await pause(minimumPauseTime);
 	inputNumber--;
 	if (inputNumber == 0)
 	{
-		romanNumeralsElement.textContent = emptySetSymbol;
+		setRomanNumeralsAdditive(emptySetSymbol);
 		arabicNumeralsElement.value = inputNumber.toString();
 		reenableButtons();
 		return;
 	}
-	let s = replaceLastChars(romanNumeralsElement.textContent, "M", "DD");
-	if (s != null) {romanNumeralsElement.textContent = s; await pause(replacementPauseTime);}
-	s = replaceLastChars(romanNumeralsElement.textContent, "D", "CCCCC");
-	if (s != null) {romanNumeralsElement.textContent = s; await pause(replacementPauseTime);}
-	s = replaceLastChars(romanNumeralsElement.textContent, "C", "\u228f"); // \u228f = square subset symbol
+	let s = replaceLastChars(romanNumeralsAdditive, "M", "DD");
+	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);}
+	s = replaceLastChars(romanNumeralsAdditive, "D", "CCCCC");
+	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);}
+	s = replaceLastChars(romanNumeralsAdditive, "C", "\u228f"); // \u228f = square subset symbol
 	if (s != null)
 	{ // C -> LL multistep text-character-based animation
-		romanNumeralsElement.textContent = s;
+		setRomanNumeralsAdditive(s);
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		s = replaceLastChars(romanNumeralsElement.textContent, "\u228f", "\u0393L"); // \u0393 = capital letter gamma
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\u228f", "\u0393L"); // \u0393 = capital letter gamma
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsElement.textContent, "\u0393L", "LL");
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\u0393L", "LL");
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
 	}
-	s = replaceLastChars(romanNumeralsElement.textContent, "L", "XXXXX");
-	if (s != null) {romanNumeralsElement.textContent = s; await pause(replacementPauseTime);}
-	s = replaceLastChars(romanNumeralsElement.textContent, "X", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
+	s = replaceLastChars(romanNumeralsAdditive, "L", "XXXXX");
+	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);}
+	s = replaceLastChars(romanNumeralsAdditive, "X", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
 	if (s != null)
 	{ // X -> VV multistep text-character-based animation
-		romanNumeralsElement.textContent = s;
+		setRomanNumeralsAdditive(s);
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		s = replaceLastChars(romanNumeralsElement.textContent, "\u1D27\u2C7D", "\u039bV"); // \u2C7D = superscript letter v
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\u1D27\u2C7D", "\u039bV"); // \u2C7D = superscript letter v
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsElement.textContent, "\u039bV", "VV"); // \u039b = capital letter lambda
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\u039bV", "VV"); // \u039b = capital letter lambda
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
 	}
-	s = replaceLastChars(romanNumeralsElement.textContent, "V", "\\/");
+	s = replaceLastChars(romanNumeralsAdditive, "V", "\\/");
 	if (s != null)
 	{ // V -> IIIII multistep text-character-based animation
-		romanNumeralsElement.textContent = s;
+		setRomanNumeralsAdditive(s);
 		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		s = replaceLastChars(romanNumeralsElement.textContent, "\\/", "\\ ////");
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\\/", "\\ ////");
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsElement.textContent, "\\ ////", "IIIII");
-		romanNumeralsElement.textContent = s;
+		s = replaceLastChars(romanNumeralsAdditive, "\\ ////", "IIIII");
+		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
 	}
-	s = romanNumeralsElement.textContent;
-	romanNumeralsElement.textContent = s.substring(0,s.length-1);
+	s = romanNumeralsAdditive;
+	setRomanNumeralsAdditive(s.substring(0,s.length-1));
 	setNumber();
 	reenableButtons();
 }
@@ -931,8 +1018,9 @@ function processNumberArabic()
 	setNumber(inputNumber);
 }
 
-initializeCanvas(tallyCanvas);
-initializeCanvas(romanToArabicConnectorCanvas);
+initializeCanvas(tallyCanvas, true);
+initializeCanvas(romanToArabicConnectorCanvas, true);
+initializeCanvas(romanNumeralsElement, false);
 //testCanvas();
 setNumber(0);
 //the code to bind keyup listener to input text element is based on example from
