@@ -158,6 +158,8 @@ const boundaryPadding = 2;
 const hSpaceBetween5s = 2;
 const hSpaceBetween100s = 3.6;
 const hSpaceBetween500s = 8;
+const hOffsetBetween1000s = 1;
+const vOffsetBetween1000s = 1;
 const vOffsetBetween5s = Math.ceil(vSpaceBetweenTallyMarks / 2);
 const connectingLineBeginningVerticalSectionLength = 3;
 const connectingLineEndingVerticalSectionLength = 3;
@@ -279,7 +281,7 @@ function testCanvas()
 	vPos = romanToArabicConnectorCanvas.height;
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = 1;
-	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	drawHorizontalBrace(ctx, hPos, vPos, 60, true);
 	drawHorizontalBrace(ctx, 70, 1, 60, false);
 	ctx.lineWidth = oldlw;
@@ -303,6 +305,7 @@ function drawTallyMark(ctx, x, y)
 
 function weightedAverageTruncated(a, b, w) {return Math.floor((1-w)*a + w*b);}
 const foregroundWeightBoxBoundary = 0.3;
+const foregroundWeightBoxBoundary2 = 0.2;
 const foregroundWeightConnector = 0.3;
 
 function setIntermediateColor(ctx, foregroundWeight)
@@ -479,6 +482,8 @@ function drawBox500(ctx, x, y) // 5 double columns each of 100 short horizontal 
 
 function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizontal tally marks, with extra vertical...
 {//...space between each group of 5 tally marks, and extra space halfway down, all enclosed in rectangular box
+// display n 1000s of tally marks. If n>1, draw 1 box of 1000 and (n-1) partial rectangles...
+//...to look like they occlude each other partially being stacked under each other with a small offset
 	let w = 0;  // width of the drawing
 	let h = 0; // height of the drawing
 	n = typeof n !== "undefined" ? n : 1; // default value
@@ -503,22 +508,24 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	const vShift = boundaryPadding + boundaryThickness;
 	const widthOcclude = boundingRectWidth - hShift;
 	const heightOcclude = boundingRectHeight - vShift;
-	for (let i=1; i<n; i++)
+	for (let i=1, j=1; i<n; i++, j++)
 	{
 		if (i%5==0)
 		{ // extra offset between groups of 5
-			x = x + hShift + 1;
-			y = y + vShift + 1;
+			x = x + hShift + hOffsetBetween1000s;
+			y = y + vShift + vOffsetBetween1000s;
+			j = 0;
 		}
 		else
 		{
 			x = x + hShift;
 			y = y + vShift;
 		}
+		setIntermediateColor(ctx, (j%2==0) ? foregroundWeightBoxBoundary : foregroundWeightBoxBoundary2);
 		roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius, widthOcclude, heightOcclude);
+		ctx.strokeStyle = foregroundColor; // restore foreground color
 	}
 	ctx.lineWidth = oldlw; // restore lineWidth
-	ctx.strokeStyle = foregroundColor; // restore foreground color
 	w = boxWidth + n*hShift;  // width of the drawing
 	h = boundingRectHeight + n*vShift; // height of the drawing
 	return {w, h};
@@ -720,7 +727,7 @@ function connectRomanToArabic()
 	let end = rn.length; // index of the last numeral in most recently scanned order of magnitude
 	let i, c;
 	const h = romanToArabicConnectorCanvas.height;
-	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	for (i=rn.length-1; i>=0; i--)
 	{
 		c = rn[i];
@@ -772,7 +779,7 @@ function connectRomanToTally()
 	const ctx = romanNumeralsElement.getContext("2d");
 	const nPastEnd = rn.length - 1 - end;
 	const fromX1 = (0<nPastEnd) ? stringWidthOnCanvas(ctx, rn.substring(end+1)) : 0;
-	const lessOrEqX1 = fpLessEq(box1000hPos, fromX1, fpTolerance);
+	const lessOrEqX1 = fpLessEq(box1000hPos-hOffset, fromX1, fpTolerance);
 	if (lessOrEqX1) return; // box1000 is directly under the Ms
 	const metrics = ctx.measureText(rn);
 	let fromY = metrics.actualBoundingBoxAscent + 2;
@@ -783,7 +790,7 @@ function connectRomanToTally()
 	const toY = romanNumeralsElement.height;
 	const rToX = romanNumeralsElement.width - box1000hPos - hOffset;
 	ctx.lineWidth = 1;
-	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	let bLen = connectingLineBeginningVerticalSectionLength;
 	const eLen = connectingLineEndingVerticalSectionLength;
 	let rFromX;
