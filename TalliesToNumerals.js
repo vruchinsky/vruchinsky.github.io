@@ -746,7 +746,7 @@ function connectRomanToArabic()
 		{
 			end = start - 1;
 			start = i + 1;
-			if (lastOoMcnctd + 1 < lastOoM)
+			if (lastOoMcnctd + 1 < lastOoM || curOoM > lastOoM + 1)
 			{
 				lastOoMcnctd = lastOoM;
 				drawConnectorForOrderOfMagnitude(ctx, h, lastOoM, start, end, rn, an);
