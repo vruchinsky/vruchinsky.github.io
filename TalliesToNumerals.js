@@ -9,6 +9,36 @@ const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 const tallyCanvas = document.getElementById("tally");
 
+const foregroundWeightBoxBoundary = 0.3;
+const foregroundWeightBoxBoundary2 = 0.2;
+const foregroundWeightConnector = 0.3;
+const tallyMarkHeight = 25;
+const tallyMarkThickness = 1;
+const hSpace = 2;
+const vSpaceBetweenTallyMarks = 3;
+const vSpaceBetween5s = 6;
+const vSpaceBetween50s = 6;
+const hOffset = 2;
+const vOffset = 2;
+const boundaryThickness = 1;
+const boundaryPadding = 2;
+const hSpaceBetween5s = 2;
+const hSpaceBetween100s = 3.6;
+const hSpaceBetween500s = 8;
+const hOffsetBetween1000s = 1;
+const vOffsetBetween1000s = 1;
+const vOffsetBetween5s = Math.ceil(vSpaceBetweenTallyMarks / 2);
+const connectingLineBeginningVerticalSectionLength = 3;
+const connectingLineEndingVerticalSectionLength = 3;
+const boxCornerRadius = 2;
+const braceArcRadius = 4; // radius of each arc of a long brace
+let box1000hPos = 0;
+let box1000width = 0;
+const buttonNormalColor = incrementButton.style.backgroundColor;
+const buttonDisabledColor = "#707070";
+const buttonsPressedColor = "#A0A0A0";
+const buttonHoverColor = "#C0C0C0";
+
 let inputNumber = 0;
 let romanNumeralsAdditive = "";
 let incrementOrDecrementExecuting = false;
@@ -33,6 +63,8 @@ function initializeCanvas(cv, flipHorizontalAxis)
 		ctx.scale(-1, 1);
 	}
 	ctx.translate(0.5, 0.5); // otherwise, for lineWidth=1, horizontal&vertical lines look a little thick and blurry
+	const canvasStyle = getComputedStyle(cv);
+	ctx.fillStyle = canvasStyle.color;
 }
 
 function clearCanvas(cv)
@@ -47,7 +79,7 @@ function clearCanvas(cv)
 	ctx.fillStyle = oldFillStyle; // undo the change to the canvas context
 }
 
-function ereaseDrawings()
+function eraseDrawings()
 {
 	clearCanvas(tallyCanvas);
 	clearCanvas(romanToArabicConnectorCanvas);
@@ -67,7 +99,7 @@ function setNumber(n)
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
 	if (newNumber)
-		ereaseDrawings();
+		eraseDrawings();
 	writeTally(inputNumber);
 	connectRomanToArabic();
 	connectRomanToTally();
@@ -144,29 +176,6 @@ function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclu
 	else ctx.moveTo(x, y0);
 	ctx.stroke();
 }
-
-const tallyMarkHeight = 25;
-const tallyMarkThickness = 1;
-const hSpace = 2;
-const vSpaceBetweenTallyMarks = 3;
-const vSpaceBetween5s = 6;
-const vSpaceBetween50s = 6;
-const hOffset = 2;
-const vOffset = 2;
-const boundaryThickness = 1;
-const boundaryPadding = 2;
-const hSpaceBetween5s = 2;
-const hSpaceBetween100s = 3.6;
-const hSpaceBetween500s = 8;
-const hOffsetBetween1000s = 1;
-const vOffsetBetween1000s = 1;
-const vOffsetBetween5s = Math.ceil(vSpaceBetweenTallyMarks / 2);
-const connectingLineBeginningVerticalSectionLength = 3;
-const connectingLineEndingVerticalSectionLength = 3;
-const boxCornerRadius = 2;
-const braceArcRadius = 4; // radius of each arc of a long brace
-let box1000hPos = 0;
-let box1000width = 0;
 
 function drawVline(ctx, x, y, l)
 {
@@ -281,11 +290,15 @@ function testCanvas()
 	vPos = romanToArabicConnectorCanvas.height;
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = 1;
-	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
+	let foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	drawHorizontalBrace(ctx, hPos, vPos, 60, true);
 	drawHorizontalBrace(ctx, 70, 1, 60, false);
 	ctx.lineWidth = oldlw;
 	ctx.strokeStyle = foregroundColor; // restore foreground color
+	if (romanNumeralsElement.getContext == null)
+		return;
+	ctx = romanNumeralsElement.getContext("2d");
+	ctx.fillText(emptySetSymbol, 10, 20);
 }
 
 function stringWidthOnCanvas(ctx, s)
@@ -304,9 +317,6 @@ function drawTallyMark(ctx, x, y)
 }
 
 function weightedAverageTruncated(a, b, w) {return Math.floor((1-w)*a + w*b);}
-const foregroundWeightBoxBoundary = 0.3;
-const foregroundWeightBoxBoundary2 = 0.2;
-const foregroundWeightConnector = 0.3;
 
 function setIntermediateColor(ctx, foregroundWeight)
 {
@@ -821,11 +831,6 @@ function displayRomanNumeralsAdditive(s)
 	ctx.fillText(s, hPos, vPos);
 }
 
-const buttonNormalColor = "#E0E0E0";
-const buttonDisabledColor = "#707070";
-const buttonsPressedColor = "#A0A0A0";
-const buttonHoverColor = "#C0C0C0";
-
 function incrementButtonMouseoverListener() {incrementButton.style.backgroundColor = buttonHoverColor;}
 function decrementButtonMouseoverListener() {decrementButton.style.backgroundColor = buttonHoverColor;}
 function incrementButtonMouseoutListener() {incrementButton.style.backgroundColor = buttonNormalColor;}
@@ -887,7 +892,7 @@ async function incrementNumber()
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(true);
 	arabicNumeralsElement.value = "";
-	ereaseDrawings();
+	eraseDrawings();
 	await pause(minimumPauseTime);
 	if (inputNumber == 0)
 		setRomanNumeralsAdditive("");
@@ -945,7 +950,7 @@ async function decrementNumber()
 	if (incrementOrDecrementExecuting) return;
 	disableButtons(false);
 	arabicNumeralsElement.value = "";
-	ereaseDrawings();
+	eraseDrawings();
 	await pause(minimumPauseTime);
 	inputNumber--;
 	if (inputNumber == 0)
