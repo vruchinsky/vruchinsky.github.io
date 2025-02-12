@@ -675,20 +675,6 @@ function convertToRomanNumeralsAdditive(n)
 	return a.reverse().join('');
 }
 
-function removeLeadingWhiteSpace(s)
-{
-	while (s.length > 0 && s[0] === ' ')
-		s = s.substring(1); // remove leading spaces
-	return s;
-}
-
-function removeTrailingWhiteSpace(s)
-{
-	while (s.length > 0 && s[s.length-1] === ' ')
-		s = s.substring(0,s.length-1); // remove trailing spaces
-	return s;
-}
-
 function drawConnectorForOrderOfMagnitude(ctx, cvHeight, OoM, start, end, rn, an)
 {
 	if (start < 0) return;
