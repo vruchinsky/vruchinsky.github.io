@@ -719,29 +719,38 @@ function scanOneOrderOfMagnitude(rn, i)
 	let start = i; // index of the last numeral (from end of string) in the order of magnitude to be scanned now
 	let o = 0; // order of magnitude of currently scanned Roman numeral (rn[i])
 	let n = 0; // order of magnitude of the next Roman numeral (rn[i-1])
-	let endOoM = orderOfMagnitude(rn[end]);
-	if (end > 0) // check for IX, XC, CM:
-	{// treat both numerals as the same order of magnitude
-		n = orderOfMagnitude(rn[end-1]);
-		if (endOoM > n)
-			endOoM = n;
-	} else n = endOoM;
+	let oi, nn;
+	if (i < 0)
+		return {i, o, n, start, end};
 	while (i >= 0)
 	{
-		o = orderOfMagnitude(rn[i]);
+		oi = orderOfMagnitude(rn[i]);
 		if (i > 0) // check for IX, XC, CM:
 		{// treat both numerals as the same order of magnitude
 			n = orderOfMagnitude(rn[i-1]);
-			if (o > n)
-				o = n;
-		} else n = o;
-		if (o > endOoM)
+			if (oi > n)
+				oi = n;
+		}
+		if (i == end)
+			o = oi;
+		else if (oi > o)
 			break;
 		i--;
 	}
 	if (i < rn.length - 1) 
 		start = i + 1;
-	o = endOoM;
+	if (start < 1)
+		n = 0;
+	else
+	{
+		n = orderOfMagnitude(rn[start-1]);
+		if (start > 1) // check for XC, CM:
+		{// treat both numerals as the same order of magnitude
+			nn = orderOfMagnitude(rn[start-2]);
+			if (n > nn)
+				n = nn;
+		}
+	}
 	return {i, o, n, start, end};
 }
 
