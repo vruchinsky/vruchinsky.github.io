@@ -4,7 +4,9 @@ const emptySetSymbol = "\u2205"; // hex code for empty-set symbol in unicode
 
 const arabicNumeralsElement = document.getElementById("DisplayArabic");
 const romanToArabicConnectorCanvas = document.getElementById("ConnectRomanToArabic");
-const romanNumeralsElement = document.getElementById("DisplayRoman");
+const romanNumeralsAdditiveCanvas = document.getElementById("DisplayRomanAdditive");
+const romanNumeralsSubtractiveCanvas = document.getElementById("DisplayRomanSubtractive");
+const romanAdditiveToSubtractiveConnectorCanvas = document.getElementById("ConnectRomanAdditiveToSubtractive");
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 const tallyCanvas = document.getElementById("tally");
@@ -41,6 +43,7 @@ const buttonHoverColor = "#C0C0C0";
 
 let inputNumber = 0;
 let romanNumeralsAdditive = "";
+let romanNumeralsSubtractive = "";
 let incrementOrDecrementExecuting = false;
 
 function initializeCanvas(cv, flipHorizontalAxis)
@@ -83,25 +86,27 @@ function eraseDrawings()
 {
 	clearCanvas(tallyCanvas);
 	clearCanvas(romanToArabicConnectorCanvas);
+	clearCanvas(romanAdditiveToSubtractiveConnectorCanvas);
+	clearCanvas(romanNumeralsSubtractiveCanvas);
 	box1000hPos = 0;
 	box1000width = 0;
 }
 
 function setNumber(n)
 {
-	let newNumber = false;
 	if (typeof n !== "undefined")
 	{
-		newNumber = true;
+		eraseDrawings();
 		inputNumber = n;
 		const s = convertToRomanNumeralsAdditive(inputNumber);
 		setRomanNumeralsAdditive(s);
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
-	if (newNumber)
-		eraseDrawings();
 	writeTally(inputNumber);
+	romanNumeralsSubtractive = convertRomanNumeralsAdditiveToSubtractive(romanNumeralsAdditive);
+	setRomanNumeralsSubtractive(romanNumeralsSubtractive);
 	connectRomanToArabic();
+	connectRomanAdditiveToSubtractive();
 	connectRomanToTally();
 }
 
@@ -295,9 +300,9 @@ function testCanvas()
 	drawHorizontalBrace(ctx, 70, 1, 60, false);
 	ctx.lineWidth = oldlw;
 	ctx.strokeStyle = foregroundColor; // restore foreground color
-	if (romanNumeralsElement.getContext == null)
+	if (romanNumeralsAdditiveCanvas.getContext == null)
 		return;
-	ctx = romanNumeralsElement.getContext("2d");
+	ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 	ctx.fillText(emptySetSymbol, 10, 20);
 }
 
@@ -650,6 +655,11 @@ function orderOfMagnitude(c)
 	return -1; // value to signify error
 }
 
+function convertRomanNumeralsAdditiveToSubtractive(a)
+{
+	return a.replace(/VIIII/, 'IX').replace(/IIII/, 'IV').replace(/LXXXX/, 'XC').replace(/XXXX/, 'XL').replace(/DCCCC/, 'CM').replace(/CCCC/, 'CD');
+}
+
 function convertToRomanNumeralsAdditive(n)
 {
 	if (typeof n === "undefined") n = inputNumber;
@@ -675,32 +685,64 @@ function convertToRomanNumeralsAdditive(n)
 	return a.reverse().join('');
 }
 
-function drawConnectorForOrderOfMagnitude(ctx, cvHeight, OoM, start, end, rn, an)
+function connectOrderOfMagnitudeRomanToArabic(ctx, cvHeight, sr, rn, an)
 {
-	if (start < 0) return;
-	if (start > end) return;
-	if (end >= rn.length) return;
-	if (OoM < 1) return;
-	if (OoM > an.length) return;
+	if (sr.start < 0) return;
+	if (sr.start > sr.end) return;
+	if (sr.end >= rn.length) return;
+	if (sr.o < 1) return;
+	if (sr.o > an.length) return;
 	const toY = 1;
 	let fromX;
-	const toX1 = (OoM>1) ? stringWidthOnCanvas(ctx, an.substring(an.length-OoM+1)) : 0;
-	const toX2 = stringWidthOnCanvas(ctx, an.substring(an.length-OoM));
+	const toX1 = (sr.o>1) ? stringWidthOnCanvas(ctx, an.substring(an.length-sr.o+1)) : 0;
+	const toX2 = stringWidthOnCanvas(ctx, an.substring(an.length-sr.o));
 	const toXm = 0.5 * (toX1 + toX2);
-	const nPastEnd = rn.length - 1 - end;
-	const fromX1 = (0<nPastEnd) ? stringWidthOnCanvas(ctx, rn.substring(end+1)) : 0;
-	const fromX2 = stringWidthOnCanvas(ctx, rn.substring(start));
+	const nPastEnd = rn.length - 1 - sr.end;
+	const fromX1 = (0<nPastEnd) ? stringWidthOnCanvas(ctx, rn.substring(sr.end+1)) : 0;
+	const fromX2 = stringWidthOnCanvas(ctx, rn.substring(sr.start));
 	let fromY = cvHeight;
 	let bLen = connectingLineBeginningVerticalSectionLength;
 	const eLen = connectingLineEndingVerticalSectionLength;
-	if (start < end)
+	if (sr.start < sr.end)
 	{
 		fromY = cvHeight - braceArcRadius;
 		bLen = 0;
-		drawHorizontalBrace(ctx, fromX1, cvHeight, fromX2-fromX1, true);
-		fromX = (OoM<nPastEnd+1) ? fromX1+braceArcRadius : ((rn.length-start<OoM) ? fromX2-braceArcRadius : toXm);
+		drawHorizontalBrace(ctx, fromX1+1, cvHeight, fromX2-fromX1-2, true); // shorten by 1px from each end
+		fromX = (sr.o<nPastEnd+1) ? fromX1+braceArcRadius : ((rn.length-sr.start<sr.o) ? fromX2-braceArcRadius : toXm);
 	} else fromX = 0.5 * (fromX1 + fromX2);
 	drawConnectingLine(ctx, fromX, fromY, toXm, toY, bLen, eLen);
+}
+
+function scanOneOrderOfMagnitude(rn, i)
+{
+	const end = i; // index of the first numeral (from end of string) in the order of magnitude to be scanned now
+	let start = i; // index of the last numeral (from end of string) in the order of magnitude to be scanned now
+	let o = 0; // order of magnitude of currently scanned Roman numeral (rn[i])
+	let n = 0; // order of magnitude of the next Roman numeral (rn[i-1])
+	let endOoM = orderOfMagnitude(rn[end]);
+	if (end > 0) // check for IX, XC, CM:
+	{// treat both numerals as the same order of magnitude
+		n = orderOfMagnitude(rn[end-1]);
+		if (endOoM > n)
+			endOoM = n;
+	} else n = endOoM;
+	while (i >= 0)
+	{
+		o = orderOfMagnitude(rn[i]);
+		if (i > 0) // check for IX, XC, CM:
+		{// treat both numerals as the same order of magnitude
+			n = orderOfMagnitude(rn[i-1]);
+			if (o > n)
+				o = n;
+		} else n = o;
+		if (o > endOoM)
+			break;
+		i--;
+	}
+	if (i < rn.length - 1) 
+		start = i + 1;
+	o = endOoM;
+	return {i, o, n, start, end};
 }
 
 function connectRomanToArabic()
@@ -713,47 +755,144 @@ function connectRomanToArabic()
 	const canvasStyle = getComputedStyle(romanToArabicConnectorCanvas);
 	ctx.lineWidth = 1;
 	const an = arabicNumeralsElement.value;
-	const rn = romanNumeralsAdditive;
+	const rn = romanNumeralsSubtractive; // romanNumeralsAdditive;
 	if (rn.length < 1) return "";
 	if (rn === emptySetSymbol) return "";
 	let lastOoMcnctd = 0; // last order of magnitude for which connection was drawn
-	let curOoM = 0; // order of magnitude of currently scanned Roman numeral (rn[i])
-	let lastOoM = 0; // order of magnitude of previously scanned Roman numeral (rn[i+1])
-	let start = rn.length; // index of the first numeral in most recently scanned order of magnitude
-	let end = rn.length; // index of the last numeral in most recently scanned order of magnitude
-	let i, c;
 	const h = romanToArabicConnectorCanvas.height;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
-	for (i=rn.length-1; i>=0; i--)
+	let i = rn.length-1;
+	let sr;
+	while (i >= 0)
 	{
-		c = rn[i];
-		curOoM = orderOfMagnitude(c);
-		if (curOoM > lastOoM && i < rn.length-1)
+		sr = scanOneOrderOfMagnitude(rn, i);
+		if (lastOoMcnctd + 1 < sr.o || sr.n > sr.o + 1)
 		{
-			end = start - 1;
-			start = i + 1;
-			if (lastOoMcnctd + 1 < lastOoM || curOoM > lastOoM + 1)
-			{
-				lastOoMcnctd = lastOoM;
-				drawConnectorForOrderOfMagnitude(ctx, h, lastOoM, start, end, rn, an);
-			}
+			lastOoMcnctd = sr.o;
+			connectOrderOfMagnitudeRomanToArabic(ctx, h, sr, rn, an);
 		}
-		lastOoM = curOoM;
-	}
-	if (lastOoMcnctd + 1 < lastOoM)
-	{
-		end = start - 1;
-		drawConnectorForOrderOfMagnitude(ctx, h, lastOoM, 0, end, rn, an);
+		i = sr.i;
 	}
 	ctx.strokeStyle = foregroundColor; // restore foreground color
-	return;
+}
+
+function connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, cvHeight, srs, sra, a, s)
+{
+	if (srs.start < 0) return;
+	if (srs.start > srs.end) return;
+	if (srs.end >= s.length) return;
+	if (sra.start < 0) return;
+	if (sra.start > sra.end) return;
+	if (sra.end >= a.length) return;
+	const toY = 1 + braceArcRadius;
+	const fromY = cvHeight - braceArcRadius;
+	let fromX, toX;
+	const nPastEndS = s.length - 1 - srs.end;
+	const toX1 = (0<nPastEndS) ? stringWidthOnCanvas(ctx, s.substring(srs.end+1)) : 0;
+	const toX2 = stringWidthOnCanvas(ctx, s.substring(srs.start));
+	const nPastEndA = a.length - 1 - sra.end;
+	const fromX1 = (0<nPastEndA) ? stringWidthOnCanvas(ctx, a.substring(sra.end+1)) : 0;
+	const fromX2 = stringWidthOnCanvas(ctx, a.substring(sra.start));
+	drawHorizontalBrace(ctx, toX1+1, 1, toX2-toX1-2, false); // shorten by 1px from each end
+	drawHorizontalBrace(ctx, fromX1+1, cvHeight, fromX2-fromX1-2, true); // shorten by 1px from each end
+	if (fpLess(toX2-braceArcRadius, fromX1+braceArcRadius, fpTolerance))
+	{ // no overlap: [fromX2,fromX1] > [toX2,toX1]
+		fromX = fromX1 + braceArcRadius;
+		toX = toX2 - braceArcRadius;
+	} else fromX = toX = 0.5 * (toX2 + fromX1);
+	drawConnectingLine(ctx, fromX, fromY, toX, toY, 0, 0);
+}
+
+function connectRomanAdditiveToSubtractive()
+{
+	if (romanAdditiveToSubtractiveConnectorCanvas.getContext == null)
+	{ // fallback in case browser does not support canvas
+		return;
+	}
+	const ctx = romanAdditiveToSubtractiveConnectorCanvas.getContext("2d");
+	const canvasStyle = getComputedStyle(romanAdditiveToSubtractiveConnectorCanvas);
+	ctx.lineWidth = 1;
+	const a = romanNumeralsAdditive;
+	const s = romanNumeralsSubtractive;
+	let ai = -1;
+	let si = -1;
+	let ms = s.match(/CM/);
+	let ma = a.match(/DCCCC/);
+	if (ma && ms)
+	{
+		si = ms.index + 1;
+		ai = ma.index + 4;
+	}
+	else
+	{
+		ms = s.match(/CD/);
+		ma = a.match(/CCCC/);
+		if (ma && ms)
+		{
+			si = ms.index + 1;;
+			ai = ma.index + 3;
+		}
+	}
+	ms = s.match(/XC/);
+	ma = a.match(/LXXXX/);
+	if (ma && ms)
+	{
+		si = ms.index + 1;
+		ai = ma.index + 4;
+	}
+	else
+	{
+		ms = s.match(/XL/);
+		ma = a.match(/XXXX/);
+		if (ma && ms)
+		{
+			si = ms.index + 1;
+			ai = ma.index + 3;
+		}
+	}
+	ms = s.match(/IX/);
+	ma = a.match(/VIIII/);
+	if (ma && ms)
+	{
+		si = ms.index + 1;
+		ai = ma.index + 4;
+	}
+	else
+	{
+		ms = s.match(/IV/);
+		ma = a.match(/IIII/);
+		if (ma && ms)
+		{
+			si = ms.index + 1;
+			ai = ma.index + 3;
+		}
+	}
+	if (si < 0) return; // no instances of CM, CD, XC, XL, IX, IV
+	let lastOoMcnctd = 0; // last order of magnitude for which connection was drawn
+	let lastOoM = 0; // order of magnitude most recently scanned by scanOneOrderOfMagnitude()
+	const h = romanAdditiveToSubtractiveConnectorCanvas.height;
+	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
+	let srs, sra;
+	while (si >= 0)
+	{
+		srs = scanOneOrderOfMagnitude(s, si);
+		sra = scanOneOrderOfMagnitude(a, ai);
+		//if (lastOoMcnctd + 1 < lastOoM || srs.o > lastOoM + 1)
+		//{
+			//lastOoMcnctd = lastOoM;
+			connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, h, srs, sra, a, s);
+		//}
+		//lastOoM = srs.o;
+		si = srs.i;
+	}
+	ctx.strokeStyle = foregroundColor; // restore foreground color
 }
 
 function connectRomanToTally()
 {
-	if (romanNumeralsElement.getContext == null)
+	if (romanNumeralsAdditiveCanvas.getContext == null)
 	{ // fallback in case browser does not support canvas
-		romanNumeralsElement.textContent = s;
+		romanNumeralsAdditiveCanvas.textContent = s;
 		return;
 	}
 	const rn = romanNumeralsAdditive;
@@ -772,7 +911,7 @@ function connectRomanToTally()
 			end = i-1;
 	}
 	if (start < 0) return; // no Ms so connections to draw here
-	const ctx = romanNumeralsElement.getContext("2d");
+	const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 	const nPastEnd = rn.length - 1 - end;
 	const fromX1 = (0<nPastEnd) ? stringWidthOnCanvas(ctx, rn.substring(end+1)) : 0;
 	const lessOrEqX1 = fpLessEq(box1000hPos-hOffset, fromX1, fpTolerance);
@@ -781,10 +920,10 @@ function connectRomanToTally()
 	let fromY = metrics.actualBoundingBoxAscent + 2;
 	const fromX2 = stringWidthOnCanvas(ctx, rn.substring(start));
 	const fromXm = 0.5 * (fromX1 + fromX2);
-	const rFromXm = romanNumeralsElement.width - fromXm - hOffset;
-	const rFromX2 = romanNumeralsElement.width - fromX2 - hOffset;
-	const toY = romanNumeralsElement.height;
-	const rToX = romanNumeralsElement.width - box1000hPos - hOffset;
+	const rFromXm = romanNumeralsAdditiveCanvas.width - fromXm - hOffset;
+	const rFromX2 = romanNumeralsAdditiveCanvas.width - fromX2 - hOffset;
+	const toY = romanNumeralsAdditiveCanvas.height;
+	const rToX = romanNumeralsAdditiveCanvas.width - box1000hPos - hOffset;
 	ctx.lineWidth = 1;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	let bLen = connectingLineBeginningVerticalSectionLength;
@@ -801,18 +940,18 @@ function connectRomanToTally()
 	drawConnectingLine(ctx, rFromX, fromY, rToX - boxCornerRadius, toY, bLen, eLen);
 }
 
-function displayRomanNumeralsAdditive(s)
+function displayTextOnCanvas(s, cv)
 {
-	if (romanNumeralsElement.getContext == null)
+	if (cv.getContext == null)
 	{ // fallback in case browser does not support canvas
-		romanNumeralsElement.textContent = s;
+		cv.textContent = s;
 		return;
 	}
-	clearCanvas(romanNumeralsElement);
-	const ctx = romanNumeralsElement.getContext("2d");
+	clearCanvas(cv);
+	const ctx = cv.getContext("2d");
 	if (s.length < 1) return;
 	const metrics = ctx.measureText(s);
-	const hPos = romanNumeralsElement.width - metrics.width - hOffset;
+	const hPos = cv.width - metrics.width - hOffset;
 	const vPos = metrics.actualBoundingBoxAscent;
 	ctx.fillText(s, hPos, vPos);
 }
@@ -842,7 +981,7 @@ function disableButtons(incrementButtonPressed)
 	decrementButton.style.cursor = 'progress';
 	arabicNumeralsElement.style.cursor = 'progress';
 	romanToArabicConnectorCanvas.style.cursor = 'progress';
-	romanNumeralsElement.style.cursor = 'progress';
+	romanNumeralsAdditiveCanvas.style.cursor = 'progress';
 }
 
 function reenableButtons()
@@ -863,13 +1002,19 @@ function reenableButtons()
 	decrementButton.style.cursor = 'default';
 	arabicNumeralsElement.style.cursor = 'default';
 	romanToArabicConnectorCanvas.style.cursor = 'default';
-	romanNumeralsElement.style.cursor = 'default';
+	romanNumeralsAdditiveCanvas.style.cursor = 'default';
+}
+
+function setRomanNumeralsSubtractive(s)
+{
+	romanNumeralsSubtractive = s;
+	displayTextOnCanvas(s, romanNumeralsSubtractiveCanvas);
 }
 
 function setRomanNumeralsAdditive(s)
 {
 	romanNumeralsAdditive = s;
-	displayRomanNumeralsAdditive(s);
+	displayTextOnCanvas(s, romanNumeralsAdditiveCanvas);
 }
 
 async function incrementNumber()
@@ -1018,7 +1163,9 @@ function processNumberArabic()
 
 initializeCanvas(tallyCanvas, true);
 initializeCanvas(romanToArabicConnectorCanvas, true);
-initializeCanvas(romanNumeralsElement, false);
+initializeCanvas(romanAdditiveToSubtractiveConnectorCanvas, true);
+initializeCanvas(romanNumeralsAdditiveCanvas, false);
+initializeCanvas(romanNumeralsSubtractiveCanvas, false);
 //testCanvas();
 setNumber(0);
 //the code to bind keyup listener to input text element is based on example from
