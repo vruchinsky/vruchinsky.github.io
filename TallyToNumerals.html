@@ -8,7 +8,7 @@
 	    body {
 			margin: 0;
 			padding: 0;
-			--color: #E0E0E0;
+			--color: #A0A0A0;
 			--bg-color: #000000;
             color: var(--color);
 			background-color: var(--bg-color);
@@ -24,10 +24,12 @@
 			width: 300px;
             height: 28px;
             font-size: 14px;
+            color: var(--color);
+			background-color: var(--bg-color);
         }
-		#labelAN {top: -15px;}
+		#labelAN {top: -10px;}
 		#labelRNS {top: 50px;}
-		#labelRNA {top: 105px;}
+		#labelRNA {top: 100px;}
         #DisplayRomanSubtractive, #ConnectRomanAdditiveToSubtractive,
 		#DisplayRomanAdditive, #ConnectRomanToArabic, #DisplayArabic {
             width: var(--component-width);
@@ -82,7 +84,7 @@
 		#incrementButton {top: 150px;}
 		#decrementButton {top: 180px;}
         button:hover {
-            background-color: #C0C0C0;
+            background-color: #707070;
         }
 		button:active {
 			font-weight: bold;
@@ -92,7 +94,7 @@
 </head>
 <body>
 	<input type="text" id="DisplayArabic" maxlength="10"/>
-	<p id="labelAN">&#x2190;Arabic numerals, type in a number (at least 0 but less than 5000) and press [Enter] or use the [+] and [-] buttons below</p>
+	<p id="labelAN">&#x2190;Arabic numerals, type in a number (at least 0 but less than 5000) and press [Enter] or use the buttons below</p>
 	<canvas id="ConnectRomanToArabic"></canvas>
 	<canvas id="DisplayRomanSubtractive"></canvas>
 	<p id="labelRNS">&#x2190;Roman numerals, standard (subtractive notation)</p>

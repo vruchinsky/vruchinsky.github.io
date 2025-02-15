@@ -13,7 +13,7 @@ const tallyCanvas = document.getElementById("tally");
 
 const foregroundWeightBoxBoundary = 0.3;
 const foregroundWeightBoxBoundary2 = 0.2;
-const foregroundWeightConnector = 0.3;
+const foregroundWeightConnector = 0.2;
 const tallyMarkHeight = 25;
 const tallyMarkThickness = 1;
 const hSpace = 2;
@@ -692,7 +692,7 @@ function connectOrderOfMagnitudeRomanToArabic(ctx, cvHeight, sr, rn, an)
 	if (sr.end >= rn.length) return;
 	if (sr.o < 1) return;
 	if (sr.o > an.length) return;
-	const toY = 1;
+	const toY = 0;
 	let fromX;
 	const toX1 = (sr.o>1) ? stringWidthOnCanvas(ctx, an.substring(an.length-sr.o+1)) : 0;
 	const toX2 = stringWidthOnCanvas(ctx, an.substring(an.length-sr.o));
@@ -770,6 +770,11 @@ function connectRomanToArabic()
 	let lastOoMcnctd = 0; // last order of magnitude for which connection was drawn
 	const h = romanToArabicConnectorCanvas.height;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
+	const oldLineWidth = ctx.lineWidth;
+	const oldLineDash = ctx.getLineDash();
+	const oldLineDashOffset = ctx.lineDashOffset;
+	ctx.lineWidth = 1;
+	ctx.lineDashOffset = 0;
 	let i = rn.length-1;
 	let sr;
 	while (i >= 0)
@@ -782,7 +787,9 @@ function connectRomanToArabic()
 		}
 		i = sr.i;
 	}
-	ctx.strokeStyle = foregroundColor; // restore foreground color
+	ctx.strokeStyle = foregroundColor; // restore foreground color etc.
+	ctx.lineWidth = oldLineWidth;
+	ctx.lineDashOffset = oldLineDashOffset;
 }
 
 function connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, cvHeight, srs, sra, a, s)
@@ -793,8 +800,8 @@ function connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, cvHeight, srs, s
 	if (sra.start < 0) return;
 	if (sra.start > sra.end) return;
 	if (sra.end >= a.length) return;
-	const toY = 1 + braceArcRadius;
-	const fromY = cvHeight - braceArcRadius;
+	let toY = 0;
+	let fromY = cvHeight;
 	let fromX, toX;
 	const nPastEndS = s.length - 1 - srs.end;
 	const toX1 = (0<nPastEndS) ? stringWidthOnCanvas(ctx, s.substring(srs.end+1)) : 0;
@@ -802,13 +809,21 @@ function connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, cvHeight, srs, s
 	const nPastEndA = a.length - 1 - sra.end;
 	const fromX1 = (0<nPastEndA) ? stringWidthOnCanvas(ctx, a.substring(sra.end+1)) : 0;
 	const fromX2 = stringWidthOnCanvas(ctx, a.substring(sra.start));
-	drawHorizontalBrace(ctx, toX1+1, 1, toX2-toX1-2, false); // shorten by 1px from each end
-	drawHorizontalBrace(ctx, fromX1+1, cvHeight, fromX2-fromX1-2, true); // shorten by 1px from each end
+	if (sra.start < sra.end)
+	{
+		drawHorizontalBrace(ctx, fromX1+1, fromY, fromX2-fromX1-2, true); // shorten by 1px from each end
+		fromY = fromY - braceArcRadius;
+	}
+	if (srs.start < srs.end)
+	{
+		drawHorizontalBrace(ctx, toX1+1, toY, toX2-toX1-2, false); // shorten by 1px from each end
+		toY = toY + braceArcRadius;
+	}
 	if (fpLess(toX2-braceArcRadius, fromX1+braceArcRadius, fpTolerance))
 	{ // no overlap: [fromX2,fromX1] > [toX2,toX1]
-		fromX = fromX1 + braceArcRadius;
-		toX = toX2 - braceArcRadius;
-	} else fromX = toX = 0.5 * (toX2 + fromX1);
+		fromX = (sra.start < sra.end) ? fromX1+braceArcRadius : 0.5*(fromX1+fromX2);
+		toX = (srs.start < srs.end) ? toX2-braceArcRadius : 0.5*(toX1+toX2);
+	} else fromX = toX = 0.5 * (toX2 + fromX1); // middle of overlap
 	drawConnectingLine(ctx, fromX, fromY, toX, toY, 0, 0);
 }
 
@@ -877,24 +892,31 @@ function connectRomanAdditiveToSubtractive()
 		}
 	}
 	if (si < 0) return; // no instances of CM, CD, XC, XL, IX, IV
-	let lastOoMcnctd = 0; // last order of magnitude for which connection was drawn
-	let lastOoM = 0; // order of magnitude most recently scanned by scanOneOrderOfMagnitude()
+	let lastStart = 0; // last order of magnitude for which connection was drawn
 	const h = romanAdditiveToSubtractiveConnectorCanvas.height;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
+	const oldLineWidth = ctx.lineWidth;
+	const oldLineDash = ctx.getLineDash();
+	const oldLineDashOffset = ctx.lineDashOffset;
+	const oldLineCap = ctx.lineCap;
+	ctx.lineWidth = 1;
+	ctx.lineDashOffset = 0;
 	let srs, sra;
-	while (si >= 0)
+	while (si >= 0 && ai >= 0)
 	{
 		srs = scanOneOrderOfMagnitude(s, si);
 		sra = scanOneOrderOfMagnitude(a, ai);
-		//if (lastOoMcnctd + 1 < lastOoM || srs.o > lastOoM + 1)
-		//{
-			//lastOoMcnctd = lastOoM;
+		if ((lastStart + 1 < srs.end) || (srs.end - srs.start < sra.end - sra.start))
+		{
+			lastStart = srs.start;
 			connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, h, srs, sra, a, s);
-		//}
-		//lastOoM = srs.o;
+		}
 		si = srs.i;
+		ai = sra.i;
 	}
-	ctx.strokeStyle = foregroundColor; // restore foreground color
+	ctx.strokeStyle = foregroundColor; // restore foreground color etc.
+	ctx.lineWidth = oldLineWidth;
+	ctx.lineDashOffset = oldLineDashOffset;
 }
 
 function connectRomanToTally()
@@ -933,8 +955,12 @@ function connectRomanToTally()
 	const rFromX2 = romanNumeralsAdditiveCanvas.width - fromX2 - hOffset;
 	const toY = romanNumeralsAdditiveCanvas.height;
 	const rToX = romanNumeralsAdditiveCanvas.width - box1000hPos - hOffset;
-	ctx.lineWidth = 1;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
+	const oldLineWidth = ctx.lineWidth;
+	const oldLineDash = ctx.getLineDash();
+	const oldLineDashOffset = ctx.lineDashOffset;
+	ctx.lineWidth = 1;
+	ctx.lineDashOffset = 0;
 	let bLen = connectingLineBeginningVerticalSectionLength;
 	const eLen = connectingLineEndingVerticalSectionLength;
 	let rFromX;
@@ -947,6 +973,9 @@ function connectRomanToTally()
 		rFromX = lessOrEqX2 ? (rToX - boxCornerRadius) : (rFromX2 + braceArcRadius);
 	} else rFromX = rFromXm;
 	drawConnectingLine(ctx, rFromX, fromY, rToX - boxCornerRadius, toY, bLen, eLen);
+	ctx.strokeStyle = foregroundColor; // restore foreground color etc.
+	ctx.lineWidth = oldLineWidth;
+	ctx.lineDashOffset = oldLineDashOffset;
 }
 
 function displayTextOnCanvas(s, cv)
