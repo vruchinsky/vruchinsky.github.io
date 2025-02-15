@@ -686,7 +686,7 @@ function convertToRomanNumeralsAdditive(n)
 }
 
 function connectOrderOfMagnitudeRomanToArabic(ctx, cvHeight, sr, rn, an)
-{
+{ // draw connecting line and, if needed, horizontal braces
 	if (sr.start < 0) return;
 	if (sr.start > sr.end) return;
 	if (sr.end >= rn.length) return;
@@ -754,7 +754,7 @@ function scanOneOrderOfMagnitude(rn, i)
 	return {i, o, n, start, end};
 }
 
-function connectRomanToArabic()
+function connectRomanToArabic() // draw connecting lines (and horizontal braces) where needed
 {
 	if (romanToArabicConnectorCanvas.getContext == null)
 	{ // fallback in case browser does not support canvas
@@ -793,7 +793,7 @@ function connectRomanToArabic()
 }
 
 function connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, cvHeight, srs, sra, a, s)
-{
+{ // draw connecting line and, if needed, horizontal braces
 	if (srs.start < 0) return;
 	if (srs.start > srs.end) return;
 	if (srs.end >= s.length) return;
@@ -827,72 +827,42 @@ function connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, cvHeight, srs, s
 	drawConnectingLine(ctx, fromX, fromY, toX, toY, 0, 0);
 }
 
-function connectRomanAdditiveToSubtractive()
+function findSubstringPairs(s1, ss1, s2, ss2) // used in connectRomanAdditiveToSubtractive()
+{
+	let i1 = s1.indexOf(ss1);
+	let i2 = s2.indexOf(ss2);
+	if (i1 < 0 || i2 < 0)
+		return null;
+	i1 = i1 + ss1.length - 1;
+	i2 = i2 + ss2.length - 1;
+	return {i1, i2};
+}
+
+function connectRomanAdditiveToSubtractive() // draw connecting lines (and horizontal braces) where needed
 {
 	if (romanAdditiveToSubtractiveConnectorCanvas.getContext == null)
-	{ // fallback in case browser does not support canvas
+	{ // in case browser does not support canvas
 		return;
 	}
 	const ctx = romanAdditiveToSubtractiveConnectorCanvas.getContext("2d");
 	const canvasStyle = getComputedStyle(romanAdditiveToSubtractiveConnectorCanvas);
-	ctx.lineWidth = 1;
 	const a = romanNumeralsAdditive;
 	const s = romanNumeralsSubtractive;
-	let ai = -1;
-	let si = -1;
-	let ms = s.match(/CM/);
-	let ma = a.match(/DCCCC/);
-	if (ma && ms)
-	{
-		si = ms.index + 1;
-		ai = ma.index + 4;
-	}
-	else
-	{
-		ms = s.match(/CD/);
-		ma = a.match(/CCCC/);
-		if (ma && ms)
-		{
-			si = ms.index + 1;;
-			ai = ma.index + 3;
-		}
-	}
-	ms = s.match(/XC/);
-	ma = a.match(/LXXXX/);
-	if (ma && ms)
-	{
-		si = ms.index + 1;
-		ai = ma.index + 4;
-	}
-	else
-	{
-		ms = s.match(/XL/);
-		ma = a.match(/XXXX/);
-		if (ma && ms)
-		{
-			si = ms.index + 1;
-			ai = ma.index + 3;
-		}
-	}
-	ms = s.match(/IX/);
-	ma = a.match(/VIIII/);
-	if (ma && ms)
-	{
-		si = ms.index + 1;
-		ai = ma.index + 4;
-	}
-	else
-	{
-		ms = s.match(/IV/);
-		ma = a.match(/IIII/);
-		if (ma && ms)
-		{
-			si = ms.index + 1;
-			ai = ma.index + 3;
-		}
-	}
-	if (si < 0) return; // no instances of CM, CD, XC, XL, IX, IV
-	let lastStart = 0; // last order of magnitude for which connection was drawn
+	let r = findSubstringPairs(s, "CM", a, "DCCCC");
+	if (r == null)
+		r = findSubstringPairs(s, "CD", a, "CCCC");
+	let r1 = findSubstringPairs(s, "XC", a, "LXXXX");
+	if (r1 == null)
+		r1 = findSubstringPairs(s, "XL", a, "XXXX");
+	if (r1)
+		r = r1;
+	r1 = findSubstringPairs(s, "IX", a, "VIIII");
+	if (r1 == null)
+		r1 = findSubstringPairs(s, "IV", a, "IIII");
+	if (r1)
+		r = r1;
+	if (r == null) return; // no instances of CM, CD, XC, XL, IX, IV
+	let lastStart = 0; // starting position of the last order of magnitude for which connection was drawn
 	const h = romanAdditiveToSubtractiveConnectorCanvas.height;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	const oldLineWidth = ctx.lineWidth;
@@ -902,6 +872,8 @@ function connectRomanAdditiveToSubtractive()
 	ctx.lineWidth = 1;
 	ctx.lineDashOffset = 0;
 	let srs, sra;
+	let si = r.i1;
+	let ai = r.i2;
 	while (si >= 0 && ai >= 0)
 	{
 		srs = scanOneOrderOfMagnitude(s, si);
@@ -919,7 +891,7 @@ function connectRomanAdditiveToSubtractive()
 	ctx.lineDashOffset = oldLineDashOffset;
 }
 
-function connectRomanToTally()
+function connectRomanToTally() // draw connecting lines (and horizontal braces) where needed
 {
 	if (romanNumeralsAdditiveCanvas.getContext == null)
 	{ // fallback in case browser does not support canvas
