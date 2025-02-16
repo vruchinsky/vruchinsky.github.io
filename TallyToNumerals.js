@@ -74,12 +74,7 @@ function clearCanvas(cv)
 {
 	if (cv.getContext == null) return;
 	const ctx = cv.getContext("2d");
-	const canvasStyle = getComputedStyle(cv);
-	const backgroundColor = canvasStyle.backgroundColor;
-	const oldFillStyle = ctx.fillStyle;
-	ctx.fillStyle = backgroundColor;
-	ctx.fillRect(-0.5, -0.5, cv.width, cv.height); // clear the canvas
-	ctx.fillStyle = oldFillStyle; // undo the change to the canvas context
+	ctx.clearRect(-0.5, -0.5, cv.width, cv.height); // clear the canvas
 }
 
 function eraseDrawings()
@@ -848,8 +843,8 @@ function connectRomanAdditiveToSubtractive() // draw connecting lines (and horiz
 	const canvasStyle = getComputedStyle(romanAdditiveToSubtractiveConnectorCanvas);
 	const a = romanNumeralsAdditive;
 	const s = romanNumeralsSubtractive;
-	let r = findSubstringPairs(s, "CM", a, "DCCCC");
-	if (r == null)
+	let r = findSubstringPairs(s, "CM", a, "DCCCC"); // scan hundreds than tens then units
+	if (r == null) // in each order of magnitude treat longer patterns first, e.g. DCCCC before CCCC, LXXXX before XXXX
 		r = findSubstringPairs(s, "CD", a, "CCCC");
 	let r1 = findSubstringPairs(s, "XC", a, "LXXXX");
 	if (r1 == null)
