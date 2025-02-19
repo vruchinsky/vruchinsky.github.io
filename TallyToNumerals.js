@@ -38,7 +38,7 @@ let box1000hPos = 0;
 let box1000width = 0;
 const buttonNormalColor = incrementButton.style.backgroundColor;
 const buttonDisabledColor = "#707070";
-const buttonsPressedColor = "#A0A0A0";
+const buttonPressedColor = "#A0A0A0";
 const buttonHoverColor = "#C0C0C0";
 
 let inputNumber = 0;
@@ -72,9 +72,10 @@ function initializeCanvas(cv, flipHorizontalAxis)
 
 function clearCanvas(cv)
 {
-	if (cv.getContext == null) return;
+	if (cv.getContext == null)
+		return;
 	const ctx = cv.getContext("2d");
-	ctx.clearRect(-0.5, -0.5, cv.width, cv.height); // clear the canvas
+	ctx.clearRect(-0.5, -0.5, cv.width, cv.height);
 }
 
 function eraseDrawings()
@@ -971,8 +972,8 @@ function disableButtons(incrementButtonPressed)
 	incrementOrDecrementExecuting = true;
 	incrementButton.disabled = true;
 	decrementButton.disabled = true;
-	incrementButton.style.backgroundColor = incrementButtonPressed ? buttonDisabledColor : buttonsPressedColor;
-	decrementButton.style.backgroundColor = incrementButtonPressed ? buttonsPressedColor : buttonDisabledColor;
+	incrementButton.style.backgroundColor = incrementButtonPressed ? buttonDisabledColor : buttonPressedColor;
+	decrementButton.style.backgroundColor = incrementButtonPressed ? buttonPressedColor : buttonDisabledColor;
 	if (incrementButtonPressed)
 		incrementButton.style.fontWeight = "bold";
 	else
@@ -1022,62 +1023,207 @@ function setRomanNumeralsAdditive(s)
 	displayTextOnCanvas(s, romanNumeralsAdditiveCanvas);
 }
 
+class animateIIIIItoV
+{
+	T = 1000; // (msec) time to complete the entire motion (merging the Is)
+	R = 0;
+	x0i = 0;
+	x0 = 0;
+	x1 = 0;
+	x2 = 0;
+	x3 = 0;
+	x4 = 0;
+	xf = 0;
+	s0 = 0; // (px/msec) how fast to move x0 towards xf
+	s1 = 0; // (px/msec) how fast to move x1 towards xf
+	s2 = 0; // (px/msec) how fast to move x2 towards xf
+	s3 = 0; // (px/msec) how fast to move x3 towards xf
+	s4 = 0; // (px/msec) how fast to move x4 towards xf
+	t = 0; // (msec) time of last update
+	vPos = 0;
+	finished = true;
+	constructor()
+	{
+		this.R = 1/(this.T);		
+	}
+	isFinished() {return this.finished;}
+	draw()
+	{
+		if (this.isFinished()) return;
+		if (romanNumeralsAdditiveCanvas.getContext == null)
+			return; // browser does not support canvas
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		const w = romanNumeralsAdditiveCanvas.width - this.x0i;
+		ctx.clearRect(this.x0i, -0.5, w, romanNumeralsAdditiveCanvas.height);
+		const s = "I";
+		ctx.fillText(s, this.x0, this.vPos);
+		ctx.fillText(s, this.x1, this.vPos);
+		ctx.fillText(s, this.x2, this.vPos);
+		ctx.fillText(s, this.x3, this.vPos);
+		ctx.fillText(s, this.x4, this.vPos);
+	}
+	finish()
+	{
+		if (this.isFinished()) return;
+		let s = replaceLastChars(romanNumeralsAdditive, "IIIII", "V");
+		//setRomanNumeralsAdditive(s);
+		romanNumeralsAdditive = s
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		ctx.clearRect(-0.5, -0.5, romanNumeralsAdditiveCanvas.width, romanNumeralsAdditiveCanvas.height);
+		const metrics = ctx.measureText(s);
+		const hPos = romanNumeralsAdditiveCanvas.width - metrics.width - hOffset;
+		ctx.fillText(s, hPos, this.vPos);
+
+		this.finished = true;
+	}
+	reset()
+	{
+		this.finished = true;
+		if (romanNumeralsAdditiveCanvas.getContext == null)
+			return; // browser does not support canvas
+		const rl5 = romanNumeralsAdditive.length - "IIIII".length;
+		if (romanNumeralsAdditive.substring(rl5) !== "IIIII")
+			return;
+		this.finished = false;
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		const w = romanNumeralsAdditiveCanvas.width - hOffset;
+		let metrics = ctx.measureText("IIIII");
+		this.vPos = metrics.actualBoundingBoxAscent;
+		this.x0i = this.x0 = w - metrics.width;
+		metrics = ctx.measureText("IIII");
+		this.x1 = w - metrics.width;
+		metrics = ctx.measureText("III");
+		this.x2 = w - metrics.width;
+		metrics = ctx.measureText("II");
+		this.x3 = w - metrics.width;
+		metrics = ctx.measureText("I");
+		this.x4 = w - metrics.width;
+		this.xf = 0.5 * (this.x0 + this.x1);
+		this.s0 = (this.R)*(this.xf - this.x0);
+		this.s1 = (this.R)*(this.xf - this.x1);
+		this.s2 = (this.R)*(this.xf - this.x2);
+		this.s3 = (this.R)*(this.xf - this.x3);
+		this.s4 = (this.R)*(this.xf - this.x4);
+		this.t = Date.now();
+	}
+	keepConverging()
+	{
+		if (this.isFinished()) return false;
+		return (fpLess(this.x0, this.xf, fpTolerance) ||
+			fpLess(this.xf, this.x1, fpTolerance) ||
+			fpLess(this.xf, this.x2, fpTolerance) ||
+			fpLess(this.xf, this.x3, fpTolerance) ||
+			fpLess(this.xf, this.x4, fpTolerance));
+	}
+	converge()
+	{
+		if (this.isFinished()) return;
+		const t1 = Date.now(); // (msec)
+		const dt = t1 - this.t; // (msec) time since last update
+		let u = this.x0 + (this.s0)*dt;
+		this.x0 = fpLessEq(u, this.xf, fpTolerance) ? u : this.xf;
+		u = this.x1 + (this.s1)*dt;
+		this.x1 = fpLessEq(this.xf, u, fpTolerance) ? u : this.xf;
+		u = this.x2 + (this.s2)*dt;
+		this.x2 = fpLessEq(this.x1, u, fpTolerance) ? u : this.x1;
+		u = this.x3 + (this.s3)*dt;
+		this.x3 = fpLessEq(this.x2, u, fpTolerance) ? u : this.x2;
+		u = this.x4 + (this.s4)*dt;
+		this.x4 = fpLessEq(this.x3, u, fpTolerance) ? u : this.x3;
+		this.t = t1;
+	}
+}
+
+let aIIIIItoV = new animateIIIIItoV();
+let incrementNumberHandlerState = 0;
+
 async function incrementNumber()
 {
-	if (inputNumber >= largestNumberToDisplay) return;
-	if (incrementOrDecrementExecuting) return;
-	disableButtons(true);
-	arabicNumeralsElement.value = "";
-	eraseDrawings();
-	await pause(minimumPauseTime);
-	if (inputNumber == 0)
-		setRomanNumeralsAdditive("");
-	inputNumber++;
-	setRomanNumeralsAdditive(romanNumeralsAdditive + "I");
-	let s = replaceLastChars(romanNumeralsAdditive, "IIIII", "\\ ////");
-	if (s != null)
-	{ // IIIII -> V multistep text-character-based animation
-		await pause(intermediateReplacementPauseTime);
-		setRomanNumeralsAdditive(s);
-		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsAdditive, "\\ ////", "\\/");
-		setRomanNumeralsAdditive(s);
-		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsAdditive, "\\/", "V");
-		setRomanNumeralsAdditive(s);
+	if (incrementNumberHandlerState == 0)
+	{
+		if (inputNumber >= largestNumberToDisplay) return;
+		if (incrementOrDecrementExecuting) return;
+		disableButtons(true);
+		arabicNumeralsElement.value = "";
+		eraseDrawings();
+		await pause(minimumPauseTime);
+		if (inputNumber == 0)
+			setRomanNumeralsAdditive("");
+		inputNumber++;
+		setRomanNumeralsAdditive(romanNumeralsAdditive + "I");
+		aIIIIItoV.reset();
+		incrementNumberHandlerState = 1;
 	}
- 	s = replaceLastChars(romanNumeralsAdditive, "VV", "\u039bV"); // \u039b = capital letter lambda
-	if (s != null)
-	{ // VV -> X multistep text-character-based animation
-		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		setRomanNumeralsAdditive(s);
-		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsAdditive, "\u039bV", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
-		setRomanNumeralsAdditive(s);
-		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsAdditive, "\u1D27\u2C7D", "X"); // \u2C7D = superscript letter v
-		setRomanNumeralsAdditive(s);
+	if (incrementNumberHandlerState == 1)
+	{
+		if (aIIIIItoV.keepConverging())
+		{
+			aIIIIItoV.converge();
+			aIIIIItoV.draw();
+			window.requestAnimationFrame(incrementNumber);
+		}
+		else
+		{
+			aIIIIItoV.finish();
+			incrementNumberHandlerState = 2;
+		}
 	}
-	s = replaceLastChars(romanNumeralsAdditive, "XXXXX", "L");
-	if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
- 	s = replaceLastChars(romanNumeralsAdditive, "LL", "\u0393L"); // \u0393 = capital letter gamma
- 	if (s != null)
-	{ // LL -> C multistep text-character-based animation
-		await pause(replacementPauseTime); // wait longer before starting this multistep animation
-		setRomanNumeralsAdditive(s);
-		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsAdditive, "\u0393L", "\u228f"); // \u228f = square subset symbol
-		setRomanNumeralsAdditive(s);
-		await pause(intermediateReplacementPauseTime);
-		s = replaceLastChars(romanNumeralsAdditive, "\u228f", "C");
-		setRomanNumeralsAdditive(s);
+	if (incrementNumberHandlerState == 2)
+	{
+		s = replaceLastChars(romanNumeralsAdditive, "VV", "\u039bV"); // \u039b = capital letter lambda
+		if (s != null)
+		{ // VV -> X multistep text-character-based animation
+			await pause(replacementPauseTime); // wait longer before starting this multistep animation
+			setRomanNumeralsAdditive(s);
+			await pause(intermediateReplacementPauseTime);
+			s = replaceLastChars(romanNumeralsAdditive, "\u039bV", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
+			setRomanNumeralsAdditive(s);
+			await pause(intermediateReplacementPauseTime);
+			s = replaceLastChars(romanNumeralsAdditive, "\u1D27\u2C7D", "X"); // \u2C7D = superscript letter v
+			setRomanNumeralsAdditive(s);
+		}
+		incrementNumberHandlerState = 3;
 	}
-	s = replaceLastChars(romanNumeralsAdditive, "CCCCC", "D");
-	if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
- 	s = replaceLastChars(romanNumeralsAdditive, "DD", "M");
-	if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
-	setNumber();
-	reenableButtons();
+	if (incrementNumberHandlerState == 3)
+	{
+		s = replaceLastChars(romanNumeralsAdditive, "XXXXX", "L");
+		if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
+		incrementNumberHandlerState = 4;
+	}
+	if (incrementNumberHandlerState == 4)
+	{
+		s = replaceLastChars(romanNumeralsAdditive, "LL", "\u0393L"); // \u0393 = capital letter gamma
+		if (s != null)
+		{ // LL -> C multistep text-character-based animation
+			await pause(replacementPauseTime); // wait longer before starting this multistep animation
+			setRomanNumeralsAdditive(s);
+			await pause(intermediateReplacementPauseTime);
+			s = replaceLastChars(romanNumeralsAdditive, "\u0393L", "\u228f"); // \u228f = square subset symbol
+			setRomanNumeralsAdditive(s);
+			await pause(intermediateReplacementPauseTime);
+			s = replaceLastChars(romanNumeralsAdditive, "\u228f", "C");
+			setRomanNumeralsAdditive(s);
+		}
+		incrementNumberHandlerState = 5;
+	}
+	if (incrementNumberHandlerState == 5)
+	{
+		s = replaceLastChars(romanNumeralsAdditive, "CCCCC", "D");
+		if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
+		incrementNumberHandlerState = 6;
+	}
+	if (incrementNumberHandlerState == 6)
+	{
+		s = replaceLastChars(romanNumeralsAdditive, "DD", "M");
+		if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
+		incrementNumberHandlerState = 7;
+	}
+	if (incrementNumberHandlerState == 7)
+	{
+		setNumber();
+		reenableButtons();
+		incrementNumberHandlerState = 0;
+	}
 }
 
 async function decrementNumber()
