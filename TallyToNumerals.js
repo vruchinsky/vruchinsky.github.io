@@ -10,6 +10,16 @@ const romanAdditiveToSubtractiveConnectorCanvas = document.getElementById("Conne
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 const tallyCanvas = document.getElementById("tally");
+const AnimationSpeedInput = document.getElementById('AnimationSpeed');
+const valueSpan = document.getElementById('rangeValue');
+
+let AnimationSpeed = parseFloat(AnimationSpeedInput.value);
+valueSpan.textContent = AnimationSpeed.toString();
+
+AnimationSpeedInput.addEventListener('input', function() {
+    AnimationSpeed = parseFloat(AnimationSpeedInput.value);
+    valueSpan.textContent = AnimationSpeed.toString();
+});
 
 const foregroundWeightBoxBoundary = 0.3;
 const foregroundWeightBoxBoundary2 = 0.2;
@@ -1099,11 +1109,11 @@ class animateIIIIItoV
 		metrics = ctx.measureText("I");
 		this.x4 = w - metrics.width;
 		this.xf = 0.5 * (this.x0 + this.x1);
-		this.s0 = (this.R)*(this.xf - this.x0);
-		this.s1 = (this.R)*(this.xf - this.x1);
-		this.s2 = (this.R)*(this.xf - this.x2);
-		this.s3 = (this.R)*(this.xf - this.x3);
-		this.s4 = (this.R)*(this.xf - this.x4);
+		this.s0 = AnimationSpeed*(this.xf - this.x0);
+		this.s1 = AnimationSpeed*(this.xf - this.x1);
+		this.s2 = AnimationSpeed*(this.xf - this.x2);
+		this.s3 = AnimationSpeed*(this.xf - this.x3);
+		this.s4 = AnimationSpeed*(this.xf - this.x4);
 		this.t = Date.now();
 	}
 	keepConverging()
