@@ -309,7 +309,42 @@ function testCanvas()
 	if (romanNumeralsAdditiveCanvas.getContext == null)
 		return;
 	ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-	ctx.fillText(emptySetSymbol, 10, 20);
+	ctx.fillText(emptySetSymbol, 0, 20);
+	ctx.save();
+	ctx.fillText(emptySetSymbol, 20, 20);
+	ctx.fillText("I", 40, 20);
+	ctx.transform(1, 0, 0.1, 1, 0, 0);
+	ctx.fillText("I", 55, 20);
+	ctx.restore();
+	ctx.save();
+	ctx.transform(1, 0, 0.2, 1, 0, 0);
+	ctx.fillText("I", 70, 20);
+	ctx.restore();
+	ctx.save();
+	ctx.transform(1, 0, 0.3, 1, 0, 0);
+	ctx.fillText("I", 85, 20);
+	ctx.restore();
+	ctx.save();
+	ctx.transform(1, 0, 0.4, 1, 0, 0);
+	ctx.fillText("I", 100, 20);
+	ctx.restore();
+	ctx.fillText("VIV", 120, 20);
+	ctx.save();
+	ctx.transform(1, 0, -0.4, 1, 0, 0);
+	ctx.fillText("I", 175, 20);
+	ctx.restore();
+	ctx.save();
+	ctx.transform(1, 0, -0.3, 1, 0, 0);
+	ctx.fillText("I", 190, 20);
+	ctx.restore();
+	ctx.save();
+	ctx.transform(1, 0, -0.2, 1, 0, 0);
+	ctx.fillText("I", 205, 20);
+	ctx.restore();
+	ctx.save();
+	ctx.transform(1, 0, -0.1, 1, 0, 0);
+	ctx.fillText("I", 220, 20);
+	ctx.restore();
 }
 
 function stringWidthOnCanvas(ctx, s)
@@ -1042,11 +1077,15 @@ class animateIIIIItoV
 	x3 = 0;
 	x4 = 0;
 	xf = 0;
-	s0 = 0; // (px/msec) how fast to move x0 towards xf
-	s1 = 0; // (px/msec) how fast to move x1 towards xf
-	s2 = 0; // (px/msec) how fast to move x2 towards xf
-	s3 = 0; // (px/msec) how fast to move x3 towards xf
-	s4 = 0; // (px/msec) how fast to move x4 towards xf
+	skewI = 0; // constant
+	skewF = 0.4; // constant
+	vSkew = 0; // calculated from skewF, skewI, xf, x0i and AnimationSpeed
+	skew = 0; // current value (starts = skewI and increases to skewF)
+	vx0 = 0; // (px/msec) how fast to move x0 towards xf
+	vx1 = 0; // (px/msec) how fast to move x1 towards xf
+	vx2 = 0; // (px/msec) how fast to move x2 towards xf
+	vx3 = 0; // (px/msec) how fast to move x3 towards xf
+	vx4 = 0; // (px/msec) how fast to move x4 towards xf
 	t = 0; // (msec) time of last update
 	vPos = 0;
 	finished = true;
@@ -1060,11 +1099,26 @@ class animateIIIIItoV
 		const w = romanNumeralsAdditiveCanvas.width - this.x0i;
 		ctx.clearRect(this.x0i, -0.5, w, romanNumeralsAdditiveCanvas.height);
 		const s = "I";
-		ctx.fillText(s, this.x0, this.vPos);
-		ctx.fillText(s, this.x1, this.vPos);
-		ctx.fillText(s, this.x2, this.vPos);
-		ctx.fillText(s, this.x3, this.vPos);
-		ctx.fillText(s, this.x4, this.vPos);
+		ctx.save();
+		ctx.transform(1, 0, this.skew, 1, this.x0, this.vPos); // skew leftwards
+		ctx.fillText(s, 0, 0);
+		ctx.restore();
+		ctx.save();
+		ctx.transform(1, 0, -this.skew, 1, this.x1, this.vPos); // skew rightwards
+		ctx.fillText(s, 0, 0);
+		ctx.restore();
+		ctx.save();
+		ctx.transform(1, 0, -this.skew, 1, this.x2, this.vPos); // skew rightwards
+		ctx.fillText(s, 0, 0);
+		ctx.restore();
+		ctx.save();
+		ctx.transform(1, 0, -this.skew, 1, this.x3, this.vPos); // skew rightwards
+		ctx.fillText(s, 0, 0);
+		ctx.restore();
+		ctx.save();
+		ctx.transform(1, 0, -this.skew, 1, this.x4, this.vPos); // skew rightwards
+		ctx.fillText(s, 0, 0);
+		ctx.restore();
 	}
 	finish()
 	{
@@ -1102,20 +1156,22 @@ class animateIIIIItoV
 		this.x3 = w - metrics.width;
 		metrics = ctx.measureText("I");
 		this.x4 = w - metrics.width;
-		this.xf = 0.5 * (this.x0 + this.x1);
-		this.s0 = AnimationSpeed*(this.xf - this.x0);
-		this.s1 = AnimationSpeed*(this.xf - this.x1);
-		this.s2 = AnimationSpeed*(this.xf - this.x2);
-		this.s3 = AnimationSpeed*(this.xf - this.x3);
-		this.s4 = AnimationSpeed*(this.xf - this.x4);
+		this.xf = this.x2; // converge to the middle
+		this.vx0 = AnimationSpeed*(this.xf - this.x0);
+		this.vx1 = AnimationSpeed*(this.xf - this.x1);
+		this.vx2 = AnimationSpeed*(this.xf - this.x2);
+		this.vx3 = AnimationSpeed*(this.xf - this.x3);
+		this.vx4 = AnimationSpeed*(this.xf - this.x4);
+		this.vSkew = AnimationSpeed*(this.skewF - this.skewI);
+		this.skew = this.skewI;
 		this.t = Date.now();
 	}
 	keepConverging()
 	{
 		if (this.isFinished()) return false;
 		return (fpLess(this.x0, this.xf, fpTolerance) ||
-			fpLess(this.xf, this.x1, fpTolerance) ||
-			fpLess(this.xf, this.x2, fpTolerance) ||
+			fpLess(this.x1, this.xf, fpTolerance) ||
+			//fpLess(this.xf, this.x2, fpTolerance) || // here x2 stays still
 			fpLess(this.xf, this.x3, fpTolerance) ||
 			fpLess(this.xf, this.x4, fpTolerance));
 	}
@@ -1124,16 +1180,18 @@ class animateIIIIItoV
 		if (this.isFinished()) return;
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
-		let u = this.x0 + (this.s0)*dt;
-		this.x0 = fpLessEq(u, this.xf, fpTolerance) ? u : this.xf;
-		u = this.x1 + (this.s1)*dt;
-		this.x1 = fpLessEq(this.xf, u, fpTolerance) ? u : this.xf;
-		u = this.x2 + (this.s2)*dt;
-		this.x2 = fpLessEq(this.x1, u, fpTolerance) ? u : this.x1;
-		u = this.x3 + (this.s3)*dt;
-		this.x3 = fpLessEq(this.x2, u, fpTolerance) ? u : this.x2;
-		u = this.x4 + (this.s4)*dt;
+		let u = this.x0 + (this.vx0)*dt;
+		this.x0 = fpLessEq(u, this.x1, fpTolerance) ? u : this.x1;
+		u = this.x1 + (this.vx1)*dt;
+		this.x1 = fpLessEq(u, this.xf, fpTolerance) ? u : this.xf;
+		//u = this.x2 + (this.vx2)*dt; // here x2 stays still
+		//this.x2 = fpLessEq(this.x1, u, fpTolerance) ? u : this.x1;
+		u = this.x3 + (this.vx3)*dt;
+		this.x3 = fpLessEq(this.xf, u, fpTolerance) ? u : this.xf;
+		u = this.x4 + (this.vx4)*dt;
 		this.x4 = fpLessEq(this.x3, u, fpTolerance) ? u : this.x3;
+		u = this.skew + (this.vSkew)*dt;
+		this.skew = fpLessEq(u, this.skewF, fpTolerance) ? u : this.skewF;
 		this.t = t1;
 	}
 }
