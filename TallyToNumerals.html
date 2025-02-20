@@ -101,16 +101,6 @@
 			position: absolute;
 			left: 210px;
 			top: 457px;
-			width: 100px;
-            height: 28px;
-            font-size: 14px;
-            color: var(--color);
-			background-color: var(--bg-color);
-			}
-        #displayAnimationSpeed {
-			position: absolute;
-			left: 310px;
-			top: 457px;
 			width: 300px;
             height: 28px;
             font-size: 14px;
@@ -133,7 +123,6 @@
 	<button id="incrementButton" onclick=incrementNumber()>+</button>
 	<button id="decrementButton" onclick=decrementNumber()>-</button>
 	<input type="range" id="AnimationSpeed" name="AnimationSpeed" min="0.0002" max="0.002" step="0.0001" value="0.0002"/>
-	<label id="labelAnimationSpeed" for="AnimationSpeed">animation speed</label>
-	<p id="displayAnimationSpeed">Value: <span id="rangeValue"></span></p>
+	<label id="labelAnimationSpeed" for="AnimationSpeed">animation speed: <span id="DisplayAnimationSpeed"></span></label>
 </body>
 </html>

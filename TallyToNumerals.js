@@ -10,15 +10,15 @@ const romanAdditiveToSubtractiveConnectorCanvas = document.getElementById("Conne
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 const tallyCanvas = document.getElementById("tally");
-const AnimationSpeedInput = document.getElementById('AnimationSpeed');
-const valueSpan = document.getElementById('rangeValue');
+const AnimationSpeedInput = document.getElementById("AnimationSpeed");
+const AnimationSpeedDisplay = document.getElementById("DisplayAnimationSpeed");
 
 let AnimationSpeed = parseFloat(AnimationSpeedInput.value);
-valueSpan.textContent = AnimationSpeed.toString();
+AnimationSpeedDisplay.textContent = AnimationSpeed.toString();
 
 AnimationSpeedInput.addEventListener('input', function() {
     AnimationSpeed = parseFloat(AnimationSpeedInput.value);
-    valueSpan.textContent = AnimationSpeed.toString();
+    AnimationSpeedDisplay.textContent = AnimationSpeed.toString();
 });
 
 const foregroundWeightBoxBoundary = 0.3;
@@ -1035,8 +1035,6 @@ function setRomanNumeralsAdditive(s)
 
 class animateIIIIItoV
 {
-	T = 1000; // (msec) time to complete the entire motion (merging the Is)
-	R = 0;
 	x0i = 0;
 	x0 = 0;
 	x1 = 0;
@@ -1052,10 +1050,6 @@ class animateIIIIItoV
 	t = 0; // (msec) time of last update
 	vPos = 0;
 	finished = true;
-	constructor()
-	{
-		this.R = 1/(this.T);		
-	}
 	isFinished() {return this.finished;}
 	draw()
 	{
