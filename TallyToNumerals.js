@@ -1152,8 +1152,8 @@ class animateIIIIItoV
 		this.vx3 = AnimationSpeed*(this.xMi - this.x3);
 		this.vx4 = AnimationSpeed*(this.xMi - this.x4);
 		this.vSkew = AnimationSpeed*(this.skewF - this.skewI);
-		this.vxl = AnimationSpeed*(this.xLf - this.xLi);
-		this.vxm = AnimationSpeed*(this.xMf - this.xMi);
+		this.vxl = 2*AnimationSpeed*(this.xLf - this.xLi);
+		this.vxm = 2*AnimationSpeed*(this.xMf - this.xMi);
 		this.t = Date.now();
 	}
 	finish()
