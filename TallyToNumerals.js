@@ -676,7 +676,10 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms)); // from htt
 
 function replaceLastChars(s, a, b) // if string s ends with string a,
 { // then replace the ending with string b and return the result,
-	if (s.length < a.length) return null; // otherwise do nothing and return null
+	if (s === null || a === null || b === null) // otherwise do nothing
+		return null; // and return null
+	if (s.length < a.length)
+		return null;
 	let iLast = s.length - a.length; // index of the 1st of last chars in s
 	if (s.substring(iLast) === a)
 		return (s.substring(0,iLast) + b);
