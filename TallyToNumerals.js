@@ -1075,7 +1075,7 @@ class animateIIIIItoV
 {
 	initialText = "IIIII"; // (constant) to metamorphose into finalText
 	finalText = "V"; // constant
-	sameText = 0; // the part of romanNumeralsAdditive which remains unchanged during this animation
+	sameText = ""; // the part of romanNumeralsAdditive which remains unchanged during this animation
 	nCsame = 0; // how many numerals in sameText
 	x0i = 0; // initial horizontal position of the leftmost I, where to start clearing the canvas in each call to draw()
 	x0 = 0; // updated horizontal position of the leftmost I
@@ -1114,8 +1114,14 @@ class animateIIIIItoV
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		this.nCsame = romanNumeralsAdditive.length - this.initialText.length;
-		if (romanNumeralsAdditive.substring(this.nCsame) !== this.initialText)
+		if (this.nCsame < 0)
+		{ // romanNumeralsAdditive shorter than initialText, nothing to do here
+			this.nCsame = romanNumeralsAdditive.length;
+			this.sameText = romanNumeralsAdditive;
 			return;
+		}
+		if (romanNumeralsAdditive.substring(this.nCsame) !== this.initialText)
+			return; // romanNumeralsAdditive does not end with initialText, nothing to do here
 		this.sameText = romanNumeralsAdditive.substring(0, this.nCsame);
 		this.started = true;
 		this.finished = this.finishedM = false;
