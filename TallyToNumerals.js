@@ -1081,7 +1081,7 @@ function setRomanNumeralsAdditive(s)
 
 class closeTheGaps // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
 { // b/c such a metamorphosis leaves gaps in the entire numerical expression, e.g. XXIIIII -> XX  V
-	initialText = null; // (constant) to metamorphose into finalText
+	initialText = null; // (constant) what metamorphoses into finalText
 	finalText = null; // constant
 	sameText = null; // the part of romanNumeralsAdditive which remains unchanged during this stage of the animation
 	xm = 0; // updated horizontal position of finalText in romanNumeralsAdditive as this stage of the animation proceeds
@@ -1155,11 +1155,10 @@ class closeTheGaps // the last stage of animations of metamorphoses of some nume
 	}
 }
 
-class animateIIIIItoV
-{
-	initialText = "IIIII"; // (constant) to metamorphose into finalText
-	finalText = "V"; // constant
-	cg = null; // to store closeTheGaps object
+class metamorphoseIIIIItoV
+{ // the first stage of animations of metamorphoses of IIIII->V
+	initialText = null; // (constant) to metamorphose into finalText
+	finalText = null; // constant
 	x0i = 0; // initial horizontal position of the leftmost I, where to start clearing the canvas in each call to draw()
 	x0 = 0; // updated horizontal position of the leftmost I
 	x1 = 0; // updated horizontal position of the next to the leftmost I
@@ -1178,27 +1177,18 @@ class animateIIIIItoV
 	vx4 = 0; // (px/msec) how fast to move x4 towards xMi
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
-	started = false; // true iff initialText was found in romanNumeralsAdditive
-	finished = true; // iff finished all the stages of this animation
-	finishedM = true; // iff finished the metamorphosis of intialText into finalText
-	isFinished() {return this.finished;} // status of the entire animation (together with all its stages)
-	constructor() {this.cg = new closeTheGaps(this.initialText, this.finalText);}
+	finished = true; // iff finished the metamorphosis of intialText into finalText
+	constructor(iText, fText)
+	{
+		this.initialText = iText;
+		this.finalText = fText;
+	}
 	reset()
 	{
-		this.started = false;
-		this.finished = this.finishedM = true;
+		this.finished = true;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
-		let nCsame = romanNumeralsAdditive.length - this.initialText.length; // how many numerals in sameText
-		if (nCsame < 0)
-		{ // romanNumeralsAdditive shorter than initialText, nothing to do here
-			this.sameText = romanNumeralsAdditive;
-			return;
-		}
-		if (romanNumeralsAdditive.substring(nCsame) !== this.initialText)
-			return; // romanNumeralsAdditive does not end with initialText, nothing to do here
-		this.started = true;
-		this.finished = this.finishedM = false;
+		this.finished = false;
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 		const w = romanNumeralsAdditiveCanvas.width - hOffset;
 		let metrics = ctx.measureText(this.initialText);
@@ -1221,36 +1211,20 @@ class animateIIIIItoV
 		this.vx4 = AnimationSpeedMetamorphosis*(this.xf - this.x4);
 		this.vSkew = AnimationSpeedMetamorphosis*(this.skewF - this.skewI);
 		this.t = Date.now();
-		this.cg.reset(nCsame, this.x0i, this.xf);
 	}
-	finish()
+	done()
 	{
-		if (this.started == false)
-			return;
-		let s = replaceLastChars(romanNumeralsAdditive, this.initialText, this.finalText);
-		//setRomanNumeralsAdditive(s);
-		romanNumeralsAdditive = s
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		ctx.clearRect(-0.5, -0.5, romanNumeralsAdditiveCanvas.width, romanNumeralsAdditiveCanvas.height);
-		const metrics = ctx.measureText(s);
-		const hPos = romanNumeralsAdditiveCanvas.width - metrics.width - hOffset;
-		ctx.fillText(s, hPos, this.vPos);
-
-		this.finished = true;
-	}
-	metamorphosisComplete()
-	{
-		if (this.finished || this.finishedM) return true;
-		return (this.finishedM =
+		if (this.finished) return true;
+		return (this.finished =
 			(fpEqual(this.x0, this.xf, fpTolerance) &&
 			fpEqual(this.x1, this.xf, fpTolerance) &&
 			//fpEqual(this.x2, this.xf, fpTolerance) && // here x2 stays still
 			fpEqual(this.x3, this.xf, fpTolerance) &&
 			fpEqual(this.x4, this.xf, fpTolerance)));
 	}
-	metamorphose()
+	proceed()
 	{
-		if (this.finishedM) return;
+		if (this.finished) return;
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
 		let u = this.x1 + (this.vx1)*dt;
@@ -1267,7 +1241,7 @@ class animateIIIIItoV
 		this.skew = fpLessEq(u, this.skewF, fpTolerance) ? u : this.skewF; // prevent skew from surpassing skewF
 		this.t = t1;
 	}
-	drawMetamorphosis()
+	draw()
 	{
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
@@ -1295,12 +1269,62 @@ class animateIIIIItoV
 		ctx.fillText(this.initialText[4], 0, 0);
 		ctx.restore();
 	}
+}
+
+class animateIIIIItoV
+{
+	initialText = "IIIII"; // (constant) to metamorphose into finalText
+	finalText = "V"; // constant
+	mIIIIItoV = null; // to store metamorphoseIIIIItoV object
+	cg = null; // to store closeTheGaps object
+	started = false; // true iff initialText was found in romanNumeralsAdditive
+	finished = true; // iff finished all the stages of this animation
+	isFinished() {return this.finished;} // status of the entire animation (together with all its stages)
+	constructor()
+	{
+		this.mIIIIItoV = new metamorphoseIIIIItoV(this.initialText, this.finalText);
+		this.cg = new closeTheGaps(this.initialText, this.finalText);
+	}
+	reset()
+	{
+		this.started = false;
+		this.finished = true;
+		if (romanNumeralsAdditiveCanvas.getContext == null)
+			return; // browser does not support canvas
+		let nCsame = romanNumeralsAdditive.length - this.initialText.length; // how many numerals in sameText
+		if (nCsame < 0)
+		{ // romanNumeralsAdditive shorter than initialText, nothing to do here
+			this.sameText = romanNumeralsAdditive;
+			return;
+		}
+		if (romanNumeralsAdditive.substring(nCsame) !== this.initialText)
+			return; // romanNumeralsAdditive does not end with initialText, nothing to do here
+		this.started = true;
+		this.finished = false;
+		this.mIIIIItoV.reset();
+		this.cg.reset(nCsame, this.mIIIIItoV.x0i, this.mIIIIItoV.xf);
+	}
+	finish()
+	{
+		if (this.started == false)
+			return;
+		let s = replaceLastChars(romanNumeralsAdditive, this.initialText, this.finalText);
+		//setRomanNumeralsAdditive(s);
+		romanNumeralsAdditive = s
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		ctx.clearRect(-0.5, -0.5, romanNumeralsAdditiveCanvas.width, romanNumeralsAdditiveCanvas.height);
+		const metrics = ctx.measureText(s);
+		const hPos = romanNumeralsAdditiveCanvas.width - metrics.width - hOffset;
+		ctx.fillText(s, hPos, this.cg.vPos);
+
+		this.finished = true;
+	}
 	proceed()
 	{
-		if (this.metamorphosisComplete()==false)
+		if (this.mIIIIItoV.done()==false)
 		{
-			this.metamorphose();
-			this.cg.updateTime(this.t);
+			this.mIIIIItoV.proceed();
+			this.cg.updateTime(this.mIIIIItoV.t);
 		}
 		else
 		{
@@ -1311,14 +1335,15 @@ class animateIIIIItoV
 	}
 	draw()
 	{
-		if (this.metamorphosisComplete()==false)
-			this.drawMetamorphosis();
+		if (this.mIIIIItoV.done()==false)
+			this.mIIIIItoV.draw();
 		else if ((this.finished=this.cg.done())==false)
 			this.cg.draw();
 	}
 }
 
 let aIIIIItoV = new animateIIIIItoV();
+
 let incrementNumberHandlerState = 0;
 
 async function incrementNumber()
