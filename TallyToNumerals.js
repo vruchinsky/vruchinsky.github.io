@@ -1115,7 +1115,7 @@ class closeTheGaps // the last stage of animations of metamorphoses of some nume
 		this.xLi = this.xl = w - metrics.width;
 		metrics = ctx.measureText(this.finalText);
 		this.xMf = w - metrics.width;
-		this.xMi = this.xm = xf; // where finalText is immediately after it has metamorphosed from initialText (before closing the gap)
+		this.xMi = this.xm = xf; // where finalText is immediately after it has metamorphosed from initialText (before closing the gaps)
 		metrics = ctx.measureText(this.initialText);
 		this.dxL0i = x0i - this.xLi;
 		this.xLf = this.xMf - this.dxL0i;
@@ -1271,19 +1271,18 @@ class metamorphoseIIIIItoV
 	}
 }
 
-class animateIIIIItoV
+class animateNumeralSubstitutionManyToOne
 {
-	initialText = "IIIII"; // (constant) to metamorphose into finalText
-	finalText = "V"; // constant
-	mIIIIItoV = null; // to store metamorphoseIIIIItoV object
-	cg = null; // to store closeTheGaps object
+	morph = null; // to store metamorphoseIIIIItoV object
+	cGaps = null; // to store closeTheGaps object
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = true; // iff finished all the stages of this animation
-	isFinished() {return this.finished;} // status of the entire animation (together with all its stages)
-	constructor()
+	constructor(m)
 	{
-		this.mIIIIItoV = new metamorphoseIIIIItoV(this.initialText, this.finalText);
-		this.cg = new closeTheGaps(this.initialText, this.finalText);
+		if (m === null)
+			return;
+		this.morph = m;
+		this.cGaps = new closeTheGaps(this.morph.initialText, this.morph.finalText);
 	}
 	reset()
 	{
@@ -1291,58 +1290,49 @@ class animateIIIIItoV
 		this.finished = true;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
-		let nCsame = romanNumeralsAdditive.length - this.initialText.length; // how many numerals in sameText
+		let nCsame = romanNumeralsAdditive.length - this.morph.initialText.length; // how many numerals in sameText
 		if (nCsame < 0)
-		{ // romanNumeralsAdditive shorter than initialText, nothing to do here
-			this.sameText = romanNumeralsAdditive;
+		{ // romanNumeralsAdditive shorter than initialText, so nothing to do here
+			this.cGaps.sameText = romanNumeralsAdditive;
 			return;
 		}
-		if (romanNumeralsAdditive.substring(nCsame) !== this.initialText)
-			return; // romanNumeralsAdditive does not end with initialText, nothing to do here
+		if (romanNumeralsAdditive.substring(nCsame) !== this.morph.initialText)
+			return; // romanNumeralsAdditive does not end with initialText, so nothing to do here
 		this.started = true;
 		this.finished = false;
-		this.mIIIIItoV.reset();
-		this.cg.reset(nCsame, this.mIIIIItoV.x0i, this.mIIIIItoV.xf);
+		this.morph.reset();
+		this.cGaps.reset(nCsame, this.morph.x0i, this.morph.xf);
 	}
-	finish()
+	more()
 	{
-		if (this.started == false)
-			return;
-		let s = replaceLastChars(romanNumeralsAdditive, this.initialText, this.finalText);
-		//setRomanNumeralsAdditive(s);
-		romanNumeralsAdditive = s
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		ctx.clearRect(-0.5, -0.5, romanNumeralsAdditiveCanvas.width, romanNumeralsAdditiveCanvas.height);
-		const metrics = ctx.measureText(s);
-		const hPos = romanNumeralsAdditiveCanvas.width - metrics.width - hOffset;
-		ctx.fillText(s, hPos, this.cg.vPos);
-
-		this.finished = true;
-	}
-	proceed()
-	{
-		if (this.mIIIIItoV.done()==false)
+		if (this.started == false || this.finished == true)
+			return false;
+		if (this.morph.done() == false)
 		{
-			this.mIIIIItoV.proceed();
-			this.cg.updateTime(this.mIIIIItoV.t);
+			this.morph.proceed();
+			this.morph.draw();
+			this.cGaps.updateTime(this.morph.t);
 		}
 		else
 		{
-			this.finished = this.cg.done();
-			if (this.finished==false)
-				this.cg.proceed();
+			this.finished = this.cGaps.done();
+			if (this.finished == false)
+			{
+				this.cGaps.proceed();
+				this.cGaps.draw();
+			}
 		}
-	}
-	draw()
-	{
-		if (this.mIIIIItoV.done()==false)
-			this.mIIIIItoV.draw();
-		else if ((this.finished=this.cg.done())==false)
-			this.cg.draw();
+		if (this.finished)
+		{
+			let s = replaceLastChars(romanNumeralsAdditive, this.morph.initialText, this.morph.finalText);
+			setRomanNumeralsAdditive(s);
+		}
+		return !this.finished;
 	}
 }
 
-let aIIIIItoV = new animateIIIIItoV();
+let mIIIIItoV = new metamorphoseIIIIItoV("IIIII", "V");
+let aIIIIItoV = new animateNumeralSubstitutionManyToOne(mIIIIItoV);
 
 let incrementNumberHandlerState = 0;
 
@@ -1365,17 +1355,10 @@ async function incrementNumber()
 	}
 	if (incrementNumberHandlerState == 1)
 	{
-		if (aIIIIItoV.isFinished()==false)
-		{
-			aIIIIItoV.proceed();
-			aIIIIItoV.draw();
+		if (aIIIIItoV.more())
 			window.requestAnimationFrame(incrementNumber);
-		}
 		else
-		{
-			aIIIIItoV.finish();
 			incrementNumberHandlerState = 2;
-		}
 	}
 	if (incrementNumberHandlerState == 2)
 	{
