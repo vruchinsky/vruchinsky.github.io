@@ -1259,8 +1259,8 @@ class metamorphoseVVtoX
 { // the first stage of animations of metamorphosis of VV->X
 	initialText = "VV"; // (constant) to metamorphose into finalText
 	finalText = "X"; // constant
-	w1 = 0; // width, in pixels, of initialText[0]
-	h1 = 0; // height, in pixels, of initialText[0]
+	halfWidthInitialText = 0; // half of the width, in pixels, of initialText[0] (used in transforming the coordinate system in this.draw())
+	halfHeightInitialText = 0; // half of the height, in pixels, of initialText[0] (used in transforming the coordinate system in this.draw())
 	x1i = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
 	x1 = 0; // updated horizontal position of the left V
 	x2 = 0; // updated horizontal position of the right V
@@ -1274,7 +1274,7 @@ class metamorphoseVVtoX
 	vScale = 0; // how fast to move scale towards scaleF (calculated from scaleF, scaleI and AnimationSpeedMetamorphosis)
 	scale = 0; // current value (starts = scaleI and decreases to scaleF)
 	angleI = 0; // constant (initial (usual) angle of the left V)
-	angleF = -Math.PI; // constant (final (at their convergence) angle of the left V)
+	angleF = Math.PI; // constant (final (at their convergence) angle of the left V)
 	vAngle = 0; // how fast to move angle towards angleF (calculated from angleF, angleI and AnimationSpeedMetamorphosis)
 	angle = 0; // (of the left V) current value (starts = angleI and decreases to angleF)
 	vx1 = 0; // (px/msec) how fast to move x1 towards xf
@@ -1284,8 +1284,8 @@ class metamorphoseVVtoX
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
-	xInitialText() {return this.x1i;}
-	xFinalText() {return this.xf;}
+	xInitialText() {return this.x1i;} // initial horizontal position of initialText
+	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
 	reset()
 	{
 		this.finished = true;
@@ -1295,21 +1295,22 @@ class metamorphoseVVtoX
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 		const w = romanNumeralsAdditiveCanvas.width - hOffset;
 		let metrics = ctx.measureText(this.initialText);
-		this.y2 = this.y1 = this.vPos = this.h1 = metrics.actualBoundingBoxAscent;
-		this.y2f = this.y1f = 0.5 * (this.vPos);
+		this.y2 = this.y1f = this.y1 = this.vPos = metrics.actualBoundingBoxAscent;
+		this.y2f = 0.5 * (this.vPos);
 		this.x1i = this.x1 = w - metrics.width;
 		metrics = ctx.measureText(this.initialText.substring(1));
 		this.x2 = w - metrics.width;
-		this.xf = 0.5 * (this.x1 + this.x2); // converge to the middle
+		this.xf = 0.25 * (this.x1) + 0.75 * (this.x2); // put convergence point closer to right V in order to help avoid drawing small parts of extremities of the left V on the part of the canvas which must remain unchanged during this metamorphosis
 		metrics = ctx.measureText(this.initialText[0]);
-		this.w1 = metrics.width;
+		this.halfHeightInitialText = 0.5 * (metrics.actualBoundingBoxAscent);
+		this.halfWidthInitialText = 0.5 * (metrics.width);
 		this.scale = this.scaleI;
 		this.angle = this.angleI;
-		this.vx1 = AnimationSpeedMetamorphosis*(this.xf - this.x1);
+		this.vx1 = 2*AnimationSpeedMetamorphosis*(this.xf - this.x1); // move left V to its destination faster in order to help avoid drawing small parts of extremities of the left V on the part of the canvas which must remain unchanged during this metamorphosis
 		this.vx2 = AnimationSpeedMetamorphosis*(this.xf - this.x2);
 		this.vy1 = AnimationSpeedMetamorphosis*(this.y1f - this.y1);
 		this.vy2 = AnimationSpeedMetamorphosis*(this.y2f - this.y2);
-		this.vScale = AnimationSpeedMetamorphosis*(this.scaleF - this.scaleI);
+		this.vScale = 2*AnimationSpeedMetamorphosis*(this.scaleF - this.scaleI); // scale both Vs down faster in order to help avoid putting small parts of their extremities outside the part of the canvas initially displaying initialText
 		this.vAngle = AnimationSpeedMetamorphosis*(this.angleF - this.angleI);
 		this.t = Date.now();
 	}
@@ -1340,7 +1341,7 @@ class metamorphoseVVtoX
 		u = this.scale + (this.vScale)*dt;
 		this.scale = fpLessEq(this.scaleF, u, fpTolerance) ? u : this.scaleF; // prevent scale from surpassing scaleF
 		u = this.angle + (this.vAngle)*dt;
-		this.angle = fpLessEq(this.angleF, u, fpTolerance) ? u : this.angleF; // prevent angle from surpassing angleF
+		this.angle = fpLessEq(u, this.angleF, fpTolerance) ? u : this.angleF; // prevent angle from surpassing angleF
 		this.t = t1;
 	}
 	draw()
@@ -1348,23 +1349,20 @@ class metamorphoseVVtoX
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const w = romanNumeralsAdditiveCanvas.width - this.x1i;
+		const w = romanNumeralsAdditiveCanvas.width - this.xInitialText();
 		ctx.clearRect(this.xInitialText(), -0.5, w, romanNumeralsAdditiveCanvas.height);
-		const c = Math.cos(this.angle) * this.scale;
-		const s = Math.sin(this.angle) * this.scale;
-		ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,vPos), before doing the same for the next position
-		//ctx.transform(c, s, -s, c, this.x1, this.y1); // translate the axes to (x1,y1), scale and rotate
-		ctx.translate(this.x1, this.y1);
-		//ctx.translate(this.x1 + 0.5*(this.w1), this.y1 - 0.5*(this.h1));
-		//ctx.rotate(this.angle);
-		//ctx.translate(-0.5*(this.w1), 0.5*(this.h1));
-		//ctx.scale(this.scale, this.scale);
+		ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
+		ctx.translate(this.x1 + this.halfWidthInitialText,
+					this.y1 - (this.scale) * (this.halfHeightInitialText));
+		ctx.rotate(-this.angle);
+		ctx.scale(1, this.scale);
+		ctx.translate(-this.halfWidthInitialText, this.halfHeightInitialText);
 		ctx.fillText(this.initialText[0], 0, 0);
 		ctx.restore();
-		ctx.save(); // use transform() rather than setTransform() b/c setTransform() discards useful transforms applied earlier often causing letters drawn by this method to be not perfectly aligned with each other vertically
-		//ctx.transform(this.scale, 0, 0, this.scale, this.x2, this.y2); // translate the axes to (x2,y2) and scale
-		ctx.translate(this.x2, this.y2);
-		ctx.scale(this.scale, this.scale);
+		ctx.save();
+		ctx.translate(this.x2 + this.halfWidthInitialText, this.y2);
+		ctx.scale(1, this.scale);
+		ctx.translate(-this.halfWidthInitialText, 0);
 		ctx.fillText(this.initialText[1], 0, 0);
 		ctx.restore();
 	}
