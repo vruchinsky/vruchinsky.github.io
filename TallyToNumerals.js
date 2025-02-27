@@ -1368,9 +1368,96 @@ class metamorphoseVVtoX
 	}
 }
 
+class crossFade
+{ // the first stage of animations of metamorphosis of VV->X
+	initialText = null; // (constant) to metamorphose into finalText
+	finalText = null; // constant
+	xi = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
+	xf = 0;  // final horizontal position of finalText
+	a1i = 1.0; // constant (initial alpha of initialText)
+	a1f = 0.0; // constant (final alpha of initialText)
+	va1 = 0; // how fast to change a1 to a1f (calculated from a1f, a1i and AnimationSpeedMetamorphosis)
+	a1m = 0.0; // for adjusting rate of change of a1 in this.proceed()
+	va1adjFast = 2.0; // speed-up factor for rate of change of a1 (during the first half of this metamorphosis)
+	va1adjSlow = 0.0; // slow-down factor for rate of change of a1 (during the second half of this metamorphosis)
+	a1 = 0; // current alpha value for initialText (starts = a1i and decreases to a1f)
+	a2i = 0.0; // constant (initial alpha of finalText)
+	a2f = 1.0; // constant (final (at their convergence) angle of the left V)
+	va2 = 0; // how fast to change a2 to a2f (calculated from a2f, a2i and AnimationSpeedMetamorphosis)
+	a2 = 0; // current alpha value for finalText (starts = a2i and increases to a2f)
+	t = 0; // (msec) time of last update
+	vPos = 0; // vertical position of all the text treated by this class
+	finished = true; // iff finished the metamorphosis of intialText into finalText
+	xInitialText() {return this.xi;} // initial horizontal position of initialText
+	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
+	constructor(iText, fText)
+	{
+		this.initialText = iText;
+		this.finalText = fText;
+	}
+	reset()
+	{
+		this.finished = true;
+		if (romanNumeralsAdditiveCanvas.getContext == null)
+			return; // browser does not support canvas
+		if (this.initialText.length < 1)
+			return;
+		this.finished = false;
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		const w = romanNumeralsAdditiveCanvas.width - hOffset;
+		let metrics = ctx.measureText(this.initialText);
+		this.vPos = metrics.actualBoundingBoxAscent;
+		this.xi = w - metrics.width;
+		const wChar = Math.floor(metrics.width / this.initialText.length);
+		this.xf = w - 0.5 * (metrics.width + wChar);
+		this.a1m = 0.5 * (this.a1i + this.a1f);
+		this.va1adjSlow = this.va1adjFast / (2 * (this.va1adjFast) - 1.0); // assumes that this.a1m=0.5*(this.a1i+this.a1f)
+		this.a1 = this.a1i;
+		this.a2 = this.a2i;
+		this.va1 = AnimationSpeedMetamorphosis*(this.a1f - this.a1i);
+		this.va2 = AnimationSpeedMetamorphosis*(this.a2f - this.a2i);
+		this.t = Date.now();
+	}
+	done()
+	{
+		if (this.finished) return true;
+		return (this.finished = (fpEqual(this.a1, this.a1f, fpTolerance) &&
+								fpEqual(this.a2, this.a2f, fpTolerance)));
+	}
+	proceed()
+	{
+		if (this.finished) return;
+		const t1 = Date.now(); // (msec)
+		const dt = t1 - this.t; // (msec) time since last update
+		const va1adj = fpLess(this.a1m, this.a1, fpTolerance) ? this.va1adjFast : this.va1adjSlow;
+		let u = this.a1 + va1adj * (this.va1) * dt;
+		this.a1 = fpLessEq(this.a1f, u, fpTolerance) ? u : this.a1f; // prevent a1 from surpassing a1f
+		u = this.a2 + (this.va2)*dt;
+		this.a2 = fpLessEq(u, this.a2f, fpTolerance) ? u : this.a2f; // prevent a2 from surpassing a2f
+		this.t = t1;
+	}
+	draw()
+	{
+		if (romanNumeralsAdditiveCanvas.getContext == null)
+			return; // browser does not support canvas
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		const w = romanNumeralsAdditiveCanvas.width - this.xInitialText();
+		ctx.clearRect(this.xInitialText(), -0.5, w, romanNumeralsAdditiveCanvas.height);
+		const oldFillStyle = ctx.fillStyle;
+		const canvasStyle = getComputedStyle(romanNumeralsAdditiveCanvas);
+		const foregroundColor = canvasStyle.color;
+		const fgc = extractRGBValues(foregroundColor);
+		ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.a1})`; // with alpha for initialText
+		ctx.fillText(this.initialText, this.xInitialText(), this.vPos);
+		ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.a2})`; // with alpha for finalText
+		ctx.fillText(this.finalText, this.xFinalText(), this.vPos);
+		ctx.fillStyle = oldFillStyle; // restore original value
+	}
+}
+
 class animateNumeralSubstitutionManyToOne
 {
-	morph = null; // to store metamorphoseIIIIItoV object
+	morph = null; // to store metamorphoseIIIIItoV (or metamorphoseVVtoX) object
 	cGaps = null; // to store closeTheGaps object
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = true; // iff finished all the stages of this animation
@@ -1432,6 +1519,14 @@ let mIIIIItoV = new metamorphoseIIIIItoV();
 let aIIIIItoV = new animateNumeralSubstitutionManyToOne(mIIIIItoV);
 let mVVtoX = new metamorphoseVVtoX();
 let aVVtoX = new animateNumeralSubstitutionManyToOne(mVVtoX);
+let mXXXXXtoL = new crossFade("XXXXX", "L");
+let aXXXXXtoL = new animateNumeralSubstitutionManyToOne(mXXXXXtoL);
+let mLLtoC = new crossFade("LL", "C");
+let aLLtoC = new animateNumeralSubstitutionManyToOne(mLLtoC);
+let mCCCCCtoD = new crossFade("CCCCC", "D");
+let aCCCCCtoD = new animateNumeralSubstitutionManyToOne(mCCCCCtoD);
+let mDDtoM = new crossFade("DD", "M");
+let aDDtoM = new animateNumeralSubstitutionManyToOne(mDDtoM);
 
 let incrementNumberHandlerState = 0;
 
@@ -1467,41 +1562,47 @@ async function incrementNumber()
 		if (aVVtoX.more())
 			window.requestAnimationFrame(incrementNumber);
 		else
+		{
 			incrementNumberHandlerState = 3;
+			aXXXXXtoL.reset();
+		}
 	}
 	if (incrementNumberHandlerState == 3)
 	{
-		s = replaceLastChars(romanNumeralsAdditive, "XXXXX", "L");
-		if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
-		incrementNumberHandlerState = 4;
+		if (aXXXXXtoL.more())
+			window.requestAnimationFrame(incrementNumber);
+		else
+		{
+			incrementNumberHandlerState = 4;
+			aLLtoC.reset();
+		}
 	}
 	if (incrementNumberHandlerState == 4)
 	{
-		s = replaceLastChars(romanNumeralsAdditive, "LL", "\u0393L"); // \u0393 = capital letter gamma
-		if (s != null)
-		{ // LL -> C multistep text-character-based animation
-			await pause(replacementPauseTime); // wait longer before starting this multistep animation
-			setRomanNumeralsAdditive(s);
-			await pause(intermediateReplacementPauseTime);
-			s = replaceLastChars(romanNumeralsAdditive, "\u0393L", "\u228f"); // \u228f = square subset symbol
-			setRomanNumeralsAdditive(s);
-			await pause(intermediateReplacementPauseTime);
-			s = replaceLastChars(romanNumeralsAdditive, "\u228f", "C");
-			setRomanNumeralsAdditive(s);
+		if (aLLtoC.more())
+			window.requestAnimationFrame(incrementNumber);
+		else
+		{
+			incrementNumberHandlerState = 5;
+			aCCCCCtoD.reset();
 		}
-		incrementNumberHandlerState = 5;
 	}
 	if (incrementNumberHandlerState == 5)
 	{
-		s = replaceLastChars(romanNumeralsAdditive, "CCCCC", "D");
-		if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
-		incrementNumberHandlerState = 6;
+		if (aCCCCCtoD.more())
+			window.requestAnimationFrame(incrementNumber);
+		else
+		{
+			incrementNumberHandlerState = 6;
+			aDDtoM.reset();
+		}
 	}
 	if (incrementNumberHandlerState == 6)
 	{
-		s = replaceLastChars(romanNumeralsAdditive, "DD", "M");
-		if (s != null) {await pause(replacementPauseTime); setRomanNumeralsAdditive(s);}
-		incrementNumberHandlerState = 7;
+		if (aDDtoM.more())
+			window.requestAnimationFrame(incrementNumber);
+		else
+			incrementNumberHandlerState = 7;
 	}
 	if (incrementNumberHandlerState == 7)
 	{
