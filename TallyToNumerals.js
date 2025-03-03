@@ -1063,7 +1063,7 @@ function setRomanNumeralsAdditive(s)
 	displayTextOnCanvas(s, romanNumeralsAdditiveCanvas);
 }
 
-class closeTheGaps // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
+class CloseTheGaps // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
 { // b/c such a metamorphosis leaves gaps in the entire numerical expression, e.g. XXIIIII -> XX  V
 	initialText = null; // (constant) what metamorphoses into finalText
 	finalText = null; // constant
@@ -1085,7 +1085,7 @@ class closeTheGaps // the last stage of animations of metamorphoses of some nume
 		this.initialText = iText;
 		this.finalText = fText;
 	}
-	reset(nCsame, xItext, xFtext)
+	reset(nCsame, xFtext)
 	{
 		this.finished = true;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
@@ -1100,8 +1100,8 @@ class closeTheGaps // the last stage of animations of metamorphoses of some nume
 		metrics = ctx.measureText(this.finalText);
 		this.xMf = w - metrics.width;
 		this.xMi = this.xm = xFtext; // where finalText is immediately after it has metamorphosed from initialText (before closing the gaps)
-		metrics = ctx.measureText(this.initialText);
-		this.dxL0i = xItext - this.xLi;
+		metrics = ctx.measureText(this.sameText);
+		this.dxL0i = metrics.width;
 		this.xLf = this.xMf - this.dxL0i;
 		this.vxl = AnimationSpeedClosingTheGaps*(this.xLf - this.xLi);
 		this.vxm = AnimationSpeedClosingTheGaps*(this.xMf - this.xMi);
@@ -1139,7 +1139,7 @@ class closeTheGaps // the last stage of animations of metamorphoses of some nume
 	}
 }
 
-class metamorphoseIIIIItoV
+class MetamorphoseIIIIItoV
 { // the first stage of animations of metamorphosis of IIIII->V
 	initialText = "IIIII"; // (constant) to metamorphose into finalText
 	finalText = "V"; // constant
@@ -1253,7 +1253,7 @@ class metamorphoseIIIIItoV
 	}
 }
 
-class metamorphoseVVtoX
+class MetamorphoseVVtoX
 { // the first stage of animations of metamorphosis of VV->X
 	initialText = "VV"; // (constant) to metamorphose into finalText
 	finalText = "X"; // constant
@@ -1366,7 +1366,7 @@ class metamorphoseVVtoX
 	}
 }
 
-class crossFade
+class CrossFade
 { // the first stage of animations of metamorphosis of VV->X
 	initialText = null; // (constant) to metamorphose into finalText
 	finalText = null; // constant
@@ -1453,10 +1453,10 @@ class crossFade
 	}
 }
 
-class animateNumeralSubstitutionManyToOne
+class AnimateNumeralSubstitutionManyToOne
 {
-	morph = null; // to store metamorphoseIIIIItoV (or metamorphoseVVtoX) object
-	cGaps = null; // to store closeTheGaps object
+	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX) object
+	cGaps = null; // to store CloseTheGaps object
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = true; // iff finished all the stages of this animation
 	constructor(m)
@@ -1464,7 +1464,7 @@ class animateNumeralSubstitutionManyToOne
 		if (m === null)
 			return;
 		this.morph = m;
-		this.cGaps = new closeTheGaps(this.morph.initialText, this.morph.finalText);
+		this.cGaps = new CloseTheGaps(this.morph.initialText, this.morph.finalText);
 	}
 	reset()
 	{
@@ -1483,7 +1483,7 @@ class animateNumeralSubstitutionManyToOne
 		this.started = true;
 		this.finished = false;
 		this.morph.reset();
-		this.cGaps.reset(nCsame, this.morph.xInitialText(), this.morph.xFinalText());
+		this.cGaps.reset(nCsame, this.morph.xFinalText());
 	}
 	more()
 	{
@@ -1513,18 +1513,18 @@ class animateNumeralSubstitutionManyToOne
 	}
 }
 
-let mIIIIItoV = new metamorphoseIIIIItoV();
-let aIIIIItoV = new animateNumeralSubstitutionManyToOne(mIIIIItoV);
-let mVVtoX = new metamorphoseVVtoX();
-let aVVtoX = new animateNumeralSubstitutionManyToOne(mVVtoX);
-let mXXXXXtoL = new crossFade("XXXXX", "L");
-let aXXXXXtoL = new animateNumeralSubstitutionManyToOne(mXXXXXtoL);
-let mLLtoC = new crossFade("LL", "C");
-let aLLtoC = new animateNumeralSubstitutionManyToOne(mLLtoC);
-let mCCCCCtoD = new crossFade("CCCCC", "D");
-let aCCCCCtoD = new animateNumeralSubstitutionManyToOne(mCCCCCtoD);
-let mDDtoM = new crossFade("DD", "M");
-let aDDtoM = new animateNumeralSubstitutionManyToOne(mDDtoM);
+let mIIIIItoV = new MetamorphoseIIIIItoV();
+let aIIIIItoV = new AnimateNumeralSubstitutionManyToOne(mIIIIItoV);
+let mVVtoX = new MetamorphoseVVtoX();
+let aVVtoX = new AnimateNumeralSubstitutionManyToOne(mVVtoX);
+let mXXXXXtoL = new CrossFade("XXXXX", "L");
+let aXXXXXtoL = new AnimateNumeralSubstitutionManyToOne(mXXXXXtoL);
+let mLLtoC = new CrossFade("LL", "C");
+let aLLtoC = new AnimateNumeralSubstitutionManyToOne(mLLtoC);
+let mCCCCCtoD = new CrossFade("CCCCC", "D");
+let aCCCCCtoD = new AnimateNumeralSubstitutionManyToOne(mCCCCCtoD);
+let mDDtoM = new CrossFade("DD", "M");
+let aDDtoM = new AnimateNumeralSubstitutionManyToOne(mDDtoM);
 
 let incrementNumberHandlerState = 0;
 
