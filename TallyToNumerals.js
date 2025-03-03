@@ -1,6 +1,5 @@
 const largestNumberToDisplay = 4999;
 const smallestNumberToDisplay = 0;
-const emptySetSymbol = "\u2205"; // hex code for empty-set symbol in unicode
 
 const arabicNumeralsElement = document.getElementById("DisplayArabic");
 const romanToArabicConnectorCanvas = document.getElementById("ConnectRomanToArabic");
@@ -701,7 +700,7 @@ function convertRomanNumeralsAdditiveToSubtractive(a)
 function convertToRomanNumeralsAdditive(n)
 {
 	if (typeof n === "undefined") n = inputNumber;
-	if (n === 0) return emptySetSymbol;
+	if (n === 0) return "";
 	let a = [];
 	let r = n % 5;
 	for (let i=0; i<r; i++) a.push("I");
@@ -804,7 +803,6 @@ function connectRomanToArabic() // draw connecting lines (and horizontal braces)
 	const an = arabicNumeralsElement.value;
 	const rn = romanNumeralsSubtractive; // romanNumeralsAdditive;
 	if (rn.length < 1) return "";
-	if (rn === emptySetSymbol) return "";
 	let lastOoMcnctd = 0; // last order of magnitude for which connection was drawn
 	const h = romanToArabicConnectorCanvas.height;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
@@ -1623,7 +1621,7 @@ async function decrementNumber()
 	inputNumber--;
 	if (inputNumber == 0)
 	{
-		setRomanNumeralsAdditive(emptySetSymbol);
+		setRomanNumeralsAdditive("");
 		arabicNumeralsElement.value = inputNumber.toString();
 		reenableButtons();
 		return;
