@@ -1065,46 +1065,51 @@ function setRomanNumeralsAdditive(s)
 
 class CloseTheGaps // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
 { // b/c such a metamorphosis leaves gaps in the entire numerical expression, e.g. XXIIIII -> XX  V
-	initialText = null; // (constant) what metamorphoses into finalText
-	finalText = null; // constant
-	sameText = null; // the part of romanNumeralsAdditive which remains unchanged during this stage of the animation
-	xm = 0; // updated horizontal position of finalText in romanNumeralsAdditive as this stage of the animation proceeds
-	xMi = 0; // initial horizontal position of finalText in romanNumeralsAdditive (immediately after its metamorphosis from initialText, before closing the gaps)
-	xMf = 0; // final horizontal position of finalText in romanNumeralsAdditive (at the end of closing the gaps, after the metamorphosis)
-	xLi = 0; // initial horizontal position of the leftmost numeral of romanNumeralsAdditive
-	xLf = 0; // final horizontal position of the leftmost numeral of romanNumeralsAdditive (at the end of closing the gaps, after the metamorphosis)
-	xl = 0; // updated horizontal position (as this stage of the animation proceeds) of the not-changing part of romanNumeralsAdditive (i.e. without finalText)
-	dxL0i = 0; // length (in pixels) of the not-changing part of romanNumeralsAdditive (i.e. without finalText)
+	leftText = null; // constant
+	rightText = null; // constant
+	xr = 0; // updated horizontal position (in pixels) of this.rightText
+	xRi = 0; // initial horizontal position (in pixels) of this.rightText
+	xRf = 0; // final horizontal position (in pixels) of this.rightText
+	xLi = 0; // initial horizontal position (in pixels) of the leftmost symbol of this.leftText
+	xLf = 0; // final horizontal position (in pixels) of the leftmost symbol of this.leftText
+	xl = 0; // updated horizontal position (in pixels) of this.leftText
+	wLeftText = 0; // width (in pixels) of this.leftText
 	vxl = 0; // (px/msec) how fast to move xl towards xLf
-	vxm = 0; // (px/msec) how fast to move xm towards xMf
+	vxr = 0; // (px/msec) how fast to move xr towards xRf
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished this particular stage of the animation
-	constructor(iText, fText)
-	{
-		this.initialText = iText;
-		this.finalText = fText;
-	}
-	reset(nCsame, xFtext)
+	constructor(s) {this.rightText = s;}
+	reset(lText, xLtext, xRtext)
 	{
 		this.finished = true;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		this.finished = false;
-		this.sameText = romanNumeralsAdditive.substring(0, nCsame);
+		this.leftText = lText;
+		this.xl = this.xLi = xLtext;
+		this.xr = this.xRi = xRtext;
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 		const w = romanNumeralsAdditiveCanvas.width - hOffset;
-		let metrics = ctx.measureText(romanNumeralsAdditive);
-		this.vPos = metrics.actualBoundingBoxAscent;
-		this.xLi = this.xl = w - metrics.width;
-		metrics = ctx.measureText(this.finalText);
-		this.xMf = w - metrics.width;
-		this.xMi = this.xm = xFtext; // where finalText is immediately after it has metamorphosed from initialText (before closing the gaps)
-		metrics = ctx.measureText(this.sameText);
-		this.dxL0i = metrics.width;
-		this.xLf = this.xMf - this.dxL0i;
+		this.vPos = romanNumeralsAdditiveCanvas.height; // default value, in case cannot obtain valid text metrics
+		this.xRf = w; // default value, in case cannot obtain valid text metrics
+		let metrics = ctx.measureText(this.rightText);
+		if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+		{
+			this.xRf = this.xRf - metrics.width;
+			this.vPos = metrics.actualBoundingBoxAscent;
+		}
+		this.wLeftText = 0; // default value, in case cannot obtain valid text metrics
+		this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
+		metrics = ctx.measureText(this.leftText);
+		if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+		{
+			this.wLeftText = metrics.width;
+			this.xLf = this.xRf - this.wLeftText;
+			this.vPos = metrics.actualBoundingBoxAscent;
+		}
 		this.vxl = AnimationSpeedClosingTheGaps*(this.xLf - this.xLi);
-		this.vxm = AnimationSpeedClosingTheGaps*(this.xMf - this.xMi);
+		this.vxr = AnimationSpeedClosingTheGaps*(this.xRf - this.xRi);
 		this.t = Date.now();
 	}
 	updateTime(t) {this.t = t;}
@@ -1113,18 +1118,18 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 		if (this.finished) return false;
 		return (this.finished =
 			(fpEqual(this.xl, this.xLf, fpTolerance) &&
-			fpEqual(this.xm, this.xMf, fpTolerance)));
+			fpEqual(this.xr, this.xRf, fpTolerance)));
 	}
 	proceed()
 	{
 		if (this.finished) return;
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
-		let u = this.xm  + (this.vxm)*dt;
-		this.xm = fpLessEq(u, this.xMf, fpTolerance) ? u : this.xMf; // prevent xm from surpassing xMf (i.e. moving off canvas)
+		let u = this.xr  + (this.vxr)*dt;
+		this.xr = fpLessEq(u, this.xRf, fpTolerance) ? u : this.xRf; // prevent xr from surpassing xRf (i.e. moving off canvas)
  		u = this.xl + (this.vxl)*dt;
-		const xlLim = this.xm - this.dxL0i;
-		this.xl = fpLessEq(u, xlLim, fpTolerance) ? u : xlLim; // prevent xl+dxL0i from surpassing xm (i.e. the right side of the unchanging part from overlapping the changed part)
+		const xlLim = this.xr - this.wLeftText;
+		this.xl = fpLessEq(u, xlLim, fpTolerance) ? u : xlLim; // prevent xl+wLeftText from surpassing xr (i.e. the right side of the unchanging part from overlapping the changed part)
 		this.t = t1;
 	}
 	draw()
@@ -1134,8 +1139,8 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 		const w = romanNumeralsAdditiveCanvas.width - this.xLi;
 		ctx.clearRect(this.xLi, -0.5, w, romanNumeralsAdditiveCanvas.height);
-		ctx.fillText(this.sameText, this.xl, this.vPos);
-		ctx.fillText(this.finalText, this.xm, this.vPos);
+		ctx.fillText(this.leftText, this.xl, this.vPos);
+		ctx.fillText(this.rightText, this.xr, this.vPos);
 	}
 }
 
@@ -1464,7 +1469,7 @@ class AnimateNumeralSubstitutionManyToOne
 		if (m === null)
 			return;
 		this.morph = m;
-		this.cGaps = new CloseTheGaps(this.morph.initialText, this.morph.finalText);
+		this.cGaps = new CloseTheGaps(this.morph.finalText);
 	}
 	reset()
 	{
@@ -1475,7 +1480,7 @@ class AnimateNumeralSubstitutionManyToOne
 		let nCsame = romanNumeralsAdditive.length - this.morph.initialText.length; // how many numerals in sameText
 		if (nCsame < 0)
 		{ // romanNumeralsAdditive shorter than initialText, so nothing to do here
-			this.cGaps.sameText = romanNumeralsAdditive;
+			this.cGaps.leftText = romanNumeralsAdditive;
 			return;
 		}
 		if (romanNumeralsAdditive.substring(nCsame) !== this.morph.initialText)
@@ -1483,7 +1488,15 @@ class AnimateNumeralSubstitutionManyToOne
 		this.started = true;
 		this.finished = false;
 		this.morph.reset();
-		this.cGaps.reset(nCsame, this.morph.xFinalText());
+		let x = romanNumeralsAdditiveCanvas.width - hOffset;
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		let metrics = ctx.measureText(romanNumeralsAdditive);
+		if (metrics !== null &&
+			fpLess(0, metrics.width, fpTolerance) &&
+			fpLess(metrics.width, x, fpTolerance))
+			x = x - metrics.width;
+		this.cGaps.reset(romanNumeralsAdditive.substring(0, nCsame),
+			x, this.morph.xFinalText());
 	}
 	more()
 	{
