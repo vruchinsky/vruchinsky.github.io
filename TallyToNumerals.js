@@ -1086,42 +1086,57 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished this particular stage of the animation
 	constructor(s) {this.rightText = s;}
-	reset(lText, xLtext, xRtext)
-	{
-		this.finished = true;
+	reset(lText, xLtext, x2ndArg) // use and meaning of x2ndArg depends whether this.rightText===null
+	{ // if this.rightText===null, then x2ndArg is the final position of this.leftText
+		this.finished = true; // if this.rightText!==null, then x2ndArg is the initial position of this.leftText
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		this.finished = false;
 		this.leftText = lText;
 		this.xl = this.xLi = xLtext;
-		this.xr = this.xRi = xRtext;
+		if (this.rightText === null)
+			this.xLf = x2ndArg; // this instance is used to move only this.leftText
+		else
+			this.xr = this.xRi = x2ndArg; // move both this.leftText and this.rightText
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const w = romanNumeralsAdditiveCanvas.width - hOffset;
+		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
 		this.vPos = romanNumeralsAdditiveCanvas.height; // default value, in case cannot obtain valid text metrics
-		this.xRf = w; // default value, in case cannot obtain valid text metrics
-		let metrics = ctx.measureText(this.rightText);
-		if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+		let metrics = null;
+		if (this.rightText !== null)
 		{
-			this.xRf = w - metrics.width;
-			this.vPos = metrics.actualBoundingBoxAscent;
+			this.xRf = cvw; // default value, in case cannot obtain valid text metrics
+			metrics = ctx.measureText(this.rightText);
+			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+			{
+				this.xRf = cvw - metrics.width;
+				this.vPos = metrics.actualBoundingBoxAscent;
+			}
 		}
 		this.wLeftText = 0; // default value, in case cannot obtain valid text metrics
-		this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
+		if (this.rightText !== null)
+			this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
 		metrics = ctx.measureText(this.leftText);
 		if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
 		{
 			this.wLeftText = metrics.width;
-			this.xLf = this.xRf - this.wLeftText;
+			if (this.rightText !== null)
+				this.xLf = this.xRf - this.wLeftText;
 			this.vPos = metrics.actualBoundingBoxAscent;
 		}
 		this.vxl = AnimationSpeedClosingTheGaps*(this.xLf - this.xLi);
-		this.vxr = AnimationSpeedClosingTheGaps*(this.xRf - this.xRi);
 		this.lStationary = fpEqual(this.vxl, 0, fpTolerance);
-		this.rStationary = fpEqual(this.vxr, 0, fpTolerance);
 		this.vlPos = fpLess(0, this.vxl, fpTolerance);
 		this.vlNeg = fpLess(this.vxl, 0, fpTolerance);
+		this.vxr = (this.rightText===null) ? 0 : AnimationSpeedClosingTheGaps*(this.xRf - this.xRi);
+		this.rStationary = (this.rightText===null) || fpEqual(this.vxr, 0, fpTolerance);
 		this.xClear = fpLess(this.xLi, this.xLf, fpTolerance) ? this.xLi : this.xLf;
-		this.wClear = romanNumeralsAdditiveCanvas.width - this.xClear;
+		if (this.rightText === null)
+		{
+			const xClearR = fpLess(this.xLi, this.xLf, fpTolerance) ? this.xLf : this.xLi;
+			this.wClear = xClearR + this.wLeftText - this.xClear;
+		}
+		else
+			this.wClear = cvw - this.xClear;
 		this.t = Date.now();
 	}
 	updateTime(t) {this.t = t;}
@@ -1165,8 +1180,10 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 			return; // browser does not support canvas
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 		ctx.clearRect(this.xClear, -0.5, this.wClear, romanNumeralsAdditiveCanvas.height);
-		ctx.fillText(this.leftText, this.xl, this.vPos);
-		ctx.fillText(this.rightText, this.xr, this.vPos);
+		if (this.leftText !== null)
+			ctx.fillText(this.leftText, this.xl, this.vPos);
+		if (this.rightText !== null)
+			ctx.fillText(this.rightText, this.xr, this.vPos);
 	}
 }
 
