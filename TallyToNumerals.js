@@ -1076,6 +1076,12 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 	wLeftText = 0; // width (in pixels) of this.leftText
 	vxl = 0; // (px/msec) how fast to move xl towards xLf
 	vxr = 0; // (px/msec) how fast to move xr towards xRf
+	lStationary = true; // iff vxl != 0
+	rStationary = true; // iff vxr != 0
+	vlNeg = false; // iff vxl < 0
+	vlPos = false; // iff vxl > 0
+	xClear = 0; // horizontal position (in pixels) of the leftmost corner of the part of canvas to be cleared before redrawing
+	wClear = 0; // width (in pixels) of the part of canvas to be cleared before redrawing
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished this particular stage of the animation
@@ -1110,6 +1116,12 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 		}
 		this.vxl = AnimationSpeedClosingTheGaps*(this.xLf - this.xLi);
 		this.vxr = AnimationSpeedClosingTheGaps*(this.xRf - this.xRi);
+		this.lStationary = fpEqual(this.vxl, 0, fpTolerance);
+		this.rStationary = fpEqual(this.vxr, 0, fpTolerance);
+		this.vlPos = fpLess(0, this.vxl, fpTolerance);
+		this.vlNeg = fpLess(this.vxl, 0, fpTolerance);
+		this.xClear = fpLess(this.xLi, this.xLf, fpTolerance) ? this.xLi : this.xLf;
+		this.wClear = romanNumeralsAdditiveCanvas.width - this.xClear;
 		this.t = Date.now();
 	}
 	updateTime(t) {this.t = t;}
@@ -1117,28 +1129,33 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 	{
 		if (this.finished) return false;
 		return (this.finished =
-			((fpEqual(this.vxl, 0, fpTolerance) ||
-				fpEqual(this.xl, this.xLf, fpTolerance)) &&
-			(fpEqual(this.vxr, 0, fpTolerance) ||
-				fpEqual(this.xr, this.xRf, fpTolerance))));
+			((this.lStationary || fpEqual(this.xl, this.xLf, fpTolerance)) &&
+			(this.rStationary || fpEqual(this.xr, this.xRf, fpTolerance))));
 	}
 	proceed()
 	{
 		if (this.finished) return;
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
-		let u = this.xr  + (this.vxr)*dt;
-		this.xr = fpLessEq(u, this.xRf, fpTolerance) ? u : this.xRf; // prevent xr from surpassing xRf (i.e. moving off canvas)
- 		u = this.xl + (this.vxl)*dt;
-		if (fpLess(0, this.vxl, fpTolerance))
-		{ // if this.vxl > 0
-			const xlLim = this.xr - this.wLeftText;
-			if (fpLessEq(u, xlLim, fpTolerance)) // prevent xl+wLeftText from surpassing xr (i.e. this.leftText running onto this.rightText)
-				this.xl = u;
-			else if (fpLess(this.xl, xlLim, fpTolerance)) // prevent this.xl from being set back
-				this.xl = xlLim;
-		} else if (fpLess(this.vxl, 0, fpTolerance)) {// if this.vxl < 0
-			this.xl = fpLess(this.xLf, u, fpTolerance) ? u : this.xLf // prevent xl from surpassing xLf
+		let u;
+		if (this.rStationary == false)
+		{
+			u = this.xr  + (this.vxr)*dt;
+			this.xr = fpLessEq(u, this.xRf, fpTolerance) ? u : this.xRf; // prevent xr from surpassing xRf (i.e. moving off canvas)
+		}
+		if (this.lStationary == false)
+		{
+			u = this.xl + (this.vxl)*dt;
+			if (this.vlPos)
+			{
+				const xlLim = this.xr - this.wLeftText;
+				if (fpLessEq(u, xlLim, fpTolerance)) // prevent xl+wLeftText from surpassing xr (i.e. this.leftText running onto this.rightText)
+					this.xl = u;
+				else if (fpLess(this.xl, xlLim, fpTolerance)) // prevent this.xl from being set back
+					this.xl = xlLim;
+			} else if (this.vlNeg) {
+					this.xl = fpLess(this.xLf, u, fpTolerance) ? u : this.xLf // prevent xl from surpassing xLf
+			}
 		}
 		this.t = t1;
 	}
@@ -1147,9 +1164,7 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const xCl = fpLess(this.xLi, this.xLf, fpTolerance) ? this.xLi : this.xLf;
-		const w = romanNumeralsAdditiveCanvas.width - xCl;
-		ctx.clearRect(xCl, -0.5, w, romanNumeralsAdditiveCanvas.height);
+		ctx.clearRect(this.xClear, -0.5, this.wClear, romanNumeralsAdditiveCanvas.height);
 		ctx.fillText(this.leftText, this.xl, this.vPos);
 		ctx.fillText(this.rightText, this.xr, this.vPos);
 	}
@@ -1505,7 +1520,7 @@ class AnimateNumeralSubstitutionManyToOne
 		if (metrics !== null &&
 			fpLess(0, metrics.width, fpTolerance) &&
 			fpLess(metrics.width, x, fpTolerance))
-			x = x - metrics.width;
+			x -= metrics.width;
 		this.cGaps.reset(romanNumeralsAdditive.substring(0, nCsame),
 			x, this.morph.xFinalText());
 	}
