@@ -1132,7 +1132,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		this.vlNeg = fpLess(this.vxl, 0, fpTolerance);
 		this.vxr = (this.rightText===null) ? 0 : AnimationSpeedClosingTheGaps*(this.xRf - this.xRi);
 		this.rStationary = (this.rightText===null) ||
-			(this.leftText==="") || fpEqual(this.vxr, 0, fpTolerance);
+			(this.rightText==="") || fpEqual(this.vxr, 0, fpTolerance);
 		this.vrPos = fpLess(0, this.vxr, fpTolerance);
 		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
 		this.xClear = fpLess(this.xLi, this.xLf, fpTolerance) ? this.xLi : this.xLf;
@@ -1425,7 +1425,7 @@ class MetamorphoseVVtoX
 	}
 }
 
-class CrossFade
+class Fade
 { // the first stage of animations of metamorphosis of VV->X
 	initialText = null; // (constant) text to fade out
 	finalText = null; // (constant) text to fade in
@@ -1611,13 +1611,13 @@ let mIIIIItoV = new MetamorphoseIIIIItoV();
 let aIIIIItoV = new AnimateNumeralSubstitutionManyToOne(mIIIIItoV);
 let mVVtoX = new MetamorphoseVVtoX();
 let aVVtoX = new AnimateNumeralSubstitutionManyToOne(mVVtoX);
-let mXXXXXtoL = new CrossFade("XXXXX", "L");
+let mXXXXXtoL = new Fade("XXXXX", "L");
 let aXXXXXtoL = new AnimateNumeralSubstitutionManyToOne(mXXXXXtoL);
-let mLLtoC = new CrossFade("LL", "C");
+let mLLtoC = new Fade("LL", "C");
 let aLLtoC = new AnimateNumeralSubstitutionManyToOne(mLLtoC);
-let mCCCCCtoD = new CrossFade("CCCCC", "D");
+let mCCCCCtoD = new Fade("CCCCC", "D");
 let aCCCCCtoD = new AnimateNumeralSubstitutionManyToOne(mCCCCCtoD);
-let mDDtoM = new CrossFade("DD", "M");
+let mDDtoM = new Fade("DD", "M");
 let aDDtoM = new AnimateNumeralSubstitutionManyToOne(mDDtoM);
 
 let incrementNumberHandlerState = 0;
