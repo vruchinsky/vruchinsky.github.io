@@ -1063,7 +1063,7 @@ function setRomanNumeralsAdditive(s)
 	displayTextOnCanvas(s, romanNumeralsAdditiveCanvas);
 }
 
-class CloseTheGaps // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
+class SlideTextHorizontally // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
 { // b/c such a metamorphosis leaves gaps in the entire numerical expression, e.g. XXIIIII -> XX  V
 	leftText = null; // constant
 	rightText = null; // constant
@@ -1080,24 +1080,26 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 	rStationary = true; // iff vxr != 0
 	vlNeg = false; // iff vxl < 0
 	vlPos = false; // iff vxl > 0
+	vrNeg = false; // iff vxr < 0
+	vrPos = false; // iff vxr > 0
 	xClear = 0; // horizontal position (in pixels) of the leftmost corner of the part of canvas to be cleared before redrawing
 	wClear = 0; // width (in pixels) of the part of canvas to be cleared before redrawing
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished this particular stage of the animation
 	constructor(s) {this.rightText = s;}
-	reset(lText, xLtext, x2ndArg) // use and meaning of x2ndArg depends whether this.rightText===null
-	{ // if this.rightText===null, then x2ndArg is the final position of this.leftText
-		this.finished = true; // if this.rightText!==null, then x2ndArg is the initial position of this.leftText
+	reset(lText, xLtext, xAnotherArg) // use and meaning of xAnotherArg depends whether this.rightText===null
+	{ // if this.rightText===null, then xAnotherArg is the final position of this.leftText
+		this.finished = true; // if this.rightText!==null, then xAnotherArg is the initial position of this.leftText
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		this.finished = false;
 		this.leftText = lText;
 		this.xl = this.xLi = xLtext;
 		if (this.rightText === null)
-			this.xLf = x2ndArg; // this instance is used to move only this.leftText
+			this.xLf = xAnotherArg; // this instance is used to move only this.leftText
 		else
-			this.xr = this.xRi = x2ndArg; // move both this.leftText and this.rightText
+			this.xr = this.xRi = xAnotherArg; // move both this.leftText and this.rightText
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
 		this.vPos = romanNumeralsAdditiveCanvas.height; // default value, in case cannot obtain valid text metrics
@@ -1124,11 +1126,15 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 			this.vPos = metrics.actualBoundingBoxAscent;
 		}
 		this.vxl = AnimationSpeedClosingTheGaps*(this.xLf - this.xLi);
-		this.lStationary = fpEqual(this.vxl, 0, fpTolerance);
+		this.lStationary = (this.leftText===null) ||
+			(this.leftText==="") || fpEqual(this.vxl, 0, fpTolerance);
 		this.vlPos = fpLess(0, this.vxl, fpTolerance);
 		this.vlNeg = fpLess(this.vxl, 0, fpTolerance);
 		this.vxr = (this.rightText===null) ? 0 : AnimationSpeedClosingTheGaps*(this.xRf - this.xRi);
-		this.rStationary = (this.rightText===null) || fpEqual(this.vxr, 0, fpTolerance);
+		this.rStationary = (this.rightText===null) ||
+			(this.leftText==="") || fpEqual(this.vxr, 0, fpTolerance);
+		this.vrPos = fpLess(0, this.vxr, fpTolerance);
+		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
 		this.xClear = fpLess(this.xLi, this.xLf, fpTolerance) ? this.xLi : this.xLf;
 		if (this.rightText === null)
 		{
@@ -1156,7 +1162,12 @@ class CloseTheGaps // the last stage of animations of metamorphoses of some nume
 		if (this.rStationary == false)
 		{
 			u = this.xr  + (this.vxr)*dt;
-			this.xr = fpLessEq(u, this.xRf, fpTolerance) ? u : this.xRf; // prevent xr from surpassing xRf (i.e. moving off canvas)
+			if (this.vrPos)
+			{
+				this.xr = fpLessEq(u, this.xRf, fpTolerance) ? u : this.xRf; // prevent xr from surpassing xRf (i.e. moving off canvas)
+			} else if (this.vrNeg) {
+				this.xr = fpLess(this.xRf, u, fpTolerance) ? u : this.xRf // prevent xr from surpassing xRf
+			}
 		}
 		if (this.lStationary == false)
 		{
@@ -1416,74 +1427,95 @@ class MetamorphoseVVtoX
 
 class CrossFade
 { // the first stage of animations of metamorphosis of VV->X
-	initialText = null; // (constant) to metamorphose into finalText
-	finalText = null; // constant
+	initialText = null; // (constant) text to fade out
+	finalText = null; // (constant) text to fade in
 	xi = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
 	xf = 0;  // final horizontal position of finalText
-	a1i = 1.0; // constant (initial alpha of initialText)
-	a1f = 0.0; // constant (final alpha of initialText)
-	va1 = 0; // how fast to change a1 to a1f (calculated from a1f, a1i and AnimationSpeedMetamorphosis)
-	a1m = 0.0; // for adjusting rate of change of a1 in this.proceed()
-	va1adjFast = 2.0; // speed-up factor for rate of change of a1 (during the first half of this metamorphosis)
-	va1adjSlow = 0.0; // slow-down factor for rate of change of a1 (during the second half of this metamorphosis)
-	a1 = 0; // current alpha value for initialText (starts = a1i and decreases to a1f)
-	a2i = 0.0; // constant (initial alpha of finalText)
-	a2f = 1.0; // constant (final (at their convergence) angle of the left V)
-	va2 = 0; // how fast to change a2 to a2f (calculated from a2f, a2i and AnimationSpeedMetamorphosis)
-	a2 = 0; // current alpha value for finalText (starts = a2i and increases to a2f)
+	aOutI = 1.0; // constant (initial alpha of initialText)
+	aOutF = 0.0; // constant (final alpha of initialText)
+	vaOut = 0; // how fast to change aOut to aOutF (calculated from aOutF, aOutI and AnimationSpeedMetamorphosis)
+	aOutM = 0.0; // for adjusting rate of change of aOut in this.proceed()
+	vaOutAdjFast = 2.0; // speed-up factor for rate of change of aOut (during the first half of this metamorphosis)
+	vaOutAdjSlow = 0.0; // slow-down factor for rate of change of aOut (during the second half of this metamorphosis)
+	aOut = 0; // current alpha value for initialText (starts = aOutI and decreases to aOutF)
+	aInI = 0.0; // constant (initial alpha of finalText)
+	aInF = 1.0; // constant (final (at their convergence) angle of the left V)
+	vaIn = 0; // how fast to change aIn to aInF (calculated from aInF, aInI and AnimationSpeedMetamorphosis)
+	aIn = 0; // current alpha value for finalText (starts = aInI and increases to aInF)
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
 	xInitialText() {return this.xi;} // initial horizontal position of initialText
 	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
-	constructor(iText, fText)
+	constructor(oText, iText)
 	{
-		this.initialText = iText;
-		this.finalText = fText;
+		this.initialText = oText;
+		this.finalText = iText;
 	}
 	reset()
 	{
 		this.finished = true;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
-		if (this.initialText.length < 1)
-			return;
 		this.finished = false;
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 		const w = romanNumeralsAdditiveCanvas.width - hOffset;
-		let metrics = ctx.measureText(this.initialText);
-		this.vPos = metrics.actualBoundingBoxAscent;
-		this.xi = w - metrics.width;
-		const wChar = Math.floor(metrics.width / this.initialText.length);
-		this.xf = w - 0.5 * (metrics.width + wChar);
-		this.a1m = 0.5 * (this.a1i + this.a1f);
-		this.va1adjSlow = this.va1adjFast / (2 * (this.va1adjFast) - 1.0); // assumes that this.a1m=0.5*(this.a1i+this.a1f)
-		this.a1 = this.a1i;
-		this.a2 = this.a2i;
-		this.va1 = AnimationSpeedMetamorphosis*(this.a1f - this.a1i);
-		this.va2 = AnimationSpeedMetamorphosis*(this.a2f - this.a2i);
+		this.vPos = romanNumeralsAdditiveCanvas.height;
+		this.xi = w;
+		this.xf = w;
+		let metrics = null;
+		if (this.initialText !== null)
+		{
+			metrics = ctx.measureText(this.initialText);
+			this.vPos = metrics.actualBoundingBoxAscent;
+			this.xi = w - metrics.width;
+			const wChar = Math.floor(metrics.width / this.initialText.length);
+			this.xf = w - 0.5 * (metrics.width + wChar);
+		} else if (this.finalText !== null) {
+			metrics = ctx.measureText(this.finalText);
+			this.vPos = metrics.actualBoundingBoxAscent;
+			const wChar = Math.floor(metrics.width / this.finalText.length);
+			this.xf = w - 0.5 * (metrics.width + wChar);
+		}
+		this.aOutM = 0.5 * (this.aOutI + this.aOutF);
+		this.vaOutAdjSlow = this.vaOutAdjFast / (2 * (this.vaOutAdjFast) - 1.0); // assumes that this.aOutM=0.5*(this.aOutI+this.aOutF)
+		this.aOut = this.aOutI;
+		this.aIn = this.aInI;
+		this.vaOut = AnimationSpeedMetamorphosis*(this.aOutF - this.aOutI);
+		this.vaIn = AnimationSpeedMetamorphosis*(this.aInF - this.aInI);
 		this.t = Date.now();
 	}
 	done()
 	{
 		if (this.finished) return true;
-		return (this.finished = (fpEqual(this.a1, this.a1f, fpTolerance) &&
-								fpEqual(this.a2, this.a2f, fpTolerance)));
+		return (this.finished = (((this.initialText===null) || fpEqual(this.aOut, this.aOutF, fpTolerance)) &&
+								((this.finalText===null) || fpEqual(this.aIn, this.aInF, fpTolerance))));
 	}
 	proceed()
 	{
 		if (this.finished) return;
+		if ((this.initialText===null) && (this.finalText===null))
+			return;
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
-		const va1adj = fpLess(this.a1m, this.a1, fpTolerance) ? this.va1adjFast : this.va1adjSlow;
-		let u = this.a1 + va1adj * (this.va1) * dt;
-		this.a1 = fpLessEq(this.a1f, u, fpTolerance) ? u : this.a1f; // prevent a1 from surpassing a1f
-		u = this.a2 + (this.va2)*dt;
-		this.a2 = fpLessEq(u, this.a2f, fpTolerance) ? u : this.a2f; // prevent a2 from surpassing a2f
+		let u;
+		if (this.initialText !== null)
+		{
+			const vaOutAdj = fpLess(this.aOutM, this.aOut, fpTolerance) ? this.vaOutAdjFast : this.vaOutAdjSlow;
+			u = this.aOut + vaOutAdj * (this.vaOut) * dt;
+			this.aOut = fpLessEq(this.aOutF, u, fpTolerance) ? u : this.aOutF; // prevent aOut from surpassing aOutF
+		}
+		if (this.finalText !== null)
+		{
+			u = this.aIn + (this.vaIn)*dt;
+			this.aIn = fpLessEq(u, this.aInF, fpTolerance) ? u : this.aInF; // prevent aIn from surpassing aInF
+		}
 		this.t = t1;
 	}
 	draw()
 	{
+		if ((this.initialText===null) && (this.finalText===null))
+			return;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
@@ -1493,10 +1525,16 @@ class CrossFade
 		const canvasStyle = getComputedStyle(romanNumeralsAdditiveCanvas);
 		const foregroundColor = canvasStyle.color;
 		const fgc = extractRGBValues(foregroundColor);
-		ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.a1})`; // with alpha for initialText
-		ctx.fillText(this.initialText, this.xInitialText(), this.vPos);
-		ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.a2})`; // with alpha for finalText
-		ctx.fillText(this.finalText, this.xFinalText(), this.vPos);
+		if (this.initialText !== null)
+		{
+			ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
+			ctx.fillText(this.initialText, this.xInitialText(), this.vPos);
+		}
+		if (this.finalText !== null)
+		{
+			ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
+			ctx.fillText(this.finalText, this.xFinalText(), this.vPos);
+		}
 		ctx.fillStyle = oldFillStyle; // restore original value
 	}
 }
@@ -1504,7 +1542,7 @@ class CrossFade
 class AnimateNumeralSubstitutionManyToOne
 {
 	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX) object
-	cGaps = null; // to store CloseTheGaps object
+	closeTheGaps = null; // to store SlideTextHorizontally object
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = true; // iff finished all the stages of this animation
 	constructor(m)
@@ -1512,7 +1550,7 @@ class AnimateNumeralSubstitutionManyToOne
 		if (m === null)
 			return;
 		this.morph = m;
-		this.cGaps = new CloseTheGaps(this.morph.finalText);
+		this.closeTheGaps = new SlideTextHorizontally(this.morph.finalText);
 	}
 	reset()
 	{
@@ -1523,7 +1561,7 @@ class AnimateNumeralSubstitutionManyToOne
 		let nCsame = romanNumeralsAdditive.length - this.morph.initialText.length; // how many numerals in sameText
 		if (nCsame < 0)
 		{ // romanNumeralsAdditive shorter than initialText, so nothing to do here
-			this.cGaps.leftText = romanNumeralsAdditive;
+			this.closeTheGaps.leftText = romanNumeralsAdditive;
 			return;
 		}
 		if (romanNumeralsAdditive.substring(nCsame) !== this.morph.initialText)
@@ -1538,7 +1576,7 @@ class AnimateNumeralSubstitutionManyToOne
 			fpLess(0, metrics.width, fpTolerance) &&
 			fpLess(metrics.width, x, fpTolerance))
 			x -= metrics.width;
-		this.cGaps.reset(romanNumeralsAdditive.substring(0, nCsame),
+		this.closeTheGaps.reset(romanNumeralsAdditive.substring(0, nCsame),
 			x, this.morph.xFinalText());
 	}
 	more()
@@ -1549,15 +1587,15 @@ class AnimateNumeralSubstitutionManyToOne
 		{
 			this.morph.proceed();
 			this.morph.draw();
-			this.cGaps.updateTime(this.morph.t);
+			this.closeTheGaps.updateTime(this.morph.t);
 		}
 		else
 		{
-			this.finished = this.cGaps.done();
+			this.finished = this.closeTheGaps.done();
 			if (this.finished == false)
 			{
-				this.cGaps.proceed();
-				this.cGaps.draw();
+				this.closeTheGaps.proceed();
+				this.closeTheGaps.draw();
 			}
 		}
 		if (this.finished)
