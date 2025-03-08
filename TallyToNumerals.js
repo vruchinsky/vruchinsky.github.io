@@ -1585,7 +1585,7 @@ class Fade // used to fade text in, to fade text out
 	}
 }
 
-class AnimateNumeralSubstitutionManyToOne
+class AnimateNumeralSubstitutionToFew
 {
 	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX or Fade) object
 	closeTheGaps = null; // to store SlideTextHorizontally object
@@ -1719,109 +1719,53 @@ class AnimateNumeralInsertion
 }
 
 let mInI = new Fade(null, "I");
-let aInsertI = new AnimateNumeralInsertion(mInI);
 let mIIIIItoV = new MetamorphoseIIIIItoV();
-let aIIIIItoV = new AnimateNumeralSubstitutionManyToOne(mIIIIItoV);
 let mVVtoX = new MetamorphoseVVtoX();
-let aVVtoX = new AnimateNumeralSubstitutionManyToOne(mVVtoX);
 let mXXXXXtoL = new Fade("XXXXX", "L");
-let aXXXXXtoL = new AnimateNumeralSubstitutionManyToOne(mXXXXXtoL);
 let mLLtoC = new Fade("LL", "C");
-let aLLtoC = new AnimateNumeralSubstitutionManyToOne(mLLtoC);
 let mCCCCCtoD = new Fade("CCCCC", "D");
-let aCCCCCtoD = new AnimateNumeralSubstitutionManyToOne(mCCCCCtoD);
 let mDDtoM = new Fade("DD", "M");
-let aDDtoM = new AnimateNumeralSubstitutionManyToOne(mDDtoM);
+
+const incrementNumberAnimations = [];
+incrementNumberAnimations.push(new AnimateNumeralInsertion(mInI));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mIIIIItoV));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mVVtoX));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mXXXXXtoL));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mLLtoC));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mCCCCCtoD));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mDDtoM));
 
 let incrementNumberHandlerState = 0;
 
-async function incrementNumber()
+function incrementNumber()
 {
 	if (incrementNumberHandlerState == 0)
 	{
 		if (inputNumber >= largestNumberToDisplay) return;
-		if (incrementOrDecrementExecuting) return;
+ 		if (incrementOrDecrementExecuting) return;
 		disableButtons(true);
 		arabicNumeralsElement.value = "";
 		eraseDrawings();
-		await pause(minimumPauseTime);
 		inputNumber++;
-		aInsertI.reset();
-		incrementNumberHandlerState++;
 	}
-	if (incrementNumberHandlerState == 1)
+	if (incrementNumberHandlerState < incrementNumberAnimations.length + 1)
 	{
-		if (aInsertI.more())
-			window.requestAnimationFrame(incrementNumber);
-		else
+		if (incrementNumberHandlerState == 0 ||
+			incrementNumberAnimations[incrementNumberHandlerState-1].more()==false)
 		{
-			aIIIIItoV.reset();
+			if (incrementNumberHandlerState < incrementNumberAnimations.length)
+				incrementNumberAnimations[incrementNumberHandlerState].reset();
 			incrementNumberHandlerState++;
 		}
 	}
-	if (incrementNumberHandlerState == 2)
-	{
-		if (aIIIIItoV.more())
-			window.requestAnimationFrame(incrementNumber);
-		else
-		{
-			aVVtoX.reset();
-			incrementNumberHandlerState++;
-		}
-	}
-	if (incrementNumberHandlerState == 3)
-	{
-		if (aVVtoX.more())
-			window.requestAnimationFrame(incrementNumber);
-		else
-		{
-			aXXXXXtoL.reset();
-			incrementNumberHandlerState++;
-		}
-	}
-	if (incrementNumberHandlerState == 4)
-	{
-		if (aXXXXXtoL.more())
-			window.requestAnimationFrame(incrementNumber);
-		else
-		{
-			aLLtoC.reset();
-			incrementNumberHandlerState++;
-		}
-	}
-	if (incrementNumberHandlerState == 5)
-	{
-		if (aLLtoC.more())
-			window.requestAnimationFrame(incrementNumber);
-		else
-		{
-			aCCCCCtoD.reset();
-			incrementNumberHandlerState++;
-		}
-	}
-	if (incrementNumberHandlerState == 6)
-	{
-		if (aCCCCCtoD.more())
-			window.requestAnimationFrame(incrementNumber);
-		else
-		{
-			aDDtoM.reset();
-			incrementNumberHandlerState++;
-		}
-	}
-	if (incrementNumberHandlerState == 7)
-	{
-		if (aDDtoM.more())
-			window.requestAnimationFrame(incrementNumber);
-		else
-			incrementNumberHandlerState++;
-	}
-	if (incrementNumberHandlerState == 8)
+	else
 	{
 		setNumber();
 		reenableButtons();
 		incrementNumberHandlerState = 0;
 	}
+	if (incrementNumberHandlerState > 0)
+		window.requestAnimationFrame(incrementNumber);
 }
 
 async function decrementNumber()
