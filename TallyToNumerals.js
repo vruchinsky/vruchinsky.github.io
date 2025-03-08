@@ -1086,11 +1086,13 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	wClear = 0; // width (in pixels) of the part of canvas to be cleared before redrawing
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
-	finished = true; // iff finished this particular stage of the animation
+	finished = true; // used to implement this.done()
+	justFinished = false; // used to implement this.recent()
 	constructor(s) {this.rightText = s;}
 	reset(lText, xLtext, xAnotherArg) // use and meaning of xAnotherArg depends whether this.rightText===null
 	{ // if this.rightText===null, then xAnotherArg is the final position of this.leftText
 		this.finished = true; // if this.rightText!==null, then xAnotherArg is the initial position of this.leftText
+		this.justFinished = false;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		this.finished = false;
@@ -1146,12 +1148,21 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		this.t = Date.now();
 	}
 	updateTime(t) {this.t = t;}
-	done()
+	done() // true iff finished this particular stage of the animation
 	{
-		if (this.finished) return false;
-		return (this.finished =
+		if (this.finished) return true;
+		this.finished =
 			((this.lStationary || fpEqual(this.xl, this.xLf, fpTolerance)) &&
-			(this.rStationary || fpEqual(this.xr, this.xRf, fpTolerance))));
+			(this.rStationary || fpEqual(this.xr, this.xRf, fpTolerance)));
+		if (this.finished)
+			this.justFinished = true;
+		return this.finished;
+	}
+	recent() // returns true iff the most recent call to this.done() has returned true but...
+	{ //...the call to this.done immediately prior to the most recent call to this.done()...
+		if (this.justFinished==false) return false; //...has returned false
+		this.justFinished = false;
+		return true;
 	}
 	proceed()
 	{
@@ -1425,8 +1436,8 @@ class MetamorphoseVVtoX
 	}
 }
 
-class Fade
-{ // the first stage of animations of metamorphosis of VV->X
+class Fade // used to fade text in, to fade text out
+{ //  and to cross-fade one text into another
 	initialText = null; // (constant) text to fade out
 	finalText = null; // (constant) text to fade in
 	xi = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
@@ -1442,6 +1453,8 @@ class Fade
 	aInF = 1.0; // constant (final (at their convergence) angle of the left V)
 	vaIn = 0; // how fast to change aIn to aInF (calculated from aInF, aInI and AnimationSpeedMetamorphosis)
 	aIn = 0; // current alpha value for finalText (starts = aInI and increases to aInF)
+	xClear = 0; // horizontal position (in pixels) of the leftmost corner of the part of canvas to be cleared before redrawing
+	wClear = 0; // width (in pixels) of the part of canvas to be cleared before redrawing
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
@@ -1459,23 +1472,23 @@ class Fade
 			return; // browser does not support canvas
 		this.finished = false;
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const w = romanNumeralsAdditiveCanvas.width - hOffset;
+		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
 		this.vPos = romanNumeralsAdditiveCanvas.height;
-		this.xi = w;
-		this.xf = w;
+		this.xi = cvw;
+		this.xf = cvw;
 		let metrics = null;
 		if (this.initialText !== null)
 		{
 			metrics = ctx.measureText(this.initialText);
 			this.vPos = metrics.actualBoundingBoxAscent;
-			this.xi = w - metrics.width;
+			this.xi = cvw - metrics.width;
 			const wChar = Math.floor(metrics.width / this.initialText.length);
-			this.xf = w - 0.5 * (metrics.width + wChar);
+			this.xf = cvw - 0.5 * (metrics.width + wChar);
 		} else if (this.finalText !== null) {
 			metrics = ctx.measureText(this.finalText);
 			this.vPos = metrics.actualBoundingBoxAscent;
 			const wChar = Math.floor(metrics.width / this.finalText.length);
-			this.xf = w - 0.5 * (metrics.width + wChar);
+			this.xf = cvw - 0.5 * (metrics.width + wChar);
 		}
 		this.aOutM = 0.5 * (this.aOutI + this.aOutF);
 		this.vaOutAdjSlow = this.vaOutAdjFast / (2 * (this.vaOutAdjFast) - 1.0); // assumes that this.aOutM=0.5*(this.aOutI+this.aOutF)
@@ -1483,6 +1496,8 @@ class Fade
 		this.aIn = this.aInI;
 		this.vaOut = AnimationSpeedMetamorphosis*(this.aOutF - this.aOutI);
 		this.vaIn = AnimationSpeedMetamorphosis*(this.aInF - this.aInI);
+		this.xClear = fpLess(this.xi, this.xf, fpTolerance) ? this.xi : this.xf;
+		this.wClear = cvw - this.xClear;
 		this.t = Date.now();
 	}
 	done()
@@ -1519,8 +1534,7 @@ class Fade
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const w = romanNumeralsAdditiveCanvas.width - this.xInitialText();
-		ctx.clearRect(this.xInitialText(), -0.5, w, romanNumeralsAdditiveCanvas.height);
+		ctx.clearRect(this.xClear, -0.5, this.wClear, romanNumeralsAdditiveCanvas.height);
 		const oldFillStyle = ctx.fillStyle;
 		const canvasStyle = getComputedStyle(romanNumeralsAdditiveCanvas);
 		const foregroundColor = canvasStyle.color;
@@ -1541,7 +1555,7 @@ class Fade
 
 class AnimateNumeralSubstitutionManyToOne
 {
-	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX) object
+	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX or Fade) object
 	closeTheGaps = null; // to store SlideTextHorizontally object
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = true; // iff finished all the stages of this animation
@@ -1607,6 +1621,72 @@ class AnimateNumeralSubstitutionManyToOne
 	}
 }
 
+class AnimateNumeralInsertion
+{
+	morph = null; // to store Fade object (for fading-in)
+	makeSpace = null; // to store SlideTextHorizontally object
+	started = false; // true iff initialText was found in romanNumeralsAdditive
+	finished = true; // iff finished all the stages of this animation
+	constructor(m)
+	{
+		if (m === null)
+			return;
+		this.morph = m;
+		this.makeSpace = new SlideTextHorizontally(null);
+	}
+	reset()
+	{
+		this.started = false;
+		this.finished = true;
+		if (this.morph.finalText == null)
+			return; // this.morph not properly initialized
+		if (romanNumeralsAdditiveCanvas.getContext == null)
+			return; // browser does not support canvas
+		this.started = true;
+		this.finished = false;
+		let xi = romanNumeralsAdditiveCanvas.width - hOffset;
+		let xf = xi;
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		let metrics = ctx.measureText(romanNumeralsAdditive);
+		if (metrics !== null &&
+			fpLess(0, metrics.width, fpTolerance) &&
+			fpLess(metrics.width, xi, fpTolerance))
+			xi -= metrics.width;
+		metrics = ctx.measureText(this.morph.finalText);
+		if (metrics !== null &&
+			fpLess(0, metrics.width, fpTolerance) &&
+			fpLess(metrics.width, xi, fpTolerance))
+			xf = xi - metrics.width;
+		this.makeSpace.reset(romanNumeralsAdditive,	xi, xf);
+	}
+	more()
+	{
+		if (this.started == false || this.finished == true)
+			return false;
+		if (this.makeSpace.done() == false)
+		{
+			this.makeSpace.proceed();
+			this.makeSpace.draw();
+		}
+		else
+		{
+			if (this.makeSpace.recent())
+				this.morph.reset();
+			this.finished = this.morph.done();
+			if (this.finished == false)
+			{
+				this.morph.proceed();
+				this.morph.draw();
+			}
+		}
+		if (this.finished)
+			setRomanNumeralsAdditive(romanNumeralsAdditive + this.morph.finalText);
+		return !this.finished;
+	}
+}
+
+let fadeInI = new Fade(null, "I");
+let aInsertI = new AnimateNumeralInsertion(fadeInI);
 let mIIIIItoV = new MetamorphoseIIIIItoV();
 let aIIIIItoV = new AnimateNumeralSubstitutionManyToOne(mIIIIItoV);
 let mVVtoX = new MetamorphoseVVtoX();
@@ -1632,71 +1712,78 @@ async function incrementNumber()
 		arabicNumeralsElement.value = "";
 		eraseDrawings();
 		await pause(minimumPauseTime);
-		if (inputNumber == 0)
-			setRomanNumeralsAdditive("");
 		inputNumber++;
-		setRomanNumeralsAdditive(romanNumeralsAdditive + "I");
-		aIIIIItoV.reset();
-		incrementNumberHandlerState = 1;
+		aInsertI.reset();
+		incrementNumberHandlerState++;
 	}
 	if (incrementNumberHandlerState == 1)
+	{
+		if (aInsertI.more())
+			window.requestAnimationFrame(incrementNumber);
+		else
+		{
+			aIIIIItoV.reset();
+			incrementNumberHandlerState++;
+		}
+	}
+	if (incrementNumberHandlerState == 2)
 	{
 		if (aIIIIItoV.more())
 			window.requestAnimationFrame(incrementNumber);
 		else
 		{
-			incrementNumberHandlerState = 2;
 			aVVtoX.reset();
+			incrementNumberHandlerState++;
 		}
 	}
-	if (incrementNumberHandlerState == 2)
+	if (incrementNumberHandlerState == 3)
 	{
 		if (aVVtoX.more())
 			window.requestAnimationFrame(incrementNumber);
 		else
 		{
-			incrementNumberHandlerState = 3;
 			aXXXXXtoL.reset();
+			incrementNumberHandlerState++;
 		}
 	}
-	if (incrementNumberHandlerState == 3)
+	if (incrementNumberHandlerState == 4)
 	{
 		if (aXXXXXtoL.more())
 			window.requestAnimationFrame(incrementNumber);
 		else
 		{
-			incrementNumberHandlerState = 4;
 			aLLtoC.reset();
+			incrementNumberHandlerState++;
 		}
 	}
-	if (incrementNumberHandlerState == 4)
+	if (incrementNumberHandlerState == 5)
 	{
 		if (aLLtoC.more())
 			window.requestAnimationFrame(incrementNumber);
 		else
 		{
-			incrementNumberHandlerState = 5;
 			aCCCCCtoD.reset();
+			incrementNumberHandlerState++;
 		}
 	}
-	if (incrementNumberHandlerState == 5)
+	if (incrementNumberHandlerState == 6)
 	{
 		if (aCCCCCtoD.more())
 			window.requestAnimationFrame(incrementNumber);
 		else
 		{
-			incrementNumberHandlerState = 6;
 			aDDtoM.reset();
+			incrementNumberHandlerState++;
 		}
 	}
-	if (incrementNumberHandlerState == 6)
+	if (incrementNumberHandlerState == 7)
 	{
 		if (aDDtoM.more())
 			window.requestAnimationFrame(incrementNumber);
 		else
-			incrementNumberHandlerState = 7;
+			incrementNumberHandlerState++;
 	}
-	if (incrementNumberHandlerState == 7)
+	if (incrementNumberHandlerState == 8)
 	{
 		setNumber();
 		reenableButtons();
