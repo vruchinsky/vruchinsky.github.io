@@ -1147,7 +1147,6 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			this.wClear = cvw - this.xClear;
 		this.t = Date.now();
 	}
-	updateTime(t) {this.t = t;}
 	done() // true iff finished this particular stage of the animation
 	{
 		if (this.finished) return true;
@@ -1232,11 +1231,13 @@ class MetamorphoseIIIIItoV
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
+	justFinished = false; // used to implement this.recent()
 	xInitialText() {return this.x0i;}
 	xFinalText() {return this.xf;}
 	reset()
 	{
 		this.finished = true;
+		this.justFinished = false;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		this.finished = false;
@@ -1266,13 +1267,22 @@ class MetamorphoseIIIIItoV
 	done()
 	{
 		if (this.finished) return true;
-		return (this.finished =
+		this.finished =
 			(fpEqual(this.skew, this.skewF, fpTolerance) &&
 			fpEqual(this.x0, this.xf, fpTolerance) &&
 			fpEqual(this.x1, this.xf, fpTolerance) &&
 			//fpEqual(this.x2, this.xf, fpTolerance) && // here x2 stays still
 			fpEqual(this.x3, this.xf, fpTolerance) &&
-			fpEqual(this.x4, this.xf, fpTolerance)));
+			fpEqual(this.x4, this.xf, fpTolerance));
+		if (this.finished)
+			this.justFinished = true;
+		return this.finished;
+	}
+	recent() // returns true iff the most recent call to this.done() has returned true but...
+	{ //...the call to this.done immediately prior to the most recent call to this.done()...
+		if (this.justFinished==false) return false; //...has returned false
+		this.justFinished = false;
+		return true;
 	}
 	proceed()
 	{
@@ -1352,11 +1362,13 @@ class MetamorphoseVVtoX
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
+	justFinished = false; // used to implement this.recent()
 	xInitialText() {return this.x1i;} // initial horizontal position of initialText
 	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
 	reset()
 	{
 		this.finished = true;
+		this.justFinished = false;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		this.finished = false;
@@ -1385,13 +1397,22 @@ class MetamorphoseVVtoX
 	done()
 	{
 		if (this.finished) return true;
-		return (this.finished =
+		this.finished =
 			(fpEqual(this.scale, this.scaleF, fpTolerance) &&
 			fpEqual(this.angle, this.angleF, fpTolerance) &&
 			fpEqual(this.x1, this.xf, fpTolerance) &&
 			fpEqual(this.x2, this.xf, fpTolerance) &&
 			fpEqual(this.y1, this.y1f, fpTolerance) &&
-			fpEqual(this.y2, this.y2f, fpTolerance)));
+			fpEqual(this.y2, this.y2f, fpTolerance));
+		if (this.finished)
+			this.justFinished = true;
+		return this.finished;
+	}
+	recent() // returns true iff the most recent call to this.done() has returned true but...
+	{ //...the call to this.done immediately prior to the most recent call to this.done()...
+		if (this.justFinished==false) return false; //...has returned false
+		this.justFinished = false;
+		return true;
 	}
 	proceed()
 	{
@@ -1458,6 +1479,7 @@ class Fade // used to fade text in, to fade text out
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
+	justFinished = false; // used to implement this.recent()
 	xInitialText() {return this.xi;} // initial horizontal position of initialText
 	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
 	constructor(oText, iText)
@@ -1468,6 +1490,7 @@ class Fade // used to fade text in, to fade text out
 	reset()
 	{
 		this.finished = true;
+		this.justFinished = false;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		this.finished = false;
@@ -1503,8 +1526,17 @@ class Fade // used to fade text in, to fade text out
 	done()
 	{
 		if (this.finished) return true;
-		return (this.finished = (((this.initialText===null) || fpEqual(this.aOut, this.aOutF, fpTolerance)) &&
-								((this.finalText===null) || fpEqual(this.aIn, this.aInF, fpTolerance))));
+		this.finished = (((this.initialText===null) || fpEqual(this.aOut, this.aOutF, fpTolerance)) &&
+						((this.finalText===null) || fpEqual(this.aIn, this.aInF, fpTolerance)));
+		if (this.finished)
+			this.justFinished = true;
+		return this.finished;
+	}
+	recent() // returns true iff the most recent call to this.done() has returned true but...
+	{ //...the call to this.done immediately prior to the most recent call to this.done()...
+		if (this.justFinished==false) return false; //...has returned false
+		this.justFinished = false;
+		return true;
 	}
 	proceed()
 	{
@@ -1557,6 +1589,9 @@ class AnimateNumeralSubstitutionManyToOne
 {
 	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX or Fade) object
 	closeTheGaps = null; // to store SlideTextHorizontally object
+	sameText = null; // set to romanNumeralsAdditive.substring(0, nCsame) in this.reset()
+	nCsame = 0; // how many numerals in sameText
+	xiSameText = 0;
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = true; // iff finished all the stages of this animation
 	constructor(m)
@@ -1572,26 +1607,22 @@ class AnimateNumeralSubstitutionManyToOne
 		this.finished = true;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
-		let nCsame = romanNumeralsAdditive.length - this.morph.initialText.length; // how many numerals in sameText
-		if (nCsame < 0)
-		{ // romanNumeralsAdditive shorter than initialText, so nothing to do here
-			this.closeTheGaps.leftText = romanNumeralsAdditive;
-			return;
-		}
-		if (romanNumeralsAdditive.substring(nCsame) !== this.morph.initialText)
+		this.nCsame = romanNumeralsAdditive.length - this.morph.initialText.length; // how many numerals in sameText
+		if (this.nCsame < 0)
+			return; // romanNumeralsAdditive shorter than initialText, so nothing to do here
+		if (romanNumeralsAdditive.substring(this.nCsame) !== this.morph.initialText)
 			return; // romanNumeralsAdditive does not end with initialText, so nothing to do here
 		this.started = true;
 		this.finished = false;
 		this.morph.reset();
-		let x = romanNumeralsAdditiveCanvas.width - hOffset;
+		this.xiSameText = romanNumeralsAdditiveCanvas.width - hOffset;
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 		let metrics = ctx.measureText(romanNumeralsAdditive);
 		if (metrics !== null &&
 			fpLess(0, metrics.width, fpTolerance) &&
-			fpLess(metrics.width, x, fpTolerance))
-			x -= metrics.width;
-		this.closeTheGaps.reset(romanNumeralsAdditive.substring(0, nCsame),
-			x, this.morph.xFinalText());
+			fpLess(metrics.width, this.xiSameText, fpTolerance))
+			this.xiSameText -= metrics.width;
+		this.sameText = romanNumeralsAdditive.substring(0, this.nCsame);
 	}
 	more()
 	{
@@ -1601,10 +1632,12 @@ class AnimateNumeralSubstitutionManyToOne
 		{
 			this.morph.proceed();
 			this.morph.draw();
-			this.closeTheGaps.updateTime(this.morph.t);
 		}
 		else
 		{
+			if (this.morph.recent())
+				this.closeTheGaps.reset(this.sameText,
+					this.xiSameText, this.morph.xFinalText());
 			this.finished = this.closeTheGaps.done();
 			if (this.finished == false)
 			{
@@ -1685,8 +1718,8 @@ class AnimateNumeralInsertion
 	}
 }
 
-let fadeInI = new Fade(null, "I");
-let aInsertI = new AnimateNumeralInsertion(fadeInI);
+let mInI = new Fade(null, "I");
+let aInsertI = new AnimateNumeralInsertion(mInI);
 let mIIIIItoV = new MetamorphoseIIIIItoV();
 let aIIIIItoV = new AnimateNumeralSubstitutionManyToOne(mIIIIItoV);
 let mVVtoX = new MetamorphoseVVtoX();
