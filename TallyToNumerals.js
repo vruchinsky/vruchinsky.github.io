@@ -988,6 +988,8 @@ function connectRomanToTally() // draw connecting lines (and horizontal braces) 
 
 function displayTextOnCanvas(s, cv)
 {
+	if (cv == null)
+		return;
 	if (cv.getContext == null)
 	{ // fallback in case browser does not support canvas
 		cv.textContent = s;
@@ -995,7 +997,8 @@ function displayTextOnCanvas(s, cv)
 	}
 	clearCanvas(cv);
 	const ctx = cv.getContext("2d");
-	if (s.length < 1) return;
+	if (s == null || s.length < 1)
+		return;
 	const metrics = ctx.measureText(s);
 	const hPos = cv.width - metrics.width - hOffset;
 	const vPos = metrics.actualBoundingBoxAscent;
@@ -1184,7 +1187,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			u = this.xl + (this.vxl)*dt;
 			if (this.vlPos)
 			{
-				const xlLim = this.xr - this.wLeftText;
+				const xlLim = (this.xr > this.wLeftText) ? this.xr - this.wLeftText : this.xLf;
 				if (fpLessEq(u, xlLim, fpTolerance)) // prevent xl+wLeftText from surpassing xr (i.e. this.leftText running onto this.rightText)
 					this.xl = u;
 				else if (fpLess(this.xl, xlLim, fpTolerance)) // prevent this.xl from being set back
@@ -1505,8 +1508,12 @@ class Fade // used to fade text in, to fade text out
 			metrics = ctx.measureText(this.initialText);
 			this.vPos = metrics.actualBoundingBoxAscent;
 			this.xi = cvw - metrics.width;
-			const wChar = Math.floor(metrics.width / this.initialText.length);
-			this.xf = cvw - 0.5 * (metrics.width + wChar);
+			if (this.finalText !== null)
+			{
+				const wChar = Math.floor(metrics.width / this.initialText.length);
+				this.xf = cvw - 0.5 * (metrics.width + wChar);
+			} else
+				this.xf = romanNumeralsAdditiveCanvas.width;
 		} else if (this.finalText !== null) {
 			metrics = ctx.measureText(this.finalText);
 			this.vPos = metrics.actualBoundingBoxAscent;
@@ -1591,7 +1598,8 @@ class AnimateNumeralSubstitutionToFew
 	closeTheGaps = null; // to store SlideTextHorizontally object
 	sameText = null; // set to romanNumeralsAdditive.substring(0, nCsame) in this.reset()
 	nCsame = 0; // how many numerals in sameText
-	xiSameText = 0;
+	xiSameText = 0; // initial horizontal position of sameText on canvas
+	xfSameText = 0; // final horizontal position of sameText on canvas
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = true; // iff finished all the stages of this animation
 	constructor(m)
@@ -1616,6 +1624,7 @@ class AnimateNumeralSubstitutionToFew
 		this.finished = false;
 		this.morph.reset();
 		this.xiSameText = romanNumeralsAdditiveCanvas.width - hOffset;
+		this.xfSameText = this.xiSameText;
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 		let metrics = ctx.measureText(romanNumeralsAdditive);
 		if (metrics !== null &&
@@ -1623,6 +1632,16 @@ class AnimateNumeralSubstitutionToFew
 			fpLess(metrics.width, this.xiSameText, fpTolerance))
 			this.xiSameText -= metrics.width;
 		this.sameText = romanNumeralsAdditive.substring(0, this.nCsame);
+		if (this.morph.finalText == null)
+		{
+			metrics = ctx.measureText(this.sameText);
+			if (metrics !== null &&
+				fpLess(0, metrics.width, fpTolerance) &&
+				fpLess(metrics.width, this.xfSameText, fpTolerance))
+				this.xfSameText -= metrics.width;
+		}
+		else
+			this.xfSameText = this.morph.xFinalText();
 	}
 	more()
 	{
@@ -1637,7 +1656,7 @@ class AnimateNumeralSubstitutionToFew
 		{
 			if (this.morph.recent())
 				this.closeTheGaps.reset(this.sameText,
-					this.xiSameText, this.morph.xFinalText());
+					this.xiSameText, this.xfSameText);
 			this.finished = this.closeTheGaps.done();
 			if (this.finished == false)
 			{
@@ -1647,7 +1666,13 @@ class AnimateNumeralSubstitutionToFew
 		}
 		if (this.finished)
 		{
-			let s = replaceLastChars(romanNumeralsAdditive, this.morph.initialText, this.morph.finalText);
+			let s = null;
+			if (this.morph.finalText == null)
+				s = (this.morph.initialText==null) ?
+					romanNumeralsAdditive :
+					romanNumeralsAdditive.substring(0, romanNumeralsAdditive.length-this.morph.initialText.length);
+			else
+				s = replaceLastChars(romanNumeralsAdditive, this.morph.initialText, this.morph.finalText);
 			setRomanNumeralsAdditive(s);
 		}
 		return !this.finished;
@@ -1725,7 +1750,6 @@ let mXXXXXtoL = new Fade("XXXXX", "L");
 let mLLtoC = new Fade("LL", "C");
 let mCCCCCtoD = new Fade("CCCCC", "D");
 let mDDtoM = new Fade("DD", "M");
-
 const incrementNumberAnimations = [];
 incrementNumberAnimations.push(new AnimateNumeralInsertion(mInI));
 incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mIIIIItoV));
@@ -1734,7 +1758,6 @@ incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mXXXXXtoL));
 incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mLLtoC));
 incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mCCCCCtoD));
 incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mDDtoM));
-
 let incrementNumberHandlerState = 0;
 
 function incrementNumber()
@@ -1768,7 +1791,13 @@ function incrementNumber()
 		window.requestAnimationFrame(incrementNumber);
 }
 
+let mOutI = new Fade("I", null);
+let aOutI = new AnimateNumeralSubstitutionToFew(mOutI);
+let decrementNumberHandlerState = 0;
+
 async function decrementNumber()
+{
+if (decrementNumberHandlerState == 0)
 {
 	if (inputNumber <= smallestNumberToDisplay) return;
 	if (incrementOrDecrementExecuting) return;
@@ -1777,13 +1806,6 @@ async function decrementNumber()
 	eraseDrawings();
 	await pause(minimumPauseTime);
 	inputNumber--;
-	if (inputNumber == 0)
-	{
-		setRomanNumeralsAdditive("");
-		arabicNumeralsElement.value = inputNumber.toString();
-		reenableButtons();
-		return;
-	}
 	let s = replaceLastChars(romanNumeralsAdditive, "M", "DD");
 	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);}
 	s = replaceLastChars(romanNumeralsAdditive, "D", "CCCCC");
@@ -1826,10 +1848,18 @@ async function decrementNumber()
 		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
 	}
-	s = romanNumeralsAdditive;
-	setRomanNumeralsAdditive(s.substring(0,s.length-1));
+	aOutI.reset();
+	decrementNumberHandlerState++;
+	window.requestAnimationFrame(decrementNumber);
+} else if (aOutI.more()) {
+		window.requestAnimationFrame(decrementNumber);
+} else {
+	//s = romanNumeralsAdditive;
+	//setRomanNumeralsAdditive(s.substring(0,s.length-1));
 	setNumber();
 	reenableButtons();
+	decrementNumberHandlerState = 0;
+}
 }
 
 function processNumberArabic()
