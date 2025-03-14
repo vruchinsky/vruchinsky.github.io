@@ -2172,7 +2172,6 @@ if (decrementNumberHandlerState == 0)
 
 	aXtoVV.reset(romanNumeralsAdditive);
 	decrementNumberHandlerState++;
-	window.requestAnimationFrame(decrementNumber);
 } else if (decrementNumberHandlerState == 1) {
 /* 	s = replaceLastChars(romanNumeralsAdditive, "X", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
 	if (s != null)
@@ -2186,13 +2185,10 @@ if (decrementNumberHandlerState == 0)
 		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
 	} */
-	if (aXtoVV.more())
-		window.requestAnimationFrame(decrementNumber);
-	else
+	if (aXtoVV.more()==false)
 	{
 		aVtoIIIII.reset(romanNumeralsAdditive);
 		decrementNumberHandlerState++;
-		window.requestAnimationFrame(decrementNumber);
 	}
 } else if (decrementNumberHandlerState == 2) {
 /* 	s = replaceLastChars(romanNumeralsAdditive, "V", "\\/");
@@ -2207,23 +2203,20 @@ if (decrementNumberHandlerState == 0)
 		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
 	} */
-	if (aVtoIIIII.more())
-		window.requestAnimationFrame(decrementNumber);
-	else
+	if (aVtoIIIII.more()==false)
 	{
 		aOutI.reset(romanNumeralsAdditive);
 		decrementNumberHandlerState++;
-		window.requestAnimationFrame(decrementNumber);
 	}
-} else if (aOutI.more()) {
-		window.requestAnimationFrame(decrementNumber);
-} else {
+} else if (aOutI.more()==false) {
 	//s = romanNumeralsAdditive;
 	//setRomanNumeralsAdditive(s.substring(0,s.length-1));
 	setNumber();
 	reenableButtons();
 	decrementNumberHandlerState = 0;
 }
+	if (decrementNumberHandlerState > 0)
+		window.requestAnimationFrame(decrementNumber);
 }
 
 function processNumberArabic()
