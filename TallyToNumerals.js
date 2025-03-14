@@ -1337,8 +1337,8 @@ class MetamorphoseIIIIItoV
 	}
 }
 
-class MetamorphoseVtoIIIII
-{ // animation of metamorphosis of V->IIIII including simultaneous moving of the context to make space for IIIII
+class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
+{// including simultaneous moving of the context to make space for IIIII
 	initialText = null; // to metamorphose into finalText
 	finalText = null; // obtain both initialText and finalText from an object of class MetamorphoseIIIIItoV
 	sameText = null; // the context of initialText and finalText, to be moved to the left to make space as the Is diverge
@@ -1369,7 +1369,7 @@ class MetamorphoseVtoIIIII
 	vxs = 0; // (px/msec) how fast to move x4 towards xSf
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
-	started = false; // true iff initialText was found in romanNumeralsAdditive
+	started = false; // true iff initialText was found in entireText
 	finished = true; // iff finished the metamorphosis of intialText into finalText
 	constructor(m) // m must be object of class MetamorphoseIIIIItoV
 	{
@@ -1382,9 +1382,8 @@ class MetamorphoseVtoIIIII
 	{
 		this.started = false;
 		this.finished = true;
-		if (sText == null || this.initialText == null ||
-			typeof(sText) !== 'string' ||
-			typeof(this.initialText) !== 'string')
+		if (sText == null || this.initialText == null || this.finalText == null ||
+			typeof(sText) !== 'string' || typeof(this.initialText) !== 'string')
 			return; // nothing to substitute, so nothing to do here
 		this.entireText = sText;
  		this.nCsame = this.entireText.length - this.initialText.length;
@@ -1504,14 +1503,8 @@ class MetamorphoseVtoIIIII
 		}
 		if (this.finished)
 		{
-			let s = null;
-			if (this.entireText == null)
-				s = "";
-			else if (this.finalText == null)
-				s = (this.sameText==null) ? this.entireText : this.sameText;
-			else
-				s = replaceLastChars(this.entireText, this.initialText, this.finalText);
-			setRomanNumeralsAdditive(s);
+			let s = replaceLastChars(this.entireText, this.initialText, this.finalText);
+			setRomanNumeralsAdditive((s == null) ? this.entireText : s);
 		}
 		return !this.finished;
 	}
@@ -1526,11 +1519,11 @@ class MetamorphoseVVtoX
 	x1i = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
 	x1 = 0; // updated horizontal position of the left V
 	x2 = 0; // updated horizontal position of the right V
-	xf = 0;  // final horizontal position of characters of initialText (as they finish metamorphosing into finalText)
+	xf = 0; // final horizontal position of characters of initialText (as they finish metamorphosing into finalText)
 	y1 = 0; // updated vertical position of the left V
 	y2 = 0; // updated vertical position of the right V
-	y1f = 0;  // final vertical position of the left V
-	y2f = 0;  // final vertical position of the right V
+	y1f = 0; // final vertical position of the left V
+	y2f = 0; // final vertical position of the right V
 	scaleI = 1.0; // constant (initial (usual) scale of the Vs)
 	scaleF = 0.5; // constant (final (at their convergence) scale of the Vs)
 	vScale = 0; // how fast to move scale towards scaleF (calculated from scaleF, scaleI and AnimationSpeedMetamorphosis)
@@ -1541,10 +1534,9 @@ class MetamorphoseVVtoX
 	angle = 0; // (of the left V) current value (starts = angleI and decreases to angleF)
 	vx1 = 0; // (px/msec) how fast to move x1 towards xf
 	vx2 = 0; // (px/msec) how fast to move x2 towards xf
-	vy1 = 0; // (px/msec) how fast to move y2 towards y2f
+	vy1 = 0; // (px/msec) how fast to move y1 towards y1f
 	vy2 = 0; // (px/msec) how fast to move y2 towards y2f
 	t = 0; // (msec) time of last update
-	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
 	justFinished = false; // used to implement this.recent()
 	xInitialText() {return this.x1i;} // initial horizontal position of initialText
@@ -1557,13 +1549,13 @@ class MetamorphoseVVtoX
 			return; // browser does not support canvas
 		this.finished = false;
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const w = romanNumeralsAdditiveCanvas.width - hOffset;
+		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
 		let metrics = ctx.measureText(this.initialText);
-		this.y2 = this.y1f = this.y1 = this.vPos = metrics.actualBoundingBoxAscent;
-		this.y2f = 0.5 * (this.vPos);
-		this.x1i = this.x1 = w - metrics.width;
+		this.y2 = this.y1f = this.y1 = metrics.actualBoundingBoxAscent;
+		this.y2f = 0.5 * (this.y2);
+		this.x1i = this.x1 = cvw - metrics.width;
 		metrics = ctx.measureText(this.initialText.substring(1));
-		this.x2 = w - metrics.width;
+		this.x2 = cvw - metrics.width;
 		this.xf = 0.25 * (this.x1) + 0.75 * (this.x2); // put convergence point closer to right V in order to help avoid drawing small parts of extremities of the left V on the part of the canvas which must remain unchanged during this metamorphosis
 		metrics = ctx.measureText(this.initialText[0]);
 		this.halfHeightNumeral = 0.5 * (metrics.actualBoundingBoxAscent);
@@ -1607,8 +1599,8 @@ class MetamorphoseVVtoX
 		this.x1 = fpLessEq(u, this.xf, fpTolerance) ? u : this.xf; // prevent x1 from surpassing xf
 		u = this.x2 + (this.vx2)*dt;
 		this.x2 = fpLessEq(this.xf, u, fpTolerance) ? u : this.xf; // prevent x2 from surpassing xf
- 		u = this.y1 + (this.vy1)*dt;
-		this.y1 = fpLessEq(this.y1f, u, fpTolerance) ? u : this.y1f; // prevent y1 from surpassing y1f
+ 		//u = this.y1 + (this.vy1)*dt; // y1 remains the same here
+		//this.y1 = fpLessEq(this.y1f, u, fpTolerance) ? u : this.y1f; // prevent y1 from surpassing y1f
  		u = this.y2 + (this.vy2)*dt;
 		this.y2 = fpLessEq(this.y2f, u, fpTolerance) ? u : this.y2f; // prevent y2 from surpassing y2f
 		u = this.scale + (this.vScale)*dt;
@@ -1622,8 +1614,8 @@ class MetamorphoseVVtoX
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const w = romanNumeralsAdditiveCanvas.width - this.xInitialText();
-		ctx.clearRect(this.xInitialText(), -0.5, w, romanNumeralsAdditiveCanvas.height);
+		const cvw = romanNumeralsAdditiveCanvas.width - this.xInitialText();
+		ctx.clearRect(this.xInitialText(), -0.5, cvw, romanNumeralsAdditiveCanvas.height);
 		ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
 		ctx.translate(this.x1 + this.halfWidthNumeral,
 					this.y1 - (this.scale) * (this.halfHeightNumeral));
@@ -1638,6 +1630,170 @@ class MetamorphoseVVtoX
 		ctx.translate(-this.halfWidthNumeral, 0);
 		ctx.fillText(this.initialText[1], 0, 0);
 		ctx.restore();
+	}
+}
+
+class MetamorphoseXtoVV // animation of metamorphosis of X->VV
+{//including simultaneous moving of the context to make space for VV
+	initialText = null; // to metamorphose into finalText
+	finalText = null; // obtain both initialText and finalText from an object of class MetamorphoseVVtoX
+	sameText = null; // the context of initialText and finalText, to be moved to the left to make space as the Is diverge
+	nCsame = 0; // how many numerals in sameText
+	entireText = null; // sameText followed by initialText
+	halfWidthNumeral = 0; // half of the width, in pixels, of initialText[0] (used in transforming the coordinate system in this.draw())
+	halfHeightNumeral = 0; // half of the height, in pixels, of initialText[0] (used in transforming the coordinate system in this.draw())
+	x1 = 0; // updated horizontal position of the left V
+	x2 = 0; // updated horizontal position of the right V
+	xs = 0; // updated horizontal position of the leftmost end of sameText
+	x1f = 0; // final horizontal position of characters of left V
+	x2f = 0; // final horizontal position of characters of left V
+	xSf = 0; // final horizontal position of the leftmost end of sameText
+	y1 = 0; // updated vertical position of the left V
+	y2 = 0; // updated vertical position of the right V
+	yf = 0; // final vertical position of the Vs
+	scaleI = 0; // constant (initial (usual) scale of the Vs)
+	scaleF = 0; // constant (final (at their convergence) scale of the Vs)
+	vScale = 0; // how fast to move scale towards scaleF (calculated from scaleF, scaleI and AnimationSpeedMetamorphosis)
+	scale = 0; // current value (starts = scaleI and decreases to scaleF)
+	angleI = 0; // constant (initial (usual) angle of the left V)
+	angleF = 0; // constant (final (at their convergence) angle of the left V)
+	vAngle = 0; // how fast to move angle towards angleF (calculated from angleF, angleI and AnimationSpeedMetamorphosis)
+	angle = 0; // (of the left V) current value (starts = angleI and decreases to angleF)
+	vx1 = 0; // (px/msec) how fast to move x1 towards xf
+	vx2 = 0; // (px/msec) how fast to move x2 towards xf
+	vxs = 0; // (px/msec) how fast to move x4 towards xSf
+	vy1 = 0; // (px/msec) how fast to move y1 towards yf
+	vy2 = 0; // (px/msec) how fast to move y2 towards yf
+	t = 0; // (msec) time of last update
+	started = false; // true iff initialText was found in entireText
+	finished = true; // iff finished the metamorphosis of intialText into finalText
+	constructor(m) // m must be object of class MetamorphoseVVtoX
+	{
+		this.initialText = m.finalText;
+		this.finalText = m.initialText;
+		this.scaleI = m.scaleF;
+		this.scaleF = m.scaleI;
+		this.angleI = m.angleF;
+		this.angleF = m.angleI;
+	}
+	reset(sText)
+	{
+		this.started = false;
+		this.finished = true;
+		if (sText == null || this.initialText == null || this.finalText == null ||
+			typeof(sText) !== 'string' || typeof(this.initialText) !== 'string')
+			return; // nothing to substitute, so nothing to do here
+		this.entireText = sText;
+ 		this.nCsame = this.entireText.length - this.initialText.length;
+		if (this.nCsame < 0)
+			return; // this.entireText shorter than initialText, so nothing to substitute, so nothing to do here
+		if (this.entireText.substring(this.nCsame) !== this.initialText)
+			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
+		this.sameText = this.entireText.substring(0, this.nCsame);
+		if (romanNumeralsAdditiveCanvas.getContext == null)
+			return; // browser does not support canvas
+		this.started = true;
+		this.finished = false;
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
+		let metrics = ctx.measureText(this.finalText);
+		this.yf = this.y1 = metrics.actualBoundingBoxAscent;
+		this.y2 = 0.5 * (this.yf);
+		this.x1f = cvw - metrics.width;
+		metrics = ctx.measureText(this.finalText[0]);
+		this.halfHeightNumeral = 0.5 * (metrics.actualBoundingBoxAscent);
+		this.halfWidthNumeral = 0.5 * (metrics.width);
+		metrics = ctx.measureText(this.finalText.substring(1));
+		this.x2f = cvw - metrics.width;
+		metrics = ctx.measureText(this.initialText);
+		this.x1 = this.x2 = cvw - metrics.width;
+		metrics = ctx.measureText(this.sameText);
+		this.xSf = this.x1f - metrics.width;
+		this.xs = this.x1 - metrics.width;
+		this.scale = this.scaleI;
+		this.angle = this.angleI;
+		this.vxs = AnimationSpeedMetamorphosis*(this.xSf - this.xs);
+		this.vx1 = AnimationSpeedMetamorphosis*(this.x1f - this.x1); // move left V to its destination faster in order to help avoid drawing small parts of extremities of the left V on the part of the canvas which must remain unchanged during this metamorphosis
+		this.vx2 = AnimationSpeedMetamorphosis*(this.x2f - this.x2);
+		this.vy1 = AnimationSpeedMetamorphosis*(this.yf - this.y1);
+		this.vy2 = AnimationSpeedMetamorphosis*(this.yf - this.y2);
+		this.vScale = AnimationSpeedMetamorphosis*(this.scaleF - this.scaleI); // scale both Vs down faster in order to help avoid putting small parts of their extremities outside the part of the canvas initially displaying initialText
+		this.vAngle = AnimationSpeedMetamorphosis*(this.angleF - this.angleI);
+		this.t = Date.now();
+	}
+	done()
+	{
+		if (this.finished) return true;
+		this.finished =
+			(fpEqual(this.scale, this.scaleF, fpTolerance) &&
+			fpEqual(this.angle, this.angleF, fpTolerance) &&
+			fpEqual(this.xs, this.xSf, fpTolerance) &&
+			fpEqual(this.x1, this.x1f, fpTolerance) &&
+			fpEqual(this.x2, this.x2f, fpTolerance) &&
+			fpEqual(this.y1, this.yf, fpTolerance) &&
+			fpEqual(this.y2, this.yf, fpTolerance));
+		return this.finished;
+	}
+	proceed()
+	{
+		if (this.finished) return;
+		const t1 = Date.now(); // (msec)
+		const dt = t1 - this.t; // (msec) time since last update
+		let u = this.xs + (this.vxs)*dt;
+		this.xs = fpLessEq(this.xSf, u, fpTolerance) ? u : this.xSf; // prevent xs from surpassing xSf
+		let xLim = fpMax(this.xs, this.x1f, fpTolerance);
+		u = this.x1 + (this.vx1)*dt;
+		this.x1 = fpLessEq(xLim, u, fpTolerance) ? u : xLim; // prevent x1 from surpassing max(xs,x1f)
+		u = this.x2 + (this.vx2)*dt;
+		this.x2 = fpLessEq(u, this.x2f, fpTolerance) ? u : this.x2f; // prevent x2 from surpassing x2f
+ 		//u = this.y1 + (this.vy1)*dt; // y1 remains the same here
+		//this.y1 = fpLessEq(this.yf, u, fpTolerance) ? u : this.yf; // prevent y1 from surpassing yf
+ 		u = this.y2 + (this.vy2)*dt;
+		this.y2 = fpLessEq(u, this.yf, fpTolerance) ? u : this.yf; // prevent y2 from surpassing yf
+		u = this.scale + (this.vScale)*dt;
+		this.scale = fpLessEq(u, this.scaleF, fpTolerance) ? u : this.scaleF; // prevent scale from surpassing scaleF
+		u = this.angle + (this.vAngle)*dt;
+		this.angle = fpLessEq(this.angleF, u, fpTolerance) ? u : this.angleF; // prevent angle from surpassing angleF
+		this.t = t1;
+	}
+	draw()
+	{
+		if (romanNumeralsAdditiveCanvas.getContext == null)
+			return; // browser does not support canvas
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		const cvw = romanNumeralsAdditiveCanvas.width - this.xs;
+		ctx.clearRect(this.xs, -0.5, cvw, romanNumeralsAdditiveCanvas.height);
+		ctx.fillText(this.sameText, this.xs, this.yf);
+		ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
+		ctx.translate(this.x1 + this.halfWidthNumeral,
+					this.y1 - (this.scale) * (this.halfHeightNumeral));
+		ctx.rotate(-this.angle);
+		ctx.scale(1, this.scale);
+		ctx.translate(-this.halfWidthNumeral, this.halfHeightNumeral);
+		ctx.fillText(this.finalText[0], 0, 0);
+		ctx.restore();
+		ctx.save();
+		ctx.translate(this.x2 + this.halfWidthNumeral, this.y2);
+		ctx.scale(1, this.scale);
+		ctx.translate(-this.halfWidthNumeral, 0);
+		ctx.fillText(this.finalText[1], 0, 0);
+		ctx.restore();
+	}
+	more()
+	{
+		if (this.started == false || this.finished == true)
+			return false;
+		if (this.done() == false)
+		{
+			this.proceed();
+			this.draw();
+		}
+		if (this.finished)
+		{
+			let s = replaceLastChars(this.entireText, this.initialText, this.finalText);
+			setRomanNumeralsAdditive((s == null) ? this.entireText : s);
+		}
+		return !this.finished;
 	}
 }
 
@@ -1779,6 +1935,7 @@ class AnimateNumeralSubstitutionToFew
 	closeTheGaps = null; // to store SlideTextHorizontally object
 	sameText = null; // set to romanNumeralsAdditive.substring(0, nCsame) in this.reset()
 	nCsame = 0; // how many numerals in sameText
+	entireText = null; // sameText followed by initialText
 	xiSameText = 0; // initial horizontal position of sameText on canvas
 	xfSameText = 0; // final horizontal position of sameText on canvas
 	started = false; // true iff initialText was found in romanNumeralsAdditive
@@ -1790,29 +1947,34 @@ class AnimateNumeralSubstitutionToFew
 		this.morph = m;
 		this.closeTheGaps = new SlideTextHorizontally(this.morph.finalText);
 	}
-	reset()
+	reset(sText)
 	{
 		this.started = false;
 		this.finished = true;
+		if (sText == null || this.morph.initialText == null ||
+			typeof(sText) !== 'string' || typeof(this.morph.initialText) !== 'string')
+			return; // nothing to substitute, so nothing to do here
+		this.entireText = sText;
+		this.nCsame = this.entireText.length - this.morph.initialText.length; // how many numerals in sameText
+		if (this.nCsame < 0)
+			return; // this.entireText shorter than initialText, so nothing to substitute, so nothing to do here
+		if (this.entireText.substring(this.nCsame) !== this.morph.initialText)
+			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
+		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
-		this.nCsame = romanNumeralsAdditive.length - this.morph.initialText.length; // how many numerals in sameText
-		if (this.nCsame < 0)
-			return; // romanNumeralsAdditive shorter than initialText, so nothing to do here
-		if (romanNumeralsAdditive.substring(this.nCsame) !== this.morph.initialText)
-			return; // romanNumeralsAdditive does not end with initialText, so nothing to do here
 		this.started = true;
 		this.finished = false;
 		this.morph.reset();
 		this.xiSameText = romanNumeralsAdditiveCanvas.width - hOffset;
 		this.xfSameText = this.xiSameText;
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		let metrics = ctx.measureText(romanNumeralsAdditive);
+		let metrics = ctx.measureText(this.entireText);
 		if (metrics !== null &&
 			fpLess(0, metrics.width, fpTolerance) &&
 			fpLess(metrics.width, this.xiSameText, fpTolerance))
 			this.xiSameText -= metrics.width;
-		this.sameText = romanNumeralsAdditive.substring(0, this.nCsame);
+		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.morph.finalText == null)
 		{
 			metrics = ctx.measureText(this.sameText);
@@ -1849,11 +2011,9 @@ class AnimateNumeralSubstitutionToFew
 		{
 			let s = null;
 			if (this.morph.finalText == null)
-				s = (this.morph.initialText==null) ?
-					romanNumeralsAdditive :
-					romanNumeralsAdditive.substring(0, romanNumeralsAdditive.length-this.morph.initialText.length);
+				s = (this.morph.initialText==null) ? this.entireText : this.sameText;
 			else
-				s = replaceLastChars(romanNumeralsAdditive, this.morph.initialText, this.morph.finalText);
+				s = replaceLastChars(this.entireText, this.morph.initialText, this.morph.finalText);
 			setRomanNumeralsAdditive(s);
 		}
 		return !this.finished;
@@ -1864,6 +2024,7 @@ class AnimateNumeralInsertion
 {
 	morph = null; // to store Fade object (for fading-in)
 	makeSpace = null; // to store SlideTextHorizontally object
+	entireText = null; // sameText followed by initialText
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = true; // iff finished all the stages of this animation
 	constructor(m)
@@ -1873,12 +2034,13 @@ class AnimateNumeralInsertion
 		this.morph = m;
 		this.makeSpace = new SlideTextHorizontally(null);
 	}
-	reset()
+	reset(sText)
 	{
 		this.started = false;
 		this.finished = true;
 		if (this.morph.finalText == null)
 			return; // this.morph not properly initialized
+		this.entireText = sText;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		this.started = true;
@@ -1886,7 +2048,7 @@ class AnimateNumeralInsertion
 		let xi = romanNumeralsAdditiveCanvas.width - hOffset;
 		let xf = xi;
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		let metrics = ctx.measureText(romanNumeralsAdditive);
+		let metrics = ctx.measureText(this.entireText);
 		if (metrics !== null &&
 			fpLess(0, metrics.width, fpTolerance) &&
 			fpLess(metrics.width, xi, fpTolerance))
@@ -1896,7 +2058,7 @@ class AnimateNumeralInsertion
 			fpLess(0, metrics.width, fpTolerance) &&
 			fpLess(metrics.width, xi, fpTolerance))
 			xf = xi - metrics.width;
-		this.makeSpace.reset(romanNumeralsAdditive,	xi, xf);
+		this.makeSpace.reset(this.entireText, xi, xf);
 	}
 	more()
 	{
@@ -1919,7 +2081,7 @@ class AnimateNumeralInsertion
 			}
 		}
 		if (this.finished)
-			setRomanNumeralsAdditive(romanNumeralsAdditive + this.morph.finalText);
+			setRomanNumeralsAdditive(this.entireText + this.morph.finalText);
 		return !this.finished;
 	}
 }
@@ -1958,7 +2120,7 @@ function incrementNumber()
 			incrementNumberAnimations[incrementNumberHandlerState-1].more()==false)
 		{
 			if (incrementNumberHandlerState < incrementNumberAnimations.length)
-				incrementNumberAnimations[incrementNumberHandlerState].reset();
+				incrementNumberAnimations[incrementNumberHandlerState].reset(romanNumeralsAdditive);
 			incrementNumberHandlerState++;
 		}
 	}
@@ -1975,6 +2137,7 @@ function incrementNumber()
 let mOutI = new Fade("I", null);
 let aOutI = new AnimateNumeralSubstitutionToFew(mOutI);
 let aVtoIIIII = new MetamorphoseVtoIIIII(mIIIIItoV);
+let aXtoVV = new MetamorphoseXtoVV(mVVtoX);
 let decrementNumberHandlerState = 0;
 
 async function decrementNumber()
@@ -2006,7 +2169,12 @@ if (decrementNumberHandlerState == 0)
 	}
 	s = replaceLastChars(romanNumeralsAdditive, "L", "XXXXX");
 	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);}
-	s = replaceLastChars(romanNumeralsAdditive, "X", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
+
+	aXtoVV.reset(romanNumeralsAdditive);
+	decrementNumberHandlerState++;
+	window.requestAnimationFrame(decrementNumber);
+} else if (decrementNumberHandlerState == 1) {
+/* 	s = replaceLastChars(romanNumeralsAdditive, "X", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
 	if (s != null)
 	{ // X -> VV multistep text-character-based animation
 		setRomanNumeralsAdditive(s);
@@ -2017,11 +2185,16 @@ if (decrementNumberHandlerState == 0)
 		s = replaceLastChars(romanNumeralsAdditive, "\u039bV", "VV"); // \u039b = capital letter lambda
 		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
+	} */
+	if (aXtoVV.more())
+		window.requestAnimationFrame(decrementNumber);
+	else
+	{
+		aVtoIIIII.reset(romanNumeralsAdditive);
+		decrementNumberHandlerState++;
+		window.requestAnimationFrame(decrementNumber);
 	}
-	aVtoIIIII.reset(romanNumeralsAdditive);
-	decrementNumberHandlerState++;
-	window.requestAnimationFrame(decrementNumber);
-} else if (decrementNumberHandlerState == 1) {
+} else if (decrementNumberHandlerState == 2) {
 /* 	s = replaceLastChars(romanNumeralsAdditive, "V", "\\/");
 	if (s != null)
 	{ // V -> IIIII multistep text-character-based animation
@@ -2038,7 +2211,7 @@ if (decrementNumberHandlerState == 0)
 		window.requestAnimationFrame(decrementNumber);
 	else
 	{
-		aOutI.reset();
+		aOutI.reset(romanNumeralsAdditive);
 		decrementNumberHandlerState++;
 		window.requestAnimationFrame(decrementNumber);
 	}
