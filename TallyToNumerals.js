@@ -1383,8 +1383,10 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 		this.started = false;
 		this.finished = true;
 		if (sText == null || this.initialText == null || this.finalText == null ||
-			typeof(sText) !== 'string' || typeof(this.initialText) !== 'string')
-			return; // nothing to substitute, so nothing to do here
+			typeof(sText) !== 'string' || typeof(this.initialText) !== 'string' ||
+			typeof(this.finalText) !== 'string' ||
+			this.initialText.length < 1 || this.finalText.length < 1)
+			return; // invalid parameters, so nothing to do here
 		this.entireText = sText;
  		this.nCsame = this.entireText.length - this.initialText.length;
 		if ((this.nCsame < 0) || (this.entireText.substring(this.nCsame) !== this.initialText))
@@ -1681,8 +1683,10 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		this.started = false;
 		this.finished = true;
 		if (sText == null || this.initialText == null || this.finalText == null ||
-			typeof(sText) !== 'string' || typeof(this.initialText) !== 'string')
-			return; // nothing to substitute, so nothing to do here
+			typeof(sText) !== 'string' || typeof(this.initialText) !== 'string' ||
+			typeof(this.finalText) !== 'string' ||
+			this.initialText.length < 1 || this.finalText.length < 1)
+			return; // invalid parameters, so nothing to do here
 		this.entireText = sText;
  		this.nCsame = this.entireText.length - this.initialText.length;
 		if (this.nCsame < 0)
@@ -1797,8 +1801,8 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 	}
 }
 
-class Fade // used to fade text in, to fade text out
-{ //  and to cross-fade one text into another
+class Fade // used to fade text in, to fade text out...
+{//...and to cross-fade one text into another
 	initialText = null; // (constant) text to fade out
 	finalText = null; // (constant) text to fade in
 	xi = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
@@ -1929,16 +1933,154 @@ class Fade // used to fade text in, to fade text out
 	}
 }
 
+class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) into finalText...
+{//...(more than 1 numeral) while moving the numerals of finalText from overlapping each other to usual spacing
+	initialText = null; // (constant) text to fade out
+	finalText = null; // (constant) text to fade in
+	sameText = null; // set to entireText.substring(0, nCsame) in this.reset()
+	nCsame = 0; // how many numerals in sameText
+	entireText = null; // sameText followed by initialText
+	xs = 0; // current horizontal position of sameText
+	xSf = 0; // final horizontal position of sameText
+	xi = 0; // horizontal position of the leftmost end of initialText
+	x = [];  // current horizontal position of each character of finalText
+	xf = []; // final horizontal position of each character of finalText
+	aOutI = 0; // constant (initial alpha of initialText)
+	aOutF = 0; // constant (final alpha of initialText)
+	vaOut = 0; // how fast to change aOut to aOutF (calculated from aOutF, aOutI and AnimationSpeedMetamorphosis)
+	aOutM = 0; // for adjusting rate of change of aOut in this.proceed()
+	vaOutAdjFast = 0; // speed-up factor for rate of change of aOut (during the first half of this metamorphosis)
+	vaOutAdjSlow = 0; // slow-down factor for rate of change of aOut (during the second half of this metamorphosis)
+	aOut = 0; // current alpha value for initialText (starts = aOutI and decreases to aOutF)
+	aInI = 0; // constant (initial alpha of finalText)
+	aInF = 0; // constant (final (at their convergence) angle of the left V)
+	vaIn = 0; // how fast to change aIn to aInF (calculated from aInF, aInI and AnimationSpeedMetamorphosis)
+	aIn = 0; // current alpha value for finalText (starts = aInI and increases to aInF)
+	t = 0; // (msec) time of last update
+	vPos = 0; // vertical position of all the text treated by this class
+	started = false; // true iff initialText was found in entireText
+	finished = true; // iff finished the metamorphosis of intialText into finalText
+	justFinished = false; // used to implement this.recent()
+	constructor(m)
+	{
+		this.initialText = m.finalText;
+		this.finalText = m.initialText;
+		this.aOutI = m.aOutI;
+		this.aOutF = m.aOutF;
+		this.aInI = m.aInI;
+		this.aInF = m.aInF;
+		this.vaOutAdjFast = m.vaOutAdjFast;
+	}
+	reset(sText)
+	{
+		this.started = false;
+		this.finished = true;
+		if (sText == null || this.initialText == null || this.finalText == null ||
+			typeof(sText) !== 'string' || typeof(this.initialText) !== 'string' ||
+			typeof(this.finalText) !== 'string' ||
+			this.initialText.length < 1 || this.finalText.length < 1)
+			return; // invalid parameters, so nothing to do here
+		this.entireText = sText;
+		this.nCsame = this.entireText.length - this.initialText.length; // how many numerals in sameText
+		if (this.nCsame < 0)
+			return; // this.entireText shorter than initialText, so nothing to substitute, so nothing to do here
+		if (this.entireText.substring(this.nCsame) !== this.initialText)
+			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
+		this.sameText = this.entireText.substring(0, this.nCsame);
+		if (romanNumeralsAdditiveCanvas.getContext == null)
+			return; // browser does not support canvas
+		this.started = true;
+		this.finished = false;
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
+		let metrics = ctx.measureText(this.initialText);
+		this.vPos = metrics.actualBoundingBoxAscent;
+		this.xi = cvw - metrics.width;
+		metrics = ctx.measureText(this.finalText);
+		const wChar = Math.floor(metrics.width / this.finalText.length);
+		this.xf = cvw - 0.5 * (metrics.width + wChar);
+		this.aOutM = 0.5 * (this.aOutI + this.aOutF);
+		this.vaOutAdjSlow = this.vaOutAdjFast / (2 * (this.vaOutAdjFast) - 1.0); // assumes that this.aOutM=0.5*(this.aOutI+this.aOutF)
+		this.aOut = this.aOutI;
+		this.aIn = this.aInI;
+		this.vaOut = AnimationSpeedMetamorphosis*(this.aOutF - this.aOutI);
+		this.vaIn = AnimationSpeedMetamorphosis*(this.aInF - this.aInI);
+		this.xClear = fpLess(this.xi, this.xf, fpTolerance) ? this.xi : this.xf;
+		this.wClear = cvw - this.xClear;
+		this.t = Date.now();
+	}
+	done()
+	{
+		if (this.finished) return true;
+		this.finished = (((this.initialText===null) || fpEqual(this.aOut, this.aOutF, fpTolerance)) &&
+						((this.finalText===null) || fpEqual(this.aIn, this.aInF, fpTolerance)));
+		if (this.finished)
+			this.justFinished = true;
+		return this.finished;
+	}
+	recent() // returns true iff the most recent call to this.done() has returned true but...
+	{ //...the call to this.done immediately prior to the most recent call to this.done()...
+		if (this.justFinished==false) return false; //...has returned false
+		this.justFinished = false;
+		return true;
+	}
+	proceed()
+	{
+		if (this.finished) return;
+		if ((this.initialText===null) && (this.finalText===null))
+			return;
+		const t1 = Date.now(); // (msec)
+		const dt = t1 - this.t; // (msec) time since last update
+		let u;
+		if (this.initialText !== null)
+		{
+			const vaOutAdj = fpLess(this.aOutM, this.aOut, fpTolerance) ? this.vaOutAdjFast : this.vaOutAdjSlow;
+			u = this.aOut + vaOutAdj * (this.vaOut) * dt;
+			this.aOut = fpLessEq(this.aOutF, u, fpTolerance) ? u : this.aOutF; // prevent aOut from surpassing aOutF
+		}
+		if (this.finalText !== null)
+		{
+			u = this.aIn + (this.vaIn)*dt;
+			this.aIn = fpLessEq(u, this.aInF, fpTolerance) ? u : this.aInF; // prevent aIn from surpassing aInF
+		}
+		this.t = t1;
+	}
+	draw()
+	{
+		if ((this.initialText===null) && (this.finalText===null))
+			return;
+		if (romanNumeralsAdditiveCanvas.getContext == null)
+			return; // browser does not support canvas
+		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+		ctx.clearRect(this.xClear, -0.5, this.wClear, romanNumeralsAdditiveCanvas.height);
+		const oldFillStyle = ctx.fillStyle;
+		const canvasStyle = getComputedStyle(romanNumeralsAdditiveCanvas);
+		const foregroundColor = canvasStyle.color;
+		const fgc = extractRGBValues(foregroundColor);
+		if (this.initialText !== null)
+		{
+			ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
+			ctx.fillText(this.initialText, this.xInitialText(), this.vPos);
+		}
+		if (this.finalText !== null)
+		{
+			ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
+			ctx.fillText(this.finalText, this.xFinalText(), this.vPos);
+		}
+		ctx.fillStyle = oldFillStyle; // restore original value
+	}
+}
+
 class AnimateNumeralSubstitutionToFew
 {
 	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX or Fade) object
 	closeTheGaps = null; // to store SlideTextHorizontally object
-	sameText = null; // set to romanNumeralsAdditive.substring(0, nCsame) in this.reset()
+	sameText = null; // set to entireText.substring(0, nCsame) in this.reset()
 	nCsame = 0; // how many numerals in sameText
 	entireText = null; // sameText followed by initialText
 	xiSameText = 0; // initial horizontal position of sameText on canvas
 	xfSameText = 0; // final horizontal position of sameText on canvas
-	started = false; // true iff initialText was found in romanNumeralsAdditive
+	started = false; // true iff initialText was found in entireText
 	finished = true; // iff finished all the stages of this animation
 	constructor(m)
 	{
@@ -1953,7 +2095,7 @@ class AnimateNumeralSubstitutionToFew
 		this.finished = true;
 		if (sText == null || this.morph.initialText == null ||
 			typeof(sText) !== 'string' || typeof(this.morph.initialText) !== 'string')
-			return; // nothing to substitute, so nothing to do here
+			return; // invalid parameters, so nothing to do here
 		this.entireText = sText;
 		this.nCsame = this.entireText.length - this.morph.initialText.length; // how many numerals in sameText
 		if (this.nCsame < 0)
@@ -2038,8 +2180,10 @@ class AnimateNumeralInsertion
 	{
 		this.started = false;
 		this.finished = true;
-		if (this.morph.finalText == null)
-			return; // this.morph not properly initialized
+		if (sText == null || this.morph.finalText == null ||
+			typeof(sText) !== 'string' || typeof(this.morph.finalText) !== 'string' ||
+			this.morph.finalText.length < 1)
+			return; // invalid parameters, so nothing to do here
 		this.entireText = sText;
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
