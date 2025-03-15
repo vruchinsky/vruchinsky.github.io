@@ -1564,11 +1564,11 @@ class MetamorphoseVVtoX
 		this.halfWidthNumeral = 0.5 * (metrics.width);
 		this.scale = this.scaleI;
 		this.angle = this.angleI;
-		this.vx1 = 2*AnimationSpeedMetamorphosis*(this.xf - this.x1); // move left V to its destination faster in order to help avoid drawing small parts of extremities of the left V on the part of the canvas which must remain unchanged during this metamorphosis
+		this.vx1 = 2*AnimationSpeedMetamorphosis*(this.xf - this.x1); // speed up the movement of the left V to its destination in order to help avoid drawing small parts of extremities of the left V outside the part of the canvas which initially displays initialText
 		this.vx2 = AnimationSpeedMetamorphosis*(this.xf - this.x2);
 		this.vy1 = AnimationSpeedMetamorphosis*(this.y1f - this.y1);
 		this.vy2 = AnimationSpeedMetamorphosis*(this.y2f - this.y2);
-		this.vScale = 2*AnimationSpeedMetamorphosis*(this.scaleF - this.scaleI); // scale both Vs down faster in order to help avoid putting small parts of their extremities outside the part of the canvas initially displaying initialText
+		this.vScale = 2*AnimationSpeedMetamorphosis*(this.scaleF - this.scaleI); // speed up the scaling down of both Vs in order to help avoid putting small parts of the extremities of the left V outside the part of the canvas which initially displays initialText
 		this.vAngle = AnimationSpeedMetamorphosis*(this.angleF - this.angleI);
 		this.t = Date.now();
 	}
@@ -1666,6 +1666,10 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 	vxs = 0; // (px/msec) how fast to move x4 towards xSf
 	vy1 = 0; // (px/msec) how fast to move y1 towards yf
 	vy2 = 0; // (px/msec) how fast to move y2 towards yf
+// factors to adjust vx1 and vScale to help avoid drawing small parts of extremities of the left V on the part of the canvas which must remain unchanged during this metamorphosis
+	v1AdjSlow = 0.5; // slow-down factor for vx1 and vScale (during the first half of this metamorphosis)
+	v1AdjFast = 0.0; // speed-up factor for rate of change of aOut (during the second half of this metamorphosis)
+	x1m = 0; // midpoint, between x1 initial and x1f, where to start using v1AdjFast instead of v1AdjSlow
 	t = 0; // (msec) time of last update
 	started = false; // true iff initialText was found in entireText
 	finished = true; // iff finished the metamorphosis of intialText into finalText
@@ -1716,6 +1720,8 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		this.xs = this.x1 - metrics.width;
 		this.scale = this.scaleI;
 		this.angle = this.angleI;
+		this.x1m = 0.5 * (this.x1f + this.x1);
+		this.v1AdjFast = 2 - this.v1AdjSlow; // assumes that x1m=(x1f+x1)/2
 		this.vxs = AnimationSpeedMetamorphosis*(this.xSf - this.xs);
 		this.vx1 = AnimationSpeedMetamorphosis*(this.x1f - this.x1); // move left V to its destination faster in order to help avoid drawing small parts of extremities of the left V on the part of the canvas which must remain unchanged during this metamorphosis
 		this.vx2 = AnimationSpeedMetamorphosis*(this.x2f - this.x2);
@@ -1743,10 +1749,11 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		if (this.finished) return;
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
+		const vAdj = fpLess(this.x1, this.x1m, fpTolerance) ? this.v1AdjSlow : this.v1AdjFast;
 		let u = this.xs + (this.vxs)*dt;
 		this.xs = fpLessEq(this.xSf, u, fpTolerance) ? u : this.xSf; // prevent xs from surpassing xSf
 		let xLim = fpMax(this.xs, this.x1f, fpTolerance);
-		u = this.x1 + (this.vx1)*dt;
+		u = this.x1 + vAdj * (this.vx1) * dt;
 		this.x1 = fpLessEq(xLim, u, fpTolerance) ? u : xLim; // prevent x1 from surpassing max(xs,x1f)
 		u = this.x2 + (this.vx2)*dt;
 		this.x2 = fpLessEq(u, this.x2f, fpTolerance) ? u : this.x2f; // prevent x2 from surpassing x2f
@@ -1754,7 +1761,7 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		//this.y1 = fpLessEq(this.yf, u, fpTolerance) ? u : this.yf; // prevent y1 from surpassing yf
  		u = this.y2 + (this.vy2)*dt;
 		this.y2 = fpLessEq(u, this.yf, fpTolerance) ? u : this.yf; // prevent y2 from surpassing yf
-		u = this.scale + (this.vScale)*dt;
+		u = this.scale + vAdj * (this.vScale) * dt;
 		this.scale = fpLessEq(u, this.scaleF, fpTolerance) ? u : this.scaleF; // prevent scale from surpassing scaleF
 		u = this.angle + (this.vAngle)*dt;
 		this.angle = fpLessEq(this.angleF, u, fpTolerance) ? u : this.angleF; // prevent angle from surpassing angleF
@@ -1810,9 +1817,6 @@ class Fade // used to fade text in, to fade text out...
 	aOutI = 1.0; // constant (initial alpha of initialText)
 	aOutF = 0.0; // constant (final alpha of initialText)
 	vaOut = 0; // how fast to change aOut to aOutF (calculated from aOutF, aOutI and AnimationSpeedMetamorphosis)
-	aOutM = 0.0; // for adjusting rate of change of aOut in this.proceed()
-	vaOutAdjFast = 2.0; // speed-up factor for rate of change of aOut (during the first half of this metamorphosis)
-	vaOutAdjSlow = 0.0; // slow-down factor for rate of change of aOut (during the second half of this metamorphosis)
 	aOut = 0; // current alpha value for initialText (starts = aOutI and decreases to aOutF)
 	aInI = 0.0; // constant (initial alpha of finalText)
 	aInF = 1.0; // constant (final (at their convergence) angle of the left V)
@@ -1862,8 +1866,6 @@ class Fade // used to fade text in, to fade text out...
 			this.vPos = metrics.actualBoundingBoxAscent;
 			this.xf = cvw - metrics.width;
 		}
-		this.aOutM = 0.5 * (this.aOutI + this.aOutF);
-		this.vaOutAdjSlow = this.vaOutAdjFast / (2 * (this.vaOutAdjFast) - 1.0); // assumes that this.aOutM=0.5*(this.aOutI+this.aOutF)
 		this.aOut = this.aOutI;
 		this.aIn = this.aInI;
 		this.vaOut = AnimationSpeedMetamorphosis*(this.aOutF - this.aOutI);
@@ -1897,8 +1899,7 @@ class Fade // used to fade text in, to fade text out...
 		let u;
 		if (this.initialText !== null)
 		{
-			const vaOutAdj = fpLess(this.aOutM, this.aOut, fpTolerance) ? this.vaOutAdjFast : this.vaOutAdjSlow;
-			u = this.aOut + vaOutAdj * (this.vaOut) * dt;
+			u = this.aOut + (this.vaOut) * dt;
 			this.aOut = fpLessEq(this.aOutF, u, fpTolerance) ? u : this.aOutF; // prevent aOut from surpassing aOutF
 		}
 		if (this.finalText !== null)
@@ -1943,15 +1944,12 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	entireText = null; // sameText followed by initialText
 	xs = 0; // current horizontal position of sameText
 	xSf = 0; // final horizontal position of sameText
-	wInitialText = null; // # of px for initialText
+	wInitialText = 0; // # of px for initialText
 	x = null;  // current horizontal position of each character of finalText
 	xf = null; // final horizontal position of each character of finalText
 	aOutI = 0; // constant (initial alpha of initialText)
 	aOutF = 0; // constant (final alpha of initialText)
 	vaOut = 0; // how fast to change aOut to aOutF (calculated from aOutF, aOutI and AnimationSpeedMetamorphosis)
-	aOutM = 0; // for adjusting rate of change of aOut in this.proceed()
-	vaOutAdjFast = 0; // speed-up factor for rate of change of aOut (during the first half of this metamorphosis)
-	vaOutAdjSlow = 0; // slow-down factor for rate of change of aOut (during the second half of this metamorphosis)
 	aOut = 0; // current alpha value for initialText (starts = aOutI and decreases to aOutF)
 	aInI = 0; // constant (initial alpha of finalText)
 	aInF = 0; // constant (final (at their convergence) angle of the left V)
@@ -1971,7 +1969,6 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		this.aOutF = m.aOutF;
 		this.aInI = m.aInI;
 		this.aInF = m.aInF;
-		this.vaOutAdjFast = m.vaOutAdjFast;
 	}
 	reset(sText)
 	{
@@ -2014,8 +2011,6 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		metrics = ctx.measureText(this.sameText);
 		this.xSf = this.xf[0] - metrics.width;
 		this.xs = this.x[0] - metrics.width;
-		this.aOutM = 0.5 * (this.aOutI + this.aOutF);
-		this.vaOutAdjSlow = this.vaOutAdjFast / (2 * (this.vaOutAdjFast) - 1.0); // assumes that this.aOutM=0.5*(this.aOutI+this.aOutF)
 		this.aOut = this.aOutI;
 		this.aIn = this.aInI;
 		this.vaOut = AnimationSpeedMetamorphosis*(this.aOutF - this.aOutI);
@@ -2060,8 +2055,7 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		this.x[iLast] = fpLessEq(u, xLim, fpTolerance) ? u : xLim; // prevent x0 from surpassing max(xs,x0f)
 		if (this.initialText !== null)
 		{
-			const vaOutAdj = fpLess(this.aOutM, this.aOut, fpTolerance) ? this.vaOutAdjFast : this.vaOutAdjSlow;
-			u = this.aOut + vaOutAdj * (this.vaOut) * dt;
+			u = this.aOut + (this.vaOut) * dt;
 			this.aOut = fpLessEq(this.aOutF, u, fpTolerance) ? u : this.aOutF; // prevent aOut from surpassing aOutF
 		}
 		if (this.finalText !== null)
