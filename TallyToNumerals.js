@@ -1848,13 +1848,15 @@ class Fade // used to fade text in, to fade text out...
 		{
 			metrics = ctx.measureText(this.initialText);
 			this.vPos = metrics.actualBoundingBoxAscent;
-			this.xi = cvw - metrics.width;
+			const wInitialText = metrics.width;
+			this.xi = cvw - wInitialText;
 			if (this.finalText !== null)
 			{
-				const wChar = Math.floor(metrics.width / this.initialText.length);
-				this.xf = cvw - 0.5 * (metrics.width + wChar * (this.finalText.length));
+				metrics = ctx.measureText(this.finalText);
+				const wFinalText = metrics.width;
+				this.xf = cvw - 0.5 * (wInitialText + wFinalText);
 			} else
-				this.xf = romanNumeralsAdditiveCanvas.width;
+				this.xf = cvw;
 		} else if (this.finalText !== null) {
 			metrics = ctx.measureText(this.finalText);
 			this.vPos = metrics.actualBoundingBoxAscent;
@@ -1941,6 +1943,7 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	entireText = null; // sameText followed by initialText
 	xs = 0; // current horizontal position of sameText
 	xSf = 0; // final horizontal position of sameText
+	wInitialText = null; // # of px for initialText
 	x = null;  // current horizontal position of each character of finalText
 	xf = null; // final horizontal position of each character of finalText
 	aOutI = 0; // constant (initial alpha of initialText)
@@ -2005,7 +2008,8 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 			this.xf[i] = cvw - metrics.width;
 		}
 		metrics = ctx.measureText(this.initialText);
-		this.x.fill(cvw - metrics.width); // the characters of finalText diverge from the same position
+		this.wInitialText = metrics.width;
+		this.x.fill(cvw - this.wInitialText); // the characters of finalText diverge from the same initial position
 		this.vPos = metrics.actualBoundingBoxAscent;
 		metrics = ctx.measureText(this.sameText);
 		this.xSf = this.xf[0] - metrics.width;
@@ -2078,9 +2082,8 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		ctx.clearRect(this.xs, -0.5, cw, romanNumeralsAdditiveCanvas.height);
 		ctx.fillText(this.sameText, this.xs, this.vPos);
 		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
-		const tw = cvw - this.x[0];
-		const wChar = Math.floor(tw / this.x.length);
-		const xi = cvw - 0.5*(tw + wChar * (this.initialText.length)); // draw initialText in the middle of space cleared for finalText
+		const wCleared = cvw - this.x[0]; // draw initialText in the middle of the space
+		const xi = cvw - 0.5 * (wCleared + this.wInitialText); // cleared for finalText
 		const oldFillStyle = ctx.fillStyle;
 		const canvasStyle = getComputedStyle(romanNumeralsAdditiveCanvas);
 		const foregroundColor = canvasStyle.color;
