@@ -1366,7 +1366,7 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 	vx2 = 0; // (px/msec) how fast to move x2 towards x2f
 	vx3 = 0; // (px/msec) how fast to move x3 towards x3f
 	vx4 = 0; // (px/msec) how fast to move x4 towards x4f
-	vxs = 0; // (px/msec) how fast to move x4 towards xSf
+	vxs = 0; // (px/msec) how fast to move xs towards xSf
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	started = false; // true iff initialText was found in entireText
@@ -1852,14 +1852,13 @@ class Fade // used to fade text in, to fade text out...
 			if (this.finalText !== null)
 			{
 				const wChar = Math.floor(metrics.width / this.initialText.length);
-				this.xf = cvw - 0.5 * (metrics.width + wChar);
+				this.xf = cvw - 0.5 * (metrics.width + wChar * (this.finalText.length));
 			} else
 				this.xf = romanNumeralsAdditiveCanvas.width;
 		} else if (this.finalText !== null) {
 			metrics = ctx.measureText(this.finalText);
 			this.vPos = metrics.actualBoundingBoxAscent;
-			const wChar = Math.floor(metrics.width / this.finalText.length);
-			this.xf = cvw - 0.5 * (metrics.width + wChar);
+			this.xf = cvw - metrics.width;
 		}
 		this.aOutM = 0.5 * (this.aOutI + this.aOutF);
 		this.vaOutAdjSlow = this.vaOutAdjFast / (2 * (this.vaOutAdjFast) - 1.0); // assumes that this.aOutM=0.5*(this.aOutI+this.aOutF)
@@ -1942,9 +1941,8 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	entireText = null; // sameText followed by initialText
 	xs = 0; // current horizontal position of sameText
 	xSf = 0; // final horizontal position of sameText
-	xi = 0; // horizontal position of the leftmost end of initialText
-	x = [];  // current horizontal position of each character of finalText
-	xf = []; // final horizontal position of each character of finalText
+	x = null;  // current horizontal position of each character of finalText
+	xf = null; // final horizontal position of each character of finalText
 	aOutI = 0; // constant (initial alpha of initialText)
 	aOutF = 0; // constant (final alpha of initialText)
 	vaOut = 0; // how fast to change aOut to aOutF (calculated from aOutF, aOutI and AnimationSpeedMetamorphosis)
@@ -1956,11 +1954,12 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	aInF = 0; // constant (final (at their convergence) angle of the left V)
 	vaIn = 0; // how fast to change aIn to aInF (calculated from aInF, aInI and AnimationSpeedMetamorphosis)
 	aIn = 0; // current alpha value for finalText (starts = aInI and increases to aInF)
+	vx = null; // (px/msec) how fast to move x[i] towards xf[i]
+	vxs = 0; // (px/msec) how fast to move xs towards xSf
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	started = false; // true iff initialText was found in entireText
 	finished = true; // iff finished the metamorphosis of intialText into finalText
-	justFinished = false; // used to implement this.recent()
 	constructor(m)
 	{
 		this.initialText = m.finalText;
@@ -1993,36 +1992,45 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		this.finished = false;
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
 		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
-		let metrics = ctx.measureText(this.initialText);
+		if (this.x === null)
+			this.x = new Array(this.finalText.length);
+		if (this.xf === null)
+			this.xf = new Array(this.x.length);
+		if (this.vx === null)
+			this.vx = new Array(this.x.length);
+		let metrics = null;
+		for (let i=0; i<this.x.length; i++)
+		{
+			metrics = ctx.measureText(this.finalText.substring(i));
+			this.xf[i] = cvw - metrics.width;
+		}
+		metrics = ctx.measureText(this.initialText);
+		this.x.fill(cvw - metrics.width); // the characters of finalText diverge from the same position
 		this.vPos = metrics.actualBoundingBoxAscent;
-		this.xi = cvw - metrics.width;
-		metrics = ctx.measureText(this.finalText);
-		const wChar = Math.floor(metrics.width / this.finalText.length);
-		this.xf = cvw - 0.5 * (metrics.width + wChar);
+		metrics = ctx.measureText(this.sameText);
+		this.xSf = this.xf[0] - metrics.width;
+		this.xs = this.x[0] - metrics.width;
 		this.aOutM = 0.5 * (this.aOutI + this.aOutF);
 		this.vaOutAdjSlow = this.vaOutAdjFast / (2 * (this.vaOutAdjFast) - 1.0); // assumes that this.aOutM=0.5*(this.aOutI+this.aOutF)
 		this.aOut = this.aOutI;
 		this.aIn = this.aInI;
 		this.vaOut = AnimationSpeedMetamorphosis*(this.aOutF - this.aOutI);
 		this.vaIn = AnimationSpeedMetamorphosis*(this.aInF - this.aInI);
-		this.xClear = fpLess(this.xi, this.xf, fpTolerance) ? this.xi : this.xf;
-		this.wClear = cvw - this.xClear;
+		this.vxs = AnimationSpeedMetamorphosis*(this.xSf - this.xs);
+		for (let i=0; i<this.x.length; i++)
+			this.vx[i] = AnimationSpeedMetamorphosis*(this.xf[i] - this.x[i]);
 		this.t = Date.now();
 	}
 	done()
 	{
 		if (this.finished) return true;
-		this.finished = (((this.initialText===null) || fpEqual(this.aOut, this.aOutF, fpTolerance)) &&
-						((this.finalText===null) || fpEqual(this.aIn, this.aInF, fpTolerance)));
-		if (this.finished)
-			this.justFinished = true;
+		this.finished = (fpEqual(this.aOut, this.aOutF, fpTolerance) &&
+						fpEqual(this.aIn, this.aInF, fpTolerance) &&
+						fpEqual(this.xs, this.xSf, fpTolerance));
+		for (let i=0; i<this.x.length; i++)
+			if (fpEqual(this.x[i], this.xf[i], fpTolerance)==false)
+				this.finished = false;
 		return this.finished;
-	}
-	recent() // returns true iff the most recent call to this.done() has returned true but...
-	{ //...the call to this.done immediately prior to the most recent call to this.done()...
-		if (this.justFinished==false) return false; //...has returned false
-		this.justFinished = false;
-		return true;
 	}
 	proceed()
 	{
@@ -2031,7 +2039,21 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 			return;
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
-		let u;
+		let u = this.xs + (this.vxs)*dt;
+		this.xs = fpLessEq(this.xSf, u, fpTolerance) ? u : this.xSf; // prevent xs from surpassing xSf
+		let xLim;
+		let xPrior;
+		const iLast = this.x.length - 1;
+		for (let i=0; i<iLast; i++)
+		{
+			xPrior = (i < 1) ? this.xs : this.x[i-1]; // use xs instead of x[i-1] if i==0
+			xLim = fpMax(xPrior, this.xf[i], fpTolerance);
+			u = this.x[i] + (this.vx[i])*dt;
+			this.x[i] = fpLessEq(xLim, u, fpTolerance) ? u : xLim; // prevent x[i] from surpassing max(x[i-1],xf[i])
+		}
+		u = this.x[iLast] + (this.vx[iLast])*dt;
+		xLim = this.xf[iLast];
+		this.x[iLast] = fpLessEq(u, xLim, fpTolerance) ? u : xLim; // prevent x0 from surpassing max(xs,x0f)
 		if (this.initialText !== null)
 		{
 			const vaOutAdj = fpLess(this.aOutM, this.aOut, fpTolerance) ? this.vaOutAdjFast : this.vaOutAdjSlow;
@@ -2052,22 +2074,39 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		if (romanNumeralsAdditiveCanvas.getContext == null)
 			return; // browser does not support canvas
 		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		ctx.clearRect(this.xClear, -0.5, this.wClear, romanNumeralsAdditiveCanvas.height);
+		const cw = romanNumeralsAdditiveCanvas.width - this.xs;
+		ctx.clearRect(this.xs, -0.5, cw, romanNumeralsAdditiveCanvas.height);
+		ctx.fillText(this.sameText, this.xs, this.vPos);
+		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
+		const tw = cvw - this.x[0];
+		const wChar = Math.floor(tw / this.x.length);
+		const xi = cvw - 0.5*(tw + wChar * (this.initialText.length)); // draw initialText in the middle of space cleared for finalText
 		const oldFillStyle = ctx.fillStyle;
 		const canvasStyle = getComputedStyle(romanNumeralsAdditiveCanvas);
 		const foregroundColor = canvasStyle.color;
 		const fgc = extractRGBValues(foregroundColor);
-		if (this.initialText !== null)
-		{
-			ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
-			ctx.fillText(this.initialText, this.xInitialText(), this.vPos);
-		}
-		if (this.finalText !== null)
-		{
-			ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
-			ctx.fillText(this.finalText, this.xFinalText(), this.vPos);
-		}
+		ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
+		ctx.fillText(this.initialText, xi, this.vPos);
+		ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
+		for (let i=0; i<this.x.length; i++)
+			ctx.fillText(this.finalText[i], this.x[i], this.vPos);
 		ctx.fillStyle = oldFillStyle; // restore original value
+	}
+	more()
+	{
+		if (this.started == false || this.finished == true)
+			return false;
+		if (this.done() == false)
+		{
+			this.proceed();
+			this.draw();
+		}
+		if (this.finished)
+		{
+			let s = replaceLastChars(this.entireText, this.initialText, this.finalText);
+			setRomanNumeralsAdditive((s == null) ? this.entireText : s);
+		}
+		return !this.finished;
 	}
 }
 
@@ -2282,6 +2321,10 @@ let mOutI = new Fade("I", null);
 let aOutI = new AnimateNumeralSubstitutionToFew(mOutI);
 let aVtoIIIII = new MetamorphoseVtoIIIII(mIIIIItoV);
 let aXtoVV = new MetamorphoseXtoVV(mVVtoX);
+let aLtoXXXXX = new AnimateNumeralSubstitutionToMany(mXXXXXtoL);
+let aCtoLL = new AnimateNumeralSubstitutionToMany(mLLtoC);
+let aDtoCCCCC = new AnimateNumeralSubstitutionToMany(mCCCCCtoD);
+let aMtoDD = new AnimateNumeralSubstitutionToMany(mDDtoM);
 let decrementNumberHandlerState = 0;
 
 async function decrementNumber()
@@ -2295,11 +2338,26 @@ if (decrementNumberHandlerState == 0)
 	eraseDrawings();
 	await pause(minimumPauseTime);
 	inputNumber--;
-	let s = replaceLastChars(romanNumeralsAdditive, "M", "DD");
-	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);}
-	s = replaceLastChars(romanNumeralsAdditive, "D", "CCCCC");
-	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);}
-	s = replaceLastChars(romanNumeralsAdditive, "C", "\u228f"); // \u228f = square subset symbol
+	aMtoDD.reset(romanNumeralsAdditive);
+	decrementNumberHandlerState++;
+} else if (decrementNumberHandlerState == 1) {
+/* 	let s = replaceLastChars(romanNumeralsAdditive, "M", "DD");
+	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);} */
+	if (aMtoDD.more()==false)
+	{
+		aDtoCCCCC.reset(romanNumeralsAdditive);
+		decrementNumberHandlerState++;
+	}
+} else if (decrementNumberHandlerState == 2) {
+/* 	s = replaceLastChars(romanNumeralsAdditive, "D", "CCCCC");
+	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);} */
+	if (aDtoCCCCC.more()==false)
+	{
+		aCtoLL.reset(romanNumeralsAdditive);
+		decrementNumberHandlerState++;
+	}
+} else if (decrementNumberHandlerState == 3) {
+/* 	s = replaceLastChars(romanNumeralsAdditive, "C", "\u228f"); // \u228f = square subset symbol
 	if (s != null)
 	{ // C -> LL multistep text-character-based animation
 		setRomanNumeralsAdditive(s);
@@ -2310,13 +2368,21 @@ if (decrementNumberHandlerState == 0)
 		s = replaceLastChars(romanNumeralsAdditive, "\u0393L", "LL");
 		setRomanNumeralsAdditive(s);
 		await pause(intermediateReplacementPauseTime);
+	} */
+	if (aCtoLL.more()==false)
+	{
+		aLtoXXXXX.reset(romanNumeralsAdditive);
+		decrementNumberHandlerState++;
 	}
-	s = replaceLastChars(romanNumeralsAdditive, "L", "XXXXX");
-	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);}
-
-	aXtoVV.reset(romanNumeralsAdditive);
-	decrementNumberHandlerState++;
-} else if (decrementNumberHandlerState == 1) {
+} else if (decrementNumberHandlerState == 4) {
+/* 	s = replaceLastChars(romanNumeralsAdditive, "L", "XXXXX");
+	if (s != null) {setRomanNumeralsAdditive(s); await pause(replacementPauseTime);} */
+	if (aLtoXXXXX.more()==false)
+	{
+		aXtoVV.reset(romanNumeralsAdditive);
+		decrementNumberHandlerState++;
+	}
+} else if (decrementNumberHandlerState == 5) {
 /* 	s = replaceLastChars(romanNumeralsAdditive, "X", "\u1D27\u2C7D"); // \u1D27 = small capital letter lambda
 	if (s != null)
 	{ // X -> VV multistep text-character-based animation
@@ -2334,7 +2400,7 @@ if (decrementNumberHandlerState == 0)
 		aVtoIIIII.reset(romanNumeralsAdditive);
 		decrementNumberHandlerState++;
 	}
-} else if (decrementNumberHandlerState == 2) {
+} else if (decrementNumberHandlerState == 6) {
 /* 	s = replaceLastChars(romanNumeralsAdditive, "V", "\\/");
 	if (s != null)
 	{ // V -> IIIII multistep text-character-based animation
