@@ -9,27 +9,14 @@ const romanAdditiveToSubtractiveConnectorCanvas = document.getElementById("Conne
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 const tallyCanvas = document.getElementById("tally");
+const showHideArabicNumeralsButton = document.getElementById("ShowHideArabicNumeralsButton");
 const AnimationSpeedMetamorphosisInput = document.getElementById("AnimationSpeedMetamorphosis");
 const AnimationSpeedMetamorphosisDisplay = document.getElementById("DisplayAnimationSpeedMetamorphosis");
 const AnimationSpeedClosingTheGapsInput = document.getElementById("AnimationSpeedClosingTheGaps");
 const AnimationSpeedClosingTheGapsDisplay = document.getElementById("DisplayAnimationSpeedClosingTheGaps");
 
-let AnimationSpeedMetamorphosis = parseFloat(AnimationSpeedMetamorphosisInput.value);
-AnimationSpeedMetamorphosisDisplay.textContent = AnimationSpeedMetamorphosis.toString();
-let AnimationSpeedClosingTheGaps = parseFloat(AnimationSpeedClosingTheGapsInput.value);
-AnimationSpeedClosingTheGapsDisplay.textContent = AnimationSpeedClosingTheGaps.toString();
-
-AnimationSpeedMetamorphosisInput.addEventListener('input', function() {
-    AnimationSpeedMetamorphosis = parseFloat(AnimationSpeedMetamorphosisInput.value);
-    AnimationSpeedMetamorphosisDisplay.textContent = AnimationSpeedMetamorphosis.toString();
-});
-AnimationSpeedClosingTheGapsInput.addEventListener('input', function() {
-    AnimationSpeedClosingTheGaps = parseFloat(AnimationSpeedClosingTheGapsInput.value);
-    AnimationSpeedClosingTheGapsDisplay.textContent = AnimationSpeedClosingTheGaps.toString();
-});
-
 const foregroundWeightBoxBoundary = 0.3;
-const foregroundWeightBoxBoundary2 = 0.2;
+const foregroundWeightBoxBoundary2 = 0.3;
 const foregroundWeightConnector = 0.2;
 const tallyMarkHeight = 25;
 const tallyMarkThickness = 1;
@@ -51,17 +38,62 @@ const connectingLineBeginningVerticalSectionLength = 3;
 const connectingLineEndingVerticalSectionLength = 3;
 const boxCornerRadius = 2;
 const braceArcRadius = 4; // radius of each arc of a long brace
-let box1000hPos = 0;
-let box1000width = 0;
 const buttonNormalColor = incrementButton.style.backgroundColor;
 const buttonDisabledColor = "#707070";
 const buttonPressedColor = "#A0A0A0";
 const buttonHoverColor = "#C0C0C0";
 
+let ArabicNumeralsVisible = false;
+let settingsVisible = false;
 let inputNumber = 0;
 let romanNumeralsAdditive = "";
 let romanNumeralsSubtractive = "";
 let incrementOrDecrementExecuting = false;
+let box1000hPos = 0;
+let box1000width = 0;
+
+setArabicNumeralsVisibility(ArabicNumeralsVisible);
+function ShowHideArabicNumerals()
+{
+	ArabicNumeralsVisible = !ArabicNumeralsVisible;
+	setArabicNumeralsVisibility(ArabicNumeralsVisible);
+}
+
+function setArabicNumeralsVisibility(v)
+{
+	showHideArabicNumeralsButton.textContent = v ? "hide" : "show";
+	const els = document.getElementsByClassName("ArabicNumeralsDisplay");
+	for (let i=0; i<els.length; i++)
+		els[i].style.visibility = v ? "visible" : "hidden";
+}
+
+setSettingsVisibility(settingsVisible);
+function ShowHideSettings()
+{
+	settingsVisible = !settingsVisible;
+	setSettingsVisibility(settingsVisible);
+}
+
+function setSettingsVisibility(v)
+{
+	const els = document.getElementsByClassName("settings");
+	for (let i=0; i<els.length; i++)
+		els[i].style.visibility = v ? "visible" : "hidden";;
+}
+
+let AnimationSpeedMetamorphosis = parseFloat(AnimationSpeedMetamorphosisInput.value);
+AnimationSpeedMetamorphosisDisplay.textContent = AnimationSpeedMetamorphosis.toString();
+let AnimationSpeedClosingTheGaps = parseFloat(AnimationSpeedClosingTheGapsInput.value);
+AnimationSpeedClosingTheGapsDisplay.textContent = AnimationSpeedClosingTheGaps.toString();
+
+AnimationSpeedMetamorphosisInput.addEventListener('input', function() {
+    AnimationSpeedMetamorphosis = parseFloat(AnimationSpeedMetamorphosisInput.value);
+    AnimationSpeedMetamorphosisDisplay.textContent = AnimationSpeedMetamorphosis.toString();
+});
+AnimationSpeedClosingTheGapsInput.addEventListener('input', function() {
+    AnimationSpeedClosingTheGaps = parseFloat(AnimationSpeedClosingTheGapsInput.value);
+    AnimationSpeedClosingTheGapsDisplay.textContent = AnimationSpeedClosingTheGaps.toString();
+});
 
 function initializeCanvas(cv, flipHorizontalAxis)
 {
@@ -662,11 +694,6 @@ function writeTally(n)
 		x = x + sz.w;
 	}
 }
-
-const replacementPauseTime = 1000; // milliseconds
-const intermediateReplacementPauseTime = 500; // milliseconds
-const minimumPauseTime = 250; // milliseconds
-const pause = ms => new Promise(resolve => setTimeout(resolve, ms)); // from https://dev.to/rajnishkatharotiya/pause-function-execution-for-a-certain-time-in-javascript-9lj
 
 function replaceLastChars(s, a, b) // if string s ends with string a,
 { // then replace the ending with string b and return the result,
