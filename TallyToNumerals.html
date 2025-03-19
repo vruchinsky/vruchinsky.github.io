@@ -18,76 +18,55 @@
 			--component-width: 500px;
             --component-font-size: 26px;
             --component-font-family: "Courier New";
+            --controls-font-size: 14px;
 		}
-        #labelAN, #labelRNS, #labelRNA {
+		#labelAN, #labelANarrow, #labelANinstructions,
+		#labelANinstructionsArrow, #labelRNS, #labelRNA {
 			position: absolute;
-			left: 504px;
-			width: 315px;
             height: 28px;
-            font-size: 14px;
+            font-size: var(--controls-font-size);
             color: var(--color);
 			background-color: var(--bg-color);
         }
-		#labelAN {top: -10px;}
-		#labelRNS {top: 50px;}
-		#labelRNA {top: 100px;}
-/*the following code for an on/off toggle switch is adapted from https://www.w3schools.com/howto/howto_css_switch.asp */
-.switch {
-  position: absolute;
-  top: 5px;
-  left: 620px;
-  width: 30px;
-  height: 14px;
-  visibility: hidden;
-}
-.switch input { 
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  -webkit-transition: .1s;
-  transition: .1s;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 8px;
-  width: 8px;
-  left: 3px;
-  bottom: 3px;
-  background-color: #A0A0A0;
-  -webkit-transition: .1s;
-  transition: .1s;
-}
-input:checked + .slider {
-/*  background-color: #2196F3; */
-/*  background-color: #aaa; */
-}
-input:focus + .slider {
-/*  box-shadow: 0 0 1px #2196F3;*/
-/*  box-shadow: 0 0 1px #aaa;*/
-}
-input:checked + .slider:before {
-  -webkit-transform: translateX(16px);
-  -ms-transform: translateX(16px);
-  transform: translateX(16px);
-}
-/* Rounded sliders */
-.slider.round {
-  border-radius: 34px;
-}
-.slider.round:before {
-  border-radius: 50%;
-}
-/*end of code for on/off toggle switch*/
+		#labelRNS, #labelRNA {
+			width: 315px;
+		}
+		#labelANarrow {
+			left: 504px;
+		}
+		#labelANinstructionsArrow {
+			left: 510px;
+		}
+		#labelANarrow, #labelANinstructions, #labelANinstructionsArrow {
+			visibility: visible;
+		}
+		#labelANarrow {
+			width: 5px;
+		}
+		#labelAN, #labelANinstructions {
+			left: 520px;
+		}
+		#labelAN {
+			width: 100px;
+		}
+		#labelANinstructionsArrow {
+			width: 5px;
+		}
+		#labelANinstructions {
+			top: 24px;
+		}
+		#labelANinstructionsArrow {
+			top: 18px;
+		}
+		#labelANinstructions {
+			width: 280px;
+		}
+		#labelAN, #labelANarrow {top: 6px;}
+		#labelRNS, #labelRNA {
+			left: 504px;
+		}
+		#labelRNS {top: 60px;}
+		#labelRNA {top: 110px;}
         #DisplayRomanSubtractive, #ConnectRomanAdditiveToSubtractive,
 		#DisplayRomanAdditive, #ConnectRomanToArabic, #DisplayArabic {
             width: var(--component-width);
@@ -122,14 +101,10 @@ input:checked + .slider:before {
             font-size: var(--component-font-size);
             font-family: var(--component-font-family);
 		}
-        button {
+        #incrementButton, #decrementButton, #ArabicNumeralsShowHideButton {
 			position: absolute;
-			left: 504px;
             display: block; /* Make buttons block elements */
-            width: 25px;
-            height: 25px;
             padding: 0px;
-            font-size: 21px;
             margin-bottom: 10px; /* Space between buttons */
             cursor: pointer;
             border-color: var(--color);
@@ -139,6 +114,19 @@ input:checked + .slider:before {
             border-radius: 5px;
             transition: background-color 0.3s;
         }
+		#incrementButton, #decrementButton {
+			left: 504px;
+            width: 25px;
+            height: 25px;
+            font-size: 21px;
+		}
+		#ArabicNumeralsShowHideButton {
+			top: 4px;
+			left: 615px;
+			width: 40px;
+            height: 18px;
+            font-size: var(--controls-font-size);
+		}
 		#incrementButton {top: 150px;}
 		#decrementButton {top: 180px;}
         button:hover {
@@ -159,7 +147,7 @@ input:checked + .slider:before {
 		#labelAnimationSpeedSlow, #labelAnimationSpeedFast,
 		#labelAnimationSpeedMetamorphosisValue, #labelAnimationSpeedClosingTheGapsValue {
             height: 28px;
-            font-size: 14px;
+            font-size: var(--controls-font-size);
             color: var(--color);
 			background-color: var(--bg-color);
 		}
@@ -198,26 +186,26 @@ input:checked + .slider:before {
 </head>
 <body>
 	<input type="text" id="DisplayArabic" maxlength="10"/>
-	<p id="labelAN">&#x2190;Arabic numerals, type in a number (at least 0 but less than 5000) and press [Enter] or use the buttons below</p>
-	<label class="switch" id="ArabicNumeralsOnOffSwitch">
-		<input type="checkbox" checked>
-		<span class="slider round"></span>
-	</label>	
+	<label id="labelAN">Arabic numerals</label>
+	<label id="labelANarrow">&larr;</label>
+	<label id="labelANinstructions">type in a number (at least 0 but less than 5000) and press [Enter] or use the buttons below</label>
+	<label id="labelANinstructionsArrow">&nwarr;</label>
+	<button id="ArabicNumeralsShowHideButton" onclick=ArabicNumeralsShowHide()>hide</button>
 	<canvas id="ConnectRomanToArabic"></canvas>
 	<canvas id="DisplayRomanSubtractive"></canvas>
-	<p id="labelRNS">&#x2190;Roman numerals, usual (subtractive notation)</p>
+	<label id="labelRNS">&larr;Roman numerals, usual (subtractive notation)</label>
 	<canvas id="ConnectRomanAdditiveToSubtractive"></canvas>
 	<canvas id="DisplayRomanAdditive"></canvas>
-	<p id="labelRNA">&#x2190;Roman numerals, simple (additive notation)</p>
+	<label id="labelRNA">&larr;Roman numerals, simpler (additive notation)</label>
 	<canvas id="tally"></canvas>
 	<button id="incrementButton" onclick=incrementNumber()>+</button>
 	<button id="decrementButton" onclick=decrementNumber()>-</button>
 	<label id="labelAnimationSpeed">animation speed:</label>
-	<label id="labelAnimationSpeedMetamorphosis">changing numerals:</label>
+	<label id="labelAnimationSpeedMetamorphosis">changing numerals</label>
 	<label id="labelAnimationSpeedSlow">slow</label>
 	<label id="labelAnimationSpeedFast">fast</span></label>
 	<label id="labelAnimationSpeedMetamorphosisValue" for="AnimationSpeedMetamorphosis"><span id="DisplayAnimationSpeedMetamorphosis"></span></label>
-	<label id="labelAnimationSpeedClosingTheGaps">closing the gaps:</label>
+	<label id="labelAnimationSpeedClosingTheGaps">closing the gaps</label>
 	<label id="labelAnimationSpeedClosingTheGapsValue" for="AnimationSpeedClosingTheGaps"><span id="DisplayAnimationSpeedClosingTheGaps"></span></label>
 	<input type="range" id="AnimationSpeedMetamorphosis" name="AnimationSpeedMetamorphosis" min="0.0001" max="0.002" step="0.0001" value="0.001"/>
 	<input type="range" id="AnimationSpeedClosingTheGaps" name="AnimationSpeedClosingTheGaps" min="0.0002" max="0.004" step="0.0001" value="0.004"/>
