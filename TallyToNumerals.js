@@ -9,6 +9,7 @@ const romanAdditiveToSubtractiveConnectorCanvas = document.getElementById("Conne
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 const tallyCanvas = document.getElementById("tally");
+const showHideSettingsButton = document.getElementById("ShowHideSettingsButton");
 const showHideArabicNumeralsButton = document.getElementById("ShowHideArabicNumeralsButton");
 const AnimationSpeedMetamorphosisInput = document.getElementById("AnimationSpeedMetamorphosis");
 const AnimationSpeedMetamorphosisDisplay = document.getElementById("DisplayAnimationSpeedMetamorphosis");
@@ -62,9 +63,10 @@ function ShowHideArabicNumerals()
 function setArabicNumeralsVisibility(v)
 {
 	showHideArabicNumeralsButton.textContent = v ? "hide" : "show";
+	const s = v ? "visible" : "hidden";
 	const els = document.getElementsByClassName("ArabicNumeralsDisplay");
 	for (let i=0; i<els.length; i++)
-		els[i].style.visibility = v ? "visible" : "hidden";
+		els[i].style.visibility = s;
 }
 
 setSettingsVisibility(settingsVisible);
@@ -76,9 +78,11 @@ function ShowHideSettings()
 
 function setSettingsVisibility(v)
 {
+	const s = v ? "visible" : "hidden";
 	const els = document.getElementsByClassName("settings");
 	for (let i=0; i<els.length; i++)
-		els[i].style.visibility = v ? "visible" : "hidden";;
+		els[i].style.visibility = s;
+	showHideSettingsButton.setAttribute("title", v ? "hide settings" : "show settings");
 }
 
 let AnimationSpeedMetamorphosis = parseFloat(AnimationSpeedMetamorphosisInput.value);

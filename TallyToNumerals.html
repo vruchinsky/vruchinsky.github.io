@@ -37,9 +37,6 @@
 		#labelANinstructionsArrow {
 			left: 510px;
 		}
-		#labelANarrow, #labelANinstructions, #labelANinstructionsArrow {
-			visibility: visible;
-		}
 		#labelANarrow {
 			width: 5px;
 		}
@@ -140,7 +137,6 @@
 			#labelAnimationSpeedMetamorphosisValue,
 			#labelAnimationSpeedClosingTheGapsValue {
 			position: absolute;
-			visibility: visible; /* set to hidden to make invisible, otherwise set to visible */
 		}
 		#labelAnimationSpeed, #labelAnimationSpeedMetamorphosis, #labelAnimationSpeedClosingTheGaps,
 			#labelAnimationSpeedSlow, #labelAnimationSpeedFast,
@@ -182,10 +178,18 @@
 		#labelAnimationSpeedMetamorphosisValue, #labelAnimationSpeedClosingTheGapsValue {
 			left: 315px;
 			width: 60px;
-			visibility: hidden; /* set to visible for testing and troubleshooting */
 		}
 		#AnimationSpeedMetamorphosis {top: 493px;}
 		#AnimationSpeedClosingTheGaps {top: 513px;}
+		.ArabicNumeralsDisplay {
+			visibility: hidden;
+		}
+		.settings {
+			visibility: hidden;
+		}
+		.diagnostics {
+			visibility: hidden; /* set to visible for testing and troubleshooting */
+		}
 	</style>
 	<script src="./TallyToNumerals.js" defer></script>
 </head>
@@ -210,9 +214,9 @@
 	<label id="labelAnimationSpeedMetamorphosis" class="settings">changing numerals</label>
 	<label id="labelAnimationSpeedSlow" class="settings">slow</label>
 	<label id="labelAnimationSpeedFast" class="settings">fast</span></label>
-	<label id="labelAnimationSpeedMetamorphosisValue"  class="diagnostics" for="AnimationSpeedMetamorphosis"><span id="DisplayAnimationSpeedMetamorphosis"></span></label>
+	<label id="labelAnimationSpeedMetamorphosisValue"  class="diagnostics" for="AnimationSpeedMetamorphosis"><span id="DisplayAnimationSpeedMetamorphosis" class="diagnostics"></span></label>
 	<label id="labelAnimationSpeedClosingTheGaps" class="settings">closing the gaps</label>
-	<label id="labelAnimationSpeedClosingTheGapsValue"  class="diagnostics" for="AnimationSpeedClosingTheGaps"><span id="DisplayAnimationSpeedClosingTheGaps"></span></label>
+	<label id="labelAnimationSpeedClosingTheGapsValue" class="diagnostics" for="AnimationSpeedClosingTheGaps"><span id="DisplayAnimationSpeedClosingTheGaps" class="diagnostics"></span></label>
 	<input type="range" id="AnimationSpeedMetamorphosis" class="settings" name="AnimationSpeedMetamorphosis" min="0.0001" max="0.002" step="0.0001" value="0.001"/>
 	<input type="range" id="AnimationSpeedClosingTheGaps" class="settings" name="AnimationSpeedClosingTheGaps" min="0.0002" max="0.004" step="0.0001" value="0.004"/>
 </body>
