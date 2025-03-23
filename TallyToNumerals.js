@@ -1412,8 +1412,12 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 	vPos = 0; // vertical position of all the text treated by this class
 	started = false; // true iff initialText was found in entireText
 	finished = true; // iff finished the metamorphosis of intialText into finalText
-	constructor(m) // m must be object of class MetamorphoseIIIIItoV
-	{
+	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
+	constructor(m, f) // m must be object of class MetamorphoseIIIIItoV
+	{ // f must be name of function: either setRomanNumeralsAdditive or setRomanNumeralsSubtractive
+		if (m === null || f === null)
+			return;
+		this.setRomanNumeralsFncn = f;
 		this.initialText = m.finalText;
 		this.finalText = m.initialText;
 		this.skewI = m.skewF;
@@ -1544,10 +1548,10 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 			this.proceed();
 			this.draw();
 		}
-		if (this.finished)
+		if (this.finished && this.setRomanNumeralsFncn !== null)
 		{
 			let s = replaceLastChars(this.entireText, this.initialText, this.finalText);
-			setRomanNumeralsAdditive((s == null) ? this.entireText : s);
+			this.setRomanNumeralsFncn((s == null) ? this.entireText : s);
 		}
 		return !this.finished;
 	}
@@ -1722,8 +1726,12 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 	t = 0; // (msec) time of last update
 	started = false; // true iff initialText was found in entireText
 	finished = true; // iff finished the metamorphosis of intialText into finalText
-	constructor(m) // m must be object of class MetamorphoseVVtoX
-	{
+	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
+	constructor(m, f) // m must be object of class MetamorphoseVVtoX
+	{ // f must be name of function: either setRomanNumeralsAdditive or setRomanNumeralsSubtractive
+		if (m === null || f === null)
+			return;
+		this.setRomanNumeralsFncn = f;
 		this.initialText = m.finalText;
 		this.finalText = m.initialText;
 		this.scaleI = m.scaleF;
@@ -1848,10 +1856,10 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 			this.proceed();
 			this.draw();
 		}
-		if (this.finished)
+		if (this.finished && this.setRomanNumeralsFncn !== null)
 		{
 			let s = replaceLastChars(this.entireText, this.initialText, this.finalText);
-			setRomanNumeralsAdditive((s == null) ? this.entireText : s);
+			this.setRomanNumeralsFncn((s == null) ? this.entireText : s);
 		}
 		return !this.finished;
 	}
@@ -2015,8 +2023,12 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	vPos = 0; // vertical position of all the text treated by this class
 	started = false; // true iff initialText was found in entireText
 	finished = true; // iff finished the metamorphosis of intialText into finalText
-	constructor(m)
+	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
+	constructor(m, f)
 	{
+		if (m === null || f === null)
+			return;
+		this.setRomanNumeralsFncn = f;
 		this.initialText = m.finalText;
 		this.finalText = m.initialText;
 		this.aOutI = m.aOutI;
@@ -2152,10 +2164,11 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 			this.proceed();
 			this.draw();
 		}
-		if (this.finished)
+		if (this.finished && this.setRomanNumeralsFncn !== null)
 		{
 			let s = replaceLastChars(this.entireText, this.initialText, this.finalText);
-			setRomanNumeralsAdditive((s == null) ? this.entireText : s);
+			this.setRomanNumeralsFncn((s == null) ? this.entireText : s);
+			//setRomanNumeralsAdditive((s == null) ? this.entireText : s);
 		}
 		return !this.finished;
 	}
@@ -2174,10 +2187,12 @@ class AnimateNumeralSubstitutionToFew
 	xfSameText = 0; // final horizontal position of sameText on canvas
 	started = false; // true iff initialText was found in entireText
 	finished = true; // iff finished all the stages of this animation
-	constructor(m)
+	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
+	constructor(m, f)
 	{
-		if (m === null)
+		if (m === null || f === null)
 			return;
+		this.setRomanNumeralsFncn = f;
 		this.morph = m;
 		this.closeTheGaps = new SlideTextHorizontally(m, this.morph.finalText);
 		this.cnv = this.morph.cnv;
@@ -2242,14 +2257,14 @@ class AnimateNumeralSubstitutionToFew
 				this.closeTheGaps.draw();
 			}
 		}
-		if (this.finished)
+		if (this.finished && this.setRomanNumeralsFncn !== null)
 		{
 			let s = null;
 			if (this.morph.finalText == null)
 				s = (this.morph.initialText==null) ? this.entireText : this.sameText;
 			else
 				s = replaceLastChars(this.entireText, this.morph.initialText, this.morph.finalText);
-			setRomanNumeralsAdditive(s);
+			this.setRomanNumeralsFncn(s);
 		}
 		return !this.finished;
 	}
@@ -2264,10 +2279,12 @@ class AnimateNumeralInsertion
 	entireText = null; // sameText followed by initialText
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = true; // iff finished all the stages of this animation
-	constructor(m)
+	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
+	constructor(m, f)
 	{
-		if (m === null)
+		if (m === null || f === null)
 			return;
+		this.setRomanNumeralsFncn = f;
 		this.morph = m;
 		this.cnv = this.morph.cnv;
 		this.ctx = this.morph.ctx;
@@ -2320,8 +2337,8 @@ class AnimateNumeralInsertion
 				this.morph.draw();
 			}
 		}
-		if (this.finished)
-			setRomanNumeralsAdditive(this.entireText + this.morph.finalText);
+		if (this.finished && this.setRomanNumeralsFncn !== null)
+			this.setRomanNumeralsFncn(this.entireText + this.morph.finalText);
 		return !this.finished;
 	}
 }
@@ -2334,13 +2351,13 @@ let mLLtoC = new Fade(romanNumeralsAdditiveCanvas, "LL", "C");
 let mCCCCCtoD = new Fade(romanNumeralsAdditiveCanvas, "CCCCC", "D");
 let mDDtoM = new Fade(romanNumeralsAdditiveCanvas, "DD", "M");
 const incrementNumberAnimations = [];
-incrementNumberAnimations.push(new AnimateNumeralInsertion(mInI));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mIIIIItoV));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mVVtoX));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mXXXXXtoL));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mLLtoC));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mCCCCCtoD));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mDDtoM));
+incrementNumberAnimations.push(new AnimateNumeralInsertion(mInI, setRomanNumeralsAdditive));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mIIIIItoV, setRomanNumeralsAdditive));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mVVtoX, setRomanNumeralsAdditive));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mXXXXXtoL, setRomanNumeralsAdditive));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mLLtoC, setRomanNumeralsAdditive));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mCCCCCtoD, setRomanNumeralsAdditive));
+incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mDDtoM, setRomanNumeralsAdditive));
 let incrementNumberHandlerState = 0;
 
 function incrementNumber()
@@ -2376,13 +2393,13 @@ function incrementNumber()
 
 let mOutI = new Fade(romanNumeralsAdditiveCanvas, "I", null);
 const decrementNumberAnimations = [];
-decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mDDtoM));
-decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mCCCCCtoD));
-decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mLLtoC));
-decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mXXXXXtoL));
-decrementNumberAnimations.push(new MetamorphoseXtoVV(mVVtoX));
-decrementNumberAnimations.push(new MetamorphoseVtoIIIII(mIIIIItoV));
-decrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mOutI));
+decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mDDtoM, setRomanNumeralsAdditive));
+decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mCCCCCtoD, setRomanNumeralsAdditive));
+decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mLLtoC,setRomanNumeralsAdditive));
+decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mXXXXXtoL, setRomanNumeralsAdditive));
+decrementNumberAnimations.push(new MetamorphoseXtoVV(mVVtoX, setRomanNumeralsAdditive));
+decrementNumberAnimations.push(new MetamorphoseVtoIIIII(mIIIIItoV, setRomanNumeralsAdditive));
+decrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mOutI, setRomanNumeralsAdditive));
 let decrementNumberHandlerState = 0;
 
 function decrementNumber()
