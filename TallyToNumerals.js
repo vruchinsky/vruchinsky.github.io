@@ -136,7 +136,7 @@ function eraseDrawings()
 	clearCanvas(tallyCanvas);
 	clearCanvas(romanToArabicConnectorCanvas);
 	clearCanvas(romanAdditiveToSubtractiveConnectorCanvas);
-	clearCanvas(romanNumeralsSubtractiveCanvas);
+//	clearCanvas(romanNumeralsSubtractiveCanvas);
 	box1000hPos = 0;
 	box1000width = 0;
 }
@@ -962,10 +962,7 @@ function connectRomanAdditiveToSubtractive() // draw connecting lines (and horiz
 function connectRomanToTally() // draw connecting lines (and horizontal braces) where needed
 {
 	if (romanNumeralsAdditiveCanvas.getContext == null)
-	{ // fallback in case browser does not support canvas
-		romanNumeralsAdditiveCanvas.textContent = s;
 		return;
-	}
 	const rn = romanNumeralsAdditive;
 	if (rn.length < 1) return;
 	let start = -1;
@@ -1100,6 +1097,8 @@ function setRomanNumeralsAdditive(s)
 
 class SlideTextHorizontally // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
 { // b/c such a metamorphosis leaves gaps in the entire numerical expression, e.g. XXIIIII -> XX  V
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
 	leftText = null; // constant
 	rightText = null; // constant
 	xr = 0; // updated horizontal position (in pixels) of this.rightText
@@ -1123,12 +1122,17 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // used to implement this.done()
 	justFinished = false; // used to implement this.recent()
-	constructor(s) {this.rightText = s;}
+	constructor(m, s)
+	{
+		this.cnv = m.cnv;
+		this.ctx = m.ctx;
+		this.rightText = s;
+	}
 	reset(lText, xLtext, xAnotherArg) // use and meaning of xAnotherArg depends whether this.rightText===null
 	{ // if this.rightText===null, then xAnotherArg is the final position of this.leftText
 		this.finished = true; // if this.rightText!==null, then xAnotherArg is the initial position of this.leftText
 		this.justFinished = false;
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
 		this.leftText = lText;
@@ -1137,14 +1141,13 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			this.xLf = xAnotherArg; // this instance is used to move only this.leftText
 		else
 			this.xr = this.xRi = xAnotherArg; // move both this.leftText and this.rightText
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
-		this.vPos = romanNumeralsAdditiveCanvas.height; // default value, in case cannot obtain valid text metrics
+		const cvw = this.cnv.width - hOffset;
+		this.vPos = this.cnv.height; // default value, in case cannot obtain valid text metrics
 		let metrics = null;
 		if (this.rightText !== null)
 		{
 			this.xRf = cvw; // default value, in case cannot obtain valid text metrics
-			metrics = ctx.measureText(this.rightText);
+			metrics = this.ctx.measureText(this.rightText);
 			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
 			{
 				this.xRf = cvw - metrics.width;
@@ -1154,7 +1157,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		this.wLeftText = 0; // default value, in case cannot obtain valid text metrics
 		if (this.rightText !== null)
 			this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
-		metrics = ctx.measureText(this.leftText);
+		metrics = this.ctx.measureText(this.leftText);
 		if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
 		{
 			this.wLeftText = metrics.width;
@@ -1232,19 +1235,20 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	}
 	draw()
 	{
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		ctx.clearRect(this.xClear, -0.5, this.wClear, romanNumeralsAdditiveCanvas.height);
+		this.ctx.clearRect(this.xClear, -0.5, this.wClear, this.cnv.height);
 		if (this.leftText !== null)
-			ctx.fillText(this.leftText, this.xl, this.vPos);
+			this.ctx.fillText(this.leftText, this.xl, this.vPos);
 		if (this.rightText !== null)
-			ctx.fillText(this.rightText, this.xr, this.vPos);
+			this.ctx.fillText(this.rightText, this.xr, this.vPos);
 	}
 }
 
 class MetamorphoseIIIIItoV
 { // the first stage of animations of metamorphosis of IIIII->V
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
 	initialText = "IIIII"; // (constant) to metamorphose into finalText
 	finalText = "V"; // constant
 	x0i = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
@@ -1267,27 +1271,32 @@ class MetamorphoseIIIIItoV
 	vPos = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
 	justFinished = false; // used to implement this.recent()
+	constructor(c)
+	{
+		this.cnv = c;
+		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
+			this.ctx = this.cnv.getContext("2d");
+	}
 	xInitialText() {return this.x0i;}
 	xFinalText() {return this.xf;}
 	reset()
 	{
 		this.finished = true;
 		this.justFinished = false;
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
-		let metrics = ctx.measureText(this.initialText);
+		const cvw = this.cnv.width - hOffset;
+		let metrics = this.ctx.measureText(this.initialText);
 		this.vPos = metrics.actualBoundingBoxAscent;
 		this.x0i = this.x0 = cvw - metrics.width;
-		metrics = ctx.measureText(this.initialText.substring(1));
+		metrics = this.ctx.measureText(this.initialText.substring(1));
 		this.x1 = cvw - metrics.width;
-		metrics = ctx.measureText(this.initialText.substring(2));
+		metrics = this.ctx.measureText(this.initialText.substring(2));
 		this.x2 = cvw - metrics.width;
-		metrics = ctx.measureText(this.initialText.substring(3));
+		metrics = this.ctx.measureText(this.initialText.substring(3));
 		this.x3 = cvw - metrics.width;
-		metrics = ctx.measureText(this.initialText.substring(4));
+		metrics = this.ctx.measureText(this.initialText.substring(4));
 		this.x4 = cvw - metrics.width;
 		this.xf = this.x2; // converge to the middle
 		this.skew = this.skewI;
@@ -1340,36 +1349,37 @@ class MetamorphoseIIIIItoV
 	}
 	draw()
 	{
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const w = romanNumeralsAdditiveCanvas.width - this.x0i;
-		ctx.clearRect(this.xInitialText(), -0.5, w, romanNumeralsAdditiveCanvas.height);
-		ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,vPos), before doing the same for the next position
-		ctx.transform(1, 0, this.skew, 1, this.x0, this.vPos); // translate the axes to (x0,vPos) and skew leftwards
-		ctx.fillText(this.initialText[0], 0, 0);
-		ctx.restore();
-		ctx.save(); // use transform()n rather than setTransform() b/c setTransform() discards useful transforms applied earlier often causing letters drawn by this method to be not perfectly aligned with each other vertically
-		ctx.transform(1, 0, -this.skew, 1, this.x1, this.vPos); // translate the axes to (x1,vPos) and skew rightwards
-		ctx.fillText(this.initialText[1], 0, 0);
-		ctx.restore();
-		ctx.save(); // set the position of drawing, together with the skew, via the call to transform() to ensure correct horizontal positioning of all the letters drawn by this method
-		ctx.transform(1, 0, -this.skew, 1, this.x2, this.vPos); // translate the axes to (x2,vPos) and skew rightwards
-		ctx.fillText(this.initialText[2], 0, 0);
-		ctx.restore();
-		ctx.save();
-		ctx.transform(1, 0, -this.skew, 1, this.x3, this.vPos); // translate the axes to (x3,vPos) and skew rightwards
-		ctx.fillText(this.initialText[3], 0, 0);
-		ctx.restore();
-		ctx.save();
-		ctx.transform(1, 0, -this.skew, 1, this.x4, this.vPos); // translate the axes to (x4,vPos) and skew rightwards
-		ctx.fillText(this.initialText[4], 0, 0);
-		ctx.restore();
+		const w = this.cnv.width - this.x0i;
+		this.ctx.clearRect(this.xInitialText(), -0.5, w, this.cnv.height);
+		this.ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,vPos), before doing the same for the next position
+		this.ctx.transform(1, 0, this.skew, 1, this.x0, this.vPos); // translate the axes to (x0,vPos) and skew leftwards
+		this.ctx.fillText(this.initialText[0], 0, 0);
+		this.ctx.restore();
+		this.ctx.save(); // use transform()n rather than setTransform() b/c setTransform() discards useful transforms applied earlier often causing letters drawn by this method to be not perfectly aligned with each other vertically
+		this.ctx.transform(1, 0, -this.skew, 1, this.x1, this.vPos); // translate the axes to (x1,vPos) and skew rightwards
+		this.ctx.fillText(this.initialText[1], 0, 0);
+		this.ctx.restore();
+		this.ctx.save(); // set the position of drawing, together with the skew, via the call to transform() to ensure correct horizontal positioning of all the letters drawn by this method
+		this.ctx.transform(1, 0, -this.skew, 1, this.x2, this.vPos); // translate the axes to (x2,vPos) and skew rightwards
+		this.ctx.fillText(this.initialText[2], 0, 0);
+		this.ctx.restore();
+		this.ctx.save();
+		this.ctx.transform(1, 0, -this.skew, 1, this.x3, this.vPos); // translate the axes to (x3,vPos) and skew rightwards
+		this.ctx.fillText(this.initialText[3], 0, 0);
+		this.ctx.restore();
+		this.ctx.save();
+		this.ctx.transform(1, 0, -this.skew, 1, this.x4, this.vPos); // translate the axes to (x4,vPos) and skew rightwards
+		this.ctx.fillText(this.initialText[4], 0, 0);
+		this.ctx.restore();
 	}
 }
 
 class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 {// including simultaneous moving of the context to make space for IIIII
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
 	initialText = null; // to metamorphose into finalText
 	finalText = null; // obtain both initialText and finalText from an object of class MetamorphoseIIIIItoV
 	sameText = null; // the context of initialText and finalText, to be moved to the left to make space as the Is diverge
@@ -1408,6 +1418,8 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 		this.finalText = m.initialText;
 		this.skewI = m.skewF;
 		this.skewF = m.skewI;
+		this.cnv = m.cnv;
+		this.ctx = m.ctx;
 	}
 	reset(sText)
 	{
@@ -1423,26 +1435,25 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 		if ((this.nCsame < 0) || (this.entireText.substring(this.nCsame) !== this.initialText))
 			return; // nothing to substitute, so nothing to do here
 		this.sameText = this.entireText.substring(0, this.nCsame);
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.started = true;
 		this.finished = false;
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
-		let metrics = ctx.measureText(this.finalText);
+		const cvw = this.cnv.width - hOffset;
+		let metrics = this.ctx.measureText(this.finalText);
 		this.vPos = metrics.actualBoundingBoxAscent;
 		this.x0f = cvw - metrics.width;
-		metrics = ctx.measureText(this.finalText.substring(1));
+		metrics = this.ctx.measureText(this.finalText.substring(1));
 		this.x1f = cvw - metrics.width;
-		metrics = ctx.measureText(this.finalText.substring(2));
+		metrics = this.ctx.measureText(this.finalText.substring(2));
 		this.x2f = cvw - metrics.width;
-		metrics = ctx.measureText(this.finalText.substring(3));
+		metrics = this.ctx.measureText(this.finalText.substring(3));
 		this.x3f = cvw - metrics.width;
-		metrics = ctx.measureText(this.finalText.substring(4));
+		metrics = this.ctx.measureText(this.finalText.substring(4));
 		this.x4f = cvw - metrics.width;
-		metrics = ctx.measureText(this.initialText);
+		metrics = this.ctx.measureText(this.initialText);
 		this.x0 = this.x1 = this.x2 = this.x3 = this.x4 = cvw - metrics.width;
-		metrics = ctx.measureText(this.sameText);
+		metrics = this.ctx.measureText(this.sameText);
 		this.xSf = this.x0f - metrics.width;
 		this.xs = this.x0 - metrics.width;
 		this.skew = this.skewI;
@@ -1498,32 +1509,31 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 	}
 	draw()
 	{
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cvw = romanNumeralsAdditiveCanvas.width - this.xs;
-		ctx.clearRect(this.xs, -0.5, cvw, romanNumeralsAdditiveCanvas.height);
-		ctx.fillText(this.sameText, this.xs, this.vPos);
-		ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,vPos), before doing the same for the next position
-		ctx.transform(1, 0, this.skew, 1, this.x0, this.vPos); // translate the axes to (x0,vPos) and skew leftwards
-		ctx.fillText(this.finalText[0], 0, 0);
-		ctx.restore();
-		ctx.save(); // use transform()n rather than setTransform() b/c setTransform() discards useful transforms applied earlier often causing letters drawn by this method to be not perfectly aligned with each other vertically
-		ctx.transform(1, 0, -this.skew, 1, this.x1, this.vPos); // translate the axes to (x1,vPos) and skew rightwards
-		ctx.fillText(this.finalText[1], 0, 0);
-		ctx.restore();
-		ctx.save(); // set the position of drawing, together with the skew, via the call to transform() to ensure correct horizontal positioning of all the letters drawn by this method
-		ctx.transform(1, 0, -this.skew, 1, this.x2, this.vPos); // translate the axes to (x2,vPos) and skew rightwards
-		ctx.fillText(this.finalText[2], 0, 0);
-		ctx.restore();
-		ctx.save();
-		ctx.transform(1, 0, -this.skew, 1, this.x3, this.vPos); // translate the axes to (x3,vPos) and skew rightwards
-		ctx.fillText(this.finalText[3], 0, 0);
-		ctx.restore();
-		ctx.save();
-		ctx.transform(1, 0, -this.skew, 1, this.x4, this.vPos); // translate the axes to (x4,vPos) and skew rightwards
-		ctx.fillText(this.finalText[4], 0, 0);
-		ctx.restore();
+		const cvw = this.cnv.width - this.xs;
+		this.ctx.clearRect(this.xs, -0.5, cvw, this.cnv.height);
+		this.ctx.fillText(this.sameText, this.xs, this.vPos);
+		this.ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,vPos), before doing the same for the next position
+		this.ctx.transform(1, 0, this.skew, 1, this.x0, this.vPos); // translate the axes to (x0,vPos) and skew leftwards
+		this.ctx.fillText(this.finalText[0], 0, 0);
+		this.ctx.restore();
+		this.ctx.save(); // use transform()n rather than setTransform() b/c setTransform() discards useful transforms applied earlier often causing letters drawn by this method to be not perfectly aligned with each other vertically
+		this.ctx.transform(1, 0, -this.skew, 1, this.x1, this.vPos); // translate the axes to (x1,vPos) and skew rightwards
+		this.ctx.fillText(this.finalText[1], 0, 0);
+		this.ctx.restore();
+		this.ctx.save(); // set the position of drawing, together with the skew, via the call to transform() to ensure correct horizontal positioning of all the letters drawn by this method
+		this.ctx.transform(1, 0, -this.skew, 1, this.x2, this.vPos); // translate the axes to (x2,vPos) and skew rightwards
+		this.ctx.fillText(this.finalText[2], 0, 0);
+		this.ctx.restore();
+		this.ctx.save();
+		this.ctx.transform(1, 0, -this.skew, 1, this.x3, this.vPos); // translate the axes to (x3,vPos) and skew rightwards
+		this.ctx.fillText(this.finalText[3], 0, 0);
+		this.ctx.restore();
+		this.ctx.save();
+		this.ctx.transform(1, 0, -this.skew, 1, this.x4, this.vPos); // translate the axes to (x4,vPos) and skew rightwards
+		this.ctx.fillText(this.finalText[4], 0, 0);
+		this.ctx.restore();
 	}
 	more()
 	{
@@ -1545,6 +1555,8 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 
 class MetamorphoseVVtoX
 { // the first stage of animations of metamorphosis of VV->X
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
 	initialText = "VV"; // (constant) to metamorphose into finalText
 	finalText = "X"; // constant
 	halfWidthNumeral = 0; // half of the width, in pixels, of initialText[0] (used in transforming the coordinate system in this.draw())
@@ -1572,25 +1584,30 @@ class MetamorphoseVVtoX
 	t = 0; // (msec) time of last update
 	finished = true; // iff finished the metamorphosis of intialText into finalText
 	justFinished = false; // used to implement this.recent()
+	constructor(c)
+	{
+		this.cnv = c;
+		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
+			this.ctx = this.cnv.getContext("2d");
+	}
 	xInitialText() {return this.x1i;} // initial horizontal position of initialText
 	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
 	reset()
 	{
 		this.finished = true;
 		this.justFinished = false;
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
-		let metrics = ctx.measureText(this.initialText);
+		const cvw = this.cnv.width - hOffset;
+		let metrics = this.ctx.measureText(this.initialText);
 		this.y2 = this.y1f = this.y1 = metrics.actualBoundingBoxAscent;
 		this.y2f = 0.5 * (this.y2);
 		this.x1i = this.x1 = cvw - metrics.width;
-		metrics = ctx.measureText(this.initialText.substring(1));
+		metrics = this.ctx.measureText(this.initialText.substring(1));
 		this.x2 = cvw - metrics.width;
 		this.xf = 0.25 * (this.x1) + 0.75 * (this.x2); // put convergence point closer to right V in order to help avoid drawing small parts of extremities of the left V on the part of the canvas which must remain unchanged during this metamorphosis
-		metrics = ctx.measureText(this.initialText[0]);
+		metrics = this.ctx.measureText(this.initialText[0]);
 		this.halfHeightNumeral = 0.5 * (metrics.actualBoundingBoxAscent);
 		this.halfWidthNumeral = 0.5 * (metrics.width);
 		this.scale = this.scaleI;
@@ -1644,30 +1661,31 @@ class MetamorphoseVVtoX
 	}
 	draw()
 	{
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cvw = romanNumeralsAdditiveCanvas.width - this.xInitialText();
-		ctx.clearRect(this.xInitialText(), -0.5, cvw, romanNumeralsAdditiveCanvas.height);
-		ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
-		ctx.translate(this.x1 + this.halfWidthNumeral,
+		const cvw = this.cnv.width - this.xInitialText();
+		this.ctx.clearRect(this.xInitialText(), -0.5, cvw, this.cnv.height);
+		this.ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
+		this.ctx.translate(this.x1 + this.halfWidthNumeral,
 					this.y1 - (this.scale) * (this.halfHeightNumeral));
-		ctx.rotate(-this.angle);
-		ctx.scale(1, this.scale);
-		ctx.translate(-this.halfWidthNumeral, this.halfHeightNumeral);
-		ctx.fillText(this.initialText[0], 0, 0);
-		ctx.restore();
-		ctx.save();
-		ctx.translate(this.x2 + this.halfWidthNumeral, this.y2);
-		ctx.scale(1, this.scale);
-		ctx.translate(-this.halfWidthNumeral, 0);
-		ctx.fillText(this.initialText[1], 0, 0);
-		ctx.restore();
+		this.ctx.rotate(-this.angle);
+		this.ctx.scale(1, this.scale);
+		this.ctx.translate(-this.halfWidthNumeral, this.halfHeightNumeral);
+		this.ctx.fillText(this.initialText[0], 0, 0);
+		this.ctx.restore();
+		this.ctx.save();
+		this.ctx.translate(this.x2 + this.halfWidthNumeral, this.y2);
+		this.ctx.scale(1, this.scale);
+		this.ctx.translate(-this.halfWidthNumeral, 0);
+		this.ctx.fillText(this.initialText[1], 0, 0);
+		this.ctx.restore();
 	}
 }
 
 class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 {//including simultaneous moving of the context to make space for VV
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
 	initialText = null; // to metamorphose into finalText
 	finalText = null; // obtain both initialText and finalText from an object of class MetamorphoseVVtoX
 	sameText = null; // the context of initialText and finalText, to be moved to the left to make space as the Is diverge
@@ -1712,6 +1730,8 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		this.scaleF = m.scaleI;
 		this.angleI = m.angleF;
 		this.angleF = m.angleI;
+		this.cnv = m.cnv;
+		this.ctx = m.ctx;
 	}
 	reset(sText)
 	{
@@ -1729,24 +1749,23 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		if (this.entireText.substring(this.nCsame) !== this.initialText)
 			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
 		this.sameText = this.entireText.substring(0, this.nCsame);
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.started = true;
 		this.finished = false;
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
-		let metrics = ctx.measureText(this.finalText);
+		const cvw = this.cnv.width - hOffset;
+		let metrics = this.ctx.measureText(this.finalText);
 		this.yf = this.y1 = metrics.actualBoundingBoxAscent;
 		this.y2 = 0.5 * (this.yf);
 		this.x1f = cvw - metrics.width;
-		metrics = ctx.measureText(this.finalText[0]);
+		metrics = this.ctx.measureText(this.finalText[0]);
 		this.halfHeightNumeral = 0.5 * (metrics.actualBoundingBoxAscent);
 		this.halfWidthNumeral = 0.5 * (metrics.width);
-		metrics = ctx.measureText(this.finalText.substring(1));
+		metrics = this.ctx.measureText(this.finalText.substring(1));
 		this.x2f = cvw - metrics.width;
-		metrics = ctx.measureText(this.initialText);
+		metrics = this.ctx.measureText(this.initialText);
 		this.x1 = this.x2 = cvw - metrics.width;
-		metrics = ctx.measureText(this.sameText);
+		metrics = this.ctx.measureText(this.sameText);
 		this.xSf = this.x1f - metrics.width;
 		this.xs = this.x1 - metrics.width;
 		this.scale = this.scaleI;
@@ -1800,26 +1819,25 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 	}
 	draw()
 	{
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cvw = romanNumeralsAdditiveCanvas.width - this.xs;
-		ctx.clearRect(this.xs, -0.5, cvw, romanNumeralsAdditiveCanvas.height);
-		ctx.fillText(this.sameText, this.xs, this.yf);
-		ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
-		ctx.translate(this.x1 + this.halfWidthNumeral,
+		const cvw = this.cnv.width - this.xs;
+		this.ctx.clearRect(this.xs, -0.5, cvw, this.cnv.height);
+		this.ctx.fillText(this.sameText, this.xs, this.yf);
+		this.ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
+		this.ctx.translate(this.x1 + this.halfWidthNumeral,
 					this.y1 - (this.scale) * (this.halfHeightNumeral));
-		ctx.rotate(-this.angle);
-		ctx.scale(1, this.scale);
-		ctx.translate(-this.halfWidthNumeral, this.halfHeightNumeral);
-		ctx.fillText(this.finalText[0], 0, 0);
-		ctx.restore();
-		ctx.save();
-		ctx.translate(this.x2 + this.halfWidthNumeral, this.y2);
-		ctx.scale(1, this.scale);
-		ctx.translate(-this.halfWidthNumeral, 0);
-		ctx.fillText(this.finalText[1], 0, 0);
-		ctx.restore();
+		this.ctx.rotate(-this.angle);
+		this.ctx.scale(1, this.scale);
+		this.ctx.translate(-this.halfWidthNumeral, this.halfHeightNumeral);
+		this.ctx.fillText(this.finalText[0], 0, 0);
+		this.ctx.restore();
+		this.ctx.save();
+		this.ctx.translate(this.x2 + this.halfWidthNumeral, this.y2);
+		this.ctx.scale(1, this.scale);
+		this.ctx.translate(-this.halfWidthNumeral, 0);
+		this.ctx.fillText(this.finalText[1], 0, 0);
+		this.ctx.restore();
 	}
 	more()
 	{
@@ -1841,6 +1859,8 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 
 class Fade // used to fade text in, to fade text out...
 {//...and to cross-fade one text into another
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
 	initialText = null; // (constant) text to fade out
 	finalText = null; // (constant) text to fade in
 	xi = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
@@ -1861,8 +1881,11 @@ class Fade // used to fade text in, to fade text out...
 	justFinished = false; // used to implement this.recent()
 	xInitialText() {return this.xi;} // initial horizontal position of initialText
 	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
-	constructor(oText, iText)
+	constructor(c, oText, iText)
 	{
+		this.cnv = c;
+		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
+			this.ctx = this.cnv.getContext("2d");
 		this.initialText = oText;
 		this.finalText = iText;
 	}
@@ -1870,30 +1893,29 @@ class Fade // used to fade text in, to fade text out...
 	{
 		this.finished = true;
 		this.justFinished = false;
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
-		this.vPos = romanNumeralsAdditiveCanvas.height;
+		const cvw = this.cnv.width - hOffset;
+		this.vPos = this.cnv.height;
 		this.xi = cvw;
 		this.xf = cvw;
 		let metrics = null;
 		if (this.initialText !== null)
 		{
-			metrics = ctx.measureText(this.initialText);
+			metrics = this.ctx.measureText(this.initialText);
 			this.vPos = metrics.actualBoundingBoxAscent;
 			const wInitialText = metrics.width;
 			this.xi = cvw - wInitialText;
 			if (this.finalText !== null)
 			{
-				metrics = ctx.measureText(this.finalText);
+				metrics = this.ctx.measureText(this.finalText);
 				const wFinalText = metrics.width;
 				this.xf = cvw - 0.5 * (wInitialText + wFinalText);
 			} else
 				this.xf = cvw;
 		} else if (this.finalText !== null) {
-			metrics = ctx.measureText(this.finalText);
+			metrics = this.ctx.measureText(this.finalText);
 			this.vPos = metrics.actualBoundingBoxAscent;
 			this.xf = cvw - metrics.width;
 		}
@@ -1944,30 +1966,31 @@ class Fade // used to fade text in, to fade text out...
 	{
 		if ((this.initialText===null) && (this.finalText===null))
 			return;
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		ctx.clearRect(this.xClear, -0.5, this.wClear, romanNumeralsAdditiveCanvas.height);
-		const oldFillStyle = ctx.fillStyle;
-		const canvasStyle = getComputedStyle(romanNumeralsAdditiveCanvas);
+		this.ctx.clearRect(this.xClear, -0.5, this.wClear, this.cnv.height);
+		const oldFillStyle = this.ctx.fillStyle;
+		const canvasStyle = getComputedStyle(this.cnv);
 		const foregroundColor = canvasStyle.color;
 		const fgc = extractRGBValues(foregroundColor);
 		if (this.initialText !== null)
 		{
-			ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
-			ctx.fillText(this.initialText, this.xInitialText(), this.vPos);
+			this.ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
+			this.ctx.fillText(this.initialText, this.xInitialText(), this.vPos);
 		}
 		if (this.finalText !== null)
 		{
-			ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
-			ctx.fillText(this.finalText, this.xFinalText(), this.vPos);
+			this.ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
+			this.ctx.fillText(this.finalText, this.xFinalText(), this.vPos);
 		}
-		ctx.fillStyle = oldFillStyle; // restore original value
+		this.ctx.fillStyle = oldFillStyle; // restore original value
 	}
 }
 
 class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) into finalText...
 {//...(more than 1 numeral) while moving the numerals of finalText from overlapping each other to usual spacing
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
 	initialText = null; // (constant) text to fade out
 	finalText = null; // (constant) text to fade in
 	sameText = null; // set to entireText.substring(0, nCsame) in this.reset()
@@ -2000,6 +2023,8 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		this.aOutF = m.aOutF;
 		this.aInI = m.aInI;
 		this.aInF = m.aInF;
+		this.cnv = m.cnv;
+		this.ctx = m.ctx;
 	}
 	reset(sText)
 	{
@@ -2017,12 +2042,11 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		if (this.entireText.substring(this.nCsame) !== this.initialText)
 			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
 		this.sameText = this.entireText.substring(0, this.nCsame);
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.started = true;
 		this.finished = false;
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
+		const cvw = this.cnv.width - hOffset;
 		if (this.x === null)
 			this.x = new Array(this.finalText.length);
 		if (this.xf === null)
@@ -2032,14 +2056,14 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		let metrics = null;
 		for (let i=0; i<this.x.length; i++)
 		{
-			metrics = ctx.measureText(this.finalText.substring(i));
+			metrics = this.ctx.measureText(this.finalText.substring(i));
 			this.xf[i] = cvw - metrics.width;
 		}
-		metrics = ctx.measureText(this.initialText);
+		metrics = this.ctx.measureText(this.initialText);
 		this.wInitialText = metrics.width;
 		this.x.fill(cvw - this.wInitialText); // the characters of finalText diverge from the same initial position
 		this.vPos = metrics.actualBoundingBoxAscent;
-		metrics = ctx.measureText(this.sameText);
+		metrics = this.ctx.measureText(this.sameText);
 		this.xSf = this.xf[0] - metrics.width;
 		this.xs = this.x[0] - metrics.width;
 		this.aOut = this.aOutI;
@@ -2100,25 +2124,24 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	{
 		if ((this.initialText===null) && (this.finalText===null))
 			return;
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		const cw = romanNumeralsAdditiveCanvas.width - this.xs;
-		ctx.clearRect(this.xs, -0.5, cw, romanNumeralsAdditiveCanvas.height);
-		ctx.fillText(this.sameText, this.xs, this.vPos);
-		const cvw = romanNumeralsAdditiveCanvas.width - hOffset;
+		const cw = this.cnv.width - this.xs;
+		this.ctx.clearRect(this.xs, -0.5, cw, this.cnv.height);
+		this.ctx.fillText(this.sameText, this.xs, this.vPos);
+		const cvw = this.cnv.width - hOffset;
 		const wCleared = cvw - this.x[0]; // draw initialText in the middle of the space
 		const xi = cvw - 0.5 * (wCleared + this.wInitialText); // cleared for finalText
-		const oldFillStyle = ctx.fillStyle;
-		const canvasStyle = getComputedStyle(romanNumeralsAdditiveCanvas);
+		const oldFillStyle = this.ctx.fillStyle;
+		const canvasStyle = getComputedStyle(this.cnv);
 		const foregroundColor = canvasStyle.color;
 		const fgc = extractRGBValues(foregroundColor);
-		ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
-		ctx.fillText(this.initialText, xi, this.vPos);
-		ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
+		this.ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
+		this.ctx.fillText(this.initialText, xi, this.vPos);
+		this.ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
 		for (let i=0; i<this.x.length; i++)
-			ctx.fillText(this.finalText[i], this.x[i], this.vPos);
-		ctx.fillStyle = oldFillStyle; // restore original value
+			this.ctx.fillText(this.finalText[i], this.x[i], this.vPos);
+		this.ctx.fillStyle = oldFillStyle; // restore original value
 	}
 	more()
 	{
@@ -2140,6 +2163,8 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 
 class AnimateNumeralSubstitutionToFew
 {
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
 	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX or Fade) object
 	closeTheGaps = null; // to store SlideTextHorizontally object
 	sameText = null; // set to entireText.substring(0, nCsame) in this.reset()
@@ -2154,7 +2179,9 @@ class AnimateNumeralSubstitutionToFew
 		if (m === null)
 			return;
 		this.morph = m;
-		this.closeTheGaps = new SlideTextHorizontally(this.morph.finalText);
+		this.closeTheGaps = new SlideTextHorizontally(m, this.morph.finalText);
+		this.cnv = this.morph.cnv;
+		this.ctx = this.morph.ctx;
 	}
 	reset(sText)
 	{
@@ -2170,15 +2197,14 @@ class AnimateNumeralSubstitutionToFew
 		if (this.entireText.substring(this.nCsame) !== this.morph.initialText)
 			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
 		this.sameText = this.entireText.substring(0, this.nCsame);
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.started = true;
 		this.finished = false;
 		this.morph.reset();
-		this.xiSameText = romanNumeralsAdditiveCanvas.width - hOffset;
+		this.xiSameText = this.cnv.width - hOffset;
 		this.xfSameText = this.xiSameText;
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		let metrics = ctx.measureText(this.entireText);
+		let metrics = this.ctx.measureText(this.entireText);
 		if (metrics !== null &&
 			fpLess(0, metrics.width, fpTolerance) &&
 			fpLess(metrics.width, this.xiSameText, fpTolerance))
@@ -2186,7 +2212,7 @@ class AnimateNumeralSubstitutionToFew
 		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.morph.finalText == null)
 		{
-			metrics = ctx.measureText(this.sameText);
+			metrics = this.ctx.measureText(this.sameText);
 			if (metrics !== null &&
 				fpLess(0, metrics.width, fpTolerance) &&
 				fpLess(metrics.width, this.xfSameText, fpTolerance))
@@ -2231,6 +2257,8 @@ class AnimateNumeralSubstitutionToFew
 
 class AnimateNumeralInsertion
 {
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // the drawing context of cnv
 	morph = null; // to store Fade object (for fading-in)
 	makeSpace = null; // to store SlideTextHorizontally object
 	entireText = null; // sameText followed by initialText
@@ -2241,7 +2269,9 @@ class AnimateNumeralInsertion
 		if (m === null)
 			return;
 		this.morph = m;
-		this.makeSpace = new SlideTextHorizontally(null);
+		this.cnv = this.morph.cnv;
+		this.ctx = this.morph.ctx;
+		this.makeSpace = new SlideTextHorizontally(m, null);
 	}
 	reset(sText)
 	{
@@ -2252,19 +2282,18 @@ class AnimateNumeralInsertion
 			this.morph.finalText.length < 1)
 			return; // invalid parameters, so nothing to do here
 		this.entireText = sText;
-		if (romanNumeralsAdditiveCanvas.getContext == null)
+		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.started = true;
 		this.finished = false;
-		let xi = romanNumeralsAdditiveCanvas.width - hOffset;
+		let xi = this.cnv.width - hOffset;
 		let xf = xi;
-		const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
-		let metrics = ctx.measureText(this.entireText);
+		let metrics = this.ctx.measureText(this.entireText);
 		if (metrics !== null &&
 			fpLess(0, metrics.width, fpTolerance) &&
 			fpLess(metrics.width, xi, fpTolerance))
 			xi -= metrics.width;
-		metrics = ctx.measureText(this.morph.finalText);
+		metrics = this.ctx.measureText(this.morph.finalText);
 		if (metrics !== null &&
 			fpLess(0, metrics.width, fpTolerance) &&
 			fpLess(metrics.width, xi, fpTolerance))
@@ -2297,13 +2326,13 @@ class AnimateNumeralInsertion
 	}
 }
 
-let mInI = new Fade(null, "I");
-let mIIIIItoV = new MetamorphoseIIIIItoV();
-let mVVtoX = new MetamorphoseVVtoX();
-let mXXXXXtoL = new Fade("XXXXX", "L");
-let mLLtoC = new Fade("LL", "C");
-let mCCCCCtoD = new Fade("CCCCC", "D");
-let mDDtoM = new Fade("DD", "M");
+let mInI = new Fade(romanNumeralsAdditiveCanvas, null, "I");
+let mIIIIItoV = new MetamorphoseIIIIItoV(romanNumeralsAdditiveCanvas);
+let mVVtoX = new MetamorphoseVVtoX(romanNumeralsAdditiveCanvas);
+let mXXXXXtoL = new Fade(romanNumeralsAdditiveCanvas, "XXXXX", "L");
+let mLLtoC = new Fade(romanNumeralsAdditiveCanvas, "LL", "C");
+let mCCCCCtoD = new Fade(romanNumeralsAdditiveCanvas, "CCCCC", "D");
+let mDDtoM = new Fade(romanNumeralsAdditiveCanvas, "DD", "M");
 const incrementNumberAnimations = [];
 incrementNumberAnimations.push(new AnimateNumeralInsertion(mInI));
 incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mIIIIItoV));
@@ -2345,7 +2374,7 @@ function incrementNumber()
 		window.requestAnimationFrame(incrementNumber);
 }
 
-let mOutI = new Fade("I", null);
+let mOutI = new Fade(romanNumeralsAdditiveCanvas, "I", null);
 const decrementNumberAnimations = [];
 decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mDDtoM));
 decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mCCCCCtoD));
