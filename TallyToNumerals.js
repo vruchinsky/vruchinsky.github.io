@@ -82,7 +82,7 @@ function setSettingsVisibility(v)
 	const els = document.getElementsByClassName("settings");
 	for (let i=0; i<els.length; i++)
 		els[i].style.visibility = s;
-	showHideSettingsButton.setAttribute("title", v ? "hide settings" : "show settings");
+	showHideSettingsButton.setAttribute("title", v ? "click to hide settings" : "click to show settings");
 }
 
 let AnimationSpeedMetamorphosis = parseFloat(AnimationSpeedMetamorphosisInput.value);
