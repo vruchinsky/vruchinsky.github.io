@@ -7,6 +7,7 @@ const romanToArabicConnectorCanvas = document.getElementById("ConnectRomanToArab
 const romanNumeralsAdditiveCanvas = document.getElementById("DisplayRomanAdditive");
 const romanNumeralsSubtractiveCanvas = document.getElementById("DisplayRomanSubtractive");
 const romanAdditiveToSubtractiveConnectorCanvas = document.getElementById("ConnectRomanAdditiveToSubtractive");
+const romanToTallyConnectorCanvas = document.getElementById("ConnectRomanToTally");
 const incrementButton = document.getElementById("incrementButton");
 const decrementButton = document.getElementById("decrementButton");
 const tallyCanvas = document.getElementById("tally");
@@ -20,6 +21,7 @@ const AnimationSpeedClosingTheGapsDisplay = document.getElementById("DisplayAnim
 const foregroundWeightBoxBoundary = 0.3;
 const foregroundWeightBoxBoundary2 = 0.3;
 const foregroundWeightConnector = 0.2;
+const foregroundWeightConnector2 = 0.3;
 const tallyMarkHeight = 25;
 const tallyMarkThickness = 1;
 const hSpace = 2;
@@ -140,6 +142,7 @@ function clearCanvas(cv)
 function eraseDrawings()
 {
 	clearCanvas(tallyCanvas);
+	clearCanvas(romanToTallyConnectorCanvas);
 	clearCanvas(romanToArabicConnectorCanvas);
 	clearCanvas(romanAdditiveToSubtractiveConnectorCanvas);
 //	clearCanvas(romanNumeralsSubtractiveCanvas);
@@ -403,7 +406,7 @@ function weightedAverageTruncated(a, b, w) {return Math.floor((1-w)*a + w*b);}
 
 function setIntermediateColor(ctx, foregroundWeight)
 {
-	const canvasStyle = getComputedStyle(tallyCanvas);
+	const canvasStyle = getComputedStyle(ctx.canvas);
 	const backgroundColor = canvasStyle.backgroundColor;
 	const foregroundColor = canvasStyle.color;
 	const bgc = extractRGBValues(backgroundColor);
@@ -923,8 +926,8 @@ function connectRomanAdditiveToSubtractive() // draw connecting lines (and horiz
 	const canvasStyle = getComputedStyle(romanAdditiveToSubtractiveConnectorCanvas);
 	const a = romanNumeralsAdditive;
 	const s = romanNumeralsSubtractive;
-	let r = findSubstringPairs(s, "CM", a, "DCCCC"); // scan hundreds than tens then units
-	if (r == null) // in each order of magnitude treat longer patterns first, e.g. DCCCC before CCCC, LXXXX before XXXX
+	let r = findSubstringPairs(s, "CM", a, "DCCCC"); // scan hundreds than tens then ones
+	if (r == null) // in each order of magnitude, treat longer patterns first, e.g. DCCCC before CCCC, LXXXX before XXXX
 		r = findSubstringPairs(s, "CD", a, "CCCC");
 	let r1 = findSubstringPairs(s, "XC", a, "LXXXX");
 	if (r1 == null)
@@ -943,12 +946,13 @@ function connectRomanAdditiveToSubtractive() // draw connecting lines (and horiz
 	const oldLineWidth = ctx.lineWidth;
 	const oldLineDash = ctx.getLineDash();
 	const oldLineDashOffset = ctx.lineDashOffset;
-	const oldLineCap = ctx.lineCap;
 	ctx.lineWidth = 1;
 	ctx.lineDashOffset = 0;
 	let srs, sra;
 	let si = r.i1;
 	let ai = r.i2;
+	let lastOoMcnctd = -1;
+	let lastOoMcnctdDashed = false;
 	while (si >= 0 && ai >= 0)
 	{
 		srs = scanOneOrderOfMagnitude(s, si);
@@ -956,19 +960,33 @@ function connectRomanAdditiveToSubtractive() // draw connecting lines (and horiz
 		if ((lastStart + 1 < srs.end) || (srs.end - srs.start < sra.end - sra.start))
 		{
 			lastStart = srs.start;
+			if (lastOoMcnctd + 1 == sra.o && !lastOoMcnctdDashed)
+			{ // if drawing this connector immediately next to one drawn with solid lines,
+				ctx.setLineDash([2,2]); // then use dashed lines for this connector 
+				setIntermediateColor(ctx, foregroundWeightConnector2); // and increase the contrast slightly
+				lastOoMcnctdDashed = true;
+			}
+			else // otherwise, drawing this connector immediately next to one drawn with dashed lines
+			{
+				ctx.setLineDash([]); // then use solid lines for this connector
+				setIntermediateColor(ctx, foregroundWeightConnector); // and use less contrast
+				lastOoMcnctdDashed = false;
+			}
 			connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, h, srs, sra, a, s);
+			lastOoMcnctd = sra.o;
 		}
 		si = srs.i;
 		ai = sra.i;
 	}
 	ctx.strokeStyle = foregroundColor; // restore foreground color etc.
 	ctx.lineWidth = oldLineWidth;
+	ctx.setLineDash(oldLineDash);
 	ctx.lineDashOffset = oldLineDashOffset;
 }
 
 function connectRomanToTally() // draw connecting lines (and horizontal braces) where needed
 {
-	if (romanNumeralsAdditiveCanvas.getContext == null)
+	if (romanToTallyConnectorCanvas.getContext == null)
 		return;
 	const rn = romanNumeralsAdditive;
 	if (rn.length < 1) return;
@@ -985,20 +1003,19 @@ function connectRomanToTally() // draw connecting lines (and horizontal braces) 
 		else if (start >= 0)
 			end = i-1;
 	}
-	if (start < 0) return; // no Ms so connections to draw here
-	const ctx = romanNumeralsAdditiveCanvas.getContext("2d");
+	if (start < 0) return; // no Ms so no connections to draw here
+	const ctx = romanToTallyConnectorCanvas.getContext("2d");
 	const nPastEnd = rn.length - 1 - end;
 	const fromX1 = (0<nPastEnd) ? stringWidthOnCanvas(ctx, rn.substring(end+1)) : 0;
 	const lessOrEqX1 = fpLessEq(box1000hPos-hOffset, fromX1, fpTolerance);
-	if (lessOrEqX1) return; // box1000 is directly under the Ms
-	const metrics = ctx.measureText(rn);
-	let fromY = metrics.actualBoundingBoxAscent + 2;
+	if (lessOrEqX1) return; // box1000 is directly under the Ms so no connections to draw here
+	let fromY = vOffset;
 	const fromX2 = stringWidthOnCanvas(ctx, rn.substring(start));
 	const fromXm = 0.5 * (fromX1 + fromX2);
-	const rFromXm = romanNumeralsAdditiveCanvas.width - fromXm - hOffset;
-	const rFromX2 = romanNumeralsAdditiveCanvas.width - fromX2 - hOffset;
-	const toY = romanNumeralsAdditiveCanvas.height;
-	const rToX = romanNumeralsAdditiveCanvas.width - box1000hPos - hOffset;
+	const rFromXm = romanToTallyConnectorCanvas.width - fromXm - hOffset;
+	const rFromX2 = romanToTallyConnectorCanvas.width - fromX2 - hOffset;
+	const toY = romanToTallyConnectorCanvas.height;
+	const rToX = romanToTallyConnectorCanvas.width - box1000hPos - hOffset;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	const oldLineWidth = ctx.lineWidth;
 	const oldLineDash = ctx.getLineDash();
@@ -1012,7 +1029,7 @@ function connectRomanToTally() // draw connecting lines (and horizontal braces) 
 	{
 		bLen = 0;
 		drawHorizontalBrace(ctx, rFromX2, fromY, fromX2-fromX1, false);
-		fromY = fromY + braceArcRadius;
+		fromY += braceArcRadius;
 		const lessOrEqX2 = fpLessEq(box1000hPos+boxCornerRadius, fromX2-braceArcRadius, fpTolerance);
 		rFromX = lessOrEqX2 ? (rToX - boxCornerRadius) : (rFromX2 + braceArcRadius);
 	} else rFromX = rFromXm;
@@ -2464,11 +2481,12 @@ function processNumberArabic()
 	setNumber(inputNumber);
 }
 
-initializeCanvas(tallyCanvas, true);
 initializeCanvas(romanToArabicConnectorCanvas, true);
+initializeCanvas(romanNumeralsSubtractiveCanvas, false);
 initializeCanvas(romanAdditiveToSubtractiveConnectorCanvas, true);
 initializeCanvas(romanNumeralsAdditiveCanvas, false);
-initializeCanvas(romanNumeralsSubtractiveCanvas, false);
+initializeCanvas(romanToTallyConnectorCanvas, false);
+initializeCanvas(tallyCanvas, true);
 //testCanvas();
 setNumber(0);
 //the code to bind keyup listener to input text element is based on example from

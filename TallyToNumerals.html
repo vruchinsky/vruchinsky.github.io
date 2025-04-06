@@ -28,65 +28,46 @@
             color: var(--color);
 			background-color: var(--bg-color);
         }
-		#labelRNS, #labelRNA {
-			width: 315px;
-		}
-		#labelANarrow {
-			left: 504px;
-		}
-		#labelANinstructionsArrow {
-			left: 510px;
-		}
-		#labelANarrow {
-			width: 5px;
-		}
-		#labelAN, #labelANinstructions {
-			left: 520px;
-		}
-		#labelAN {
-			width: 100px;
-		}
-		#labelANinstructionsArrow {
-			width: 5px;
-		}
-		#labelANinstructions {
-			top: 24px;
-		}
-		#labelANinstructionsArrow {
-			top: 18px;
-		}
-		#labelANinstructions {
-			width: 280px;
-		}
+		#labelRNS, #labelRNA {width: 315px;}
+		#labelANarrow {left: 504px;}
+		#labelANinstructionsArrow {left: 510px;}
+		#labelANarrow {width: 5px;}
+		#labelAN, #labelANinstructions {left: 520px;}
+		#labelAN {width: 100px;}
+		#labelANinstructionsArrow {width: 5px;}
+		#labelANinstructions {top: 24px;}
+		#labelANinstructionsArrow {top: 18px;}
+		#labelANinstructions {width: 280px;}
 		#labelAN, #labelANarrow {top: 6px;}
-		#labelRNS, #labelRNA {
-			left: 504px;
-		}
-		#labelRNS {top: 60px;}
-		#labelRNA {top: 110px;}
-        #DisplayRomanSubtractive, #ConnectRomanAdditiveToSubtractive,
-		#DisplayRomanAdditive, #ConnectRomanToArabic, #DisplayArabic {
-            width: var(--component-width);
-            border: none;
-            border-radius: 1px;
-            padding: 0px;
-            background-color: var(--component-bg-color);
-            color: var(--component-color);
-            font-size: var(--component-font-size);
-            font-family: var(--component-font-family);
-            resize: none; /* Prevents resizing of the box */
+		#labelRNS, #labelRNA {left: 504px;}
+		#labelRNS {top: 53px;}
+		#labelRNA {top: 103px;}
+		#DisplayRomanSubtractive, #DisplayRomanAdditive, #DisplayArabic,
+			#ConnectRomanAdditiveToSubtractive,	#ConnectRomanToArabic,
+			#ConnectRomanToTally {
+			width: var(--component-width);
+			border: none;
+			border-radius: 1px;
+			padding: 0px;
+			background-color: var(--component-bg-color);
+			color: var(--component-color);
+			font-size: var(--component-font-size);
+			font-family: var(--component-font-family);
+			resize: none; /* Prevents resizing of the box */
 			text-align: right;
 			position: absolute;
 			left: 0px;
-        }
-        #DisplayRomanSubtractive {height: 20px;}
-		#ConnectRomanAdditiveToSubtractive, #DisplayRomanAdditive,
-		#ConnectRomanToArabic, #DisplayArabic {height: 30px;}
+		}
+		#DisplayRomanSubtractive, #DisplayRomanAdditive,
+			#ConnectRomanToArabic {height: 20px;}
+		#ConnectRomanToTally {height: 20px;}
+		#DisplayArabic,	#ConnectRomanAdditiveToSubtractive {height: 30px;}
 		#DisplayArabic {top: 0px;}
 		#ConnectRomanToArabic {top: 30px;}
-		#DisplayRomanSubtractive {top: 60px;}
-		#ConnectRomanAdditiveToSubtractive {top: 80px;}
-		#DisplayRomanAdditive {top: 110px;}
+		#DisplayRomanSubtractive {top: 50px;}
+		#ConnectRomanAdditiveToSubtractive {top: 70px;}
+		#DisplayRomanAdditive {top: 100px;}
+		#ConnectRomanToTally {top: 120px;}
 		#tally {
 			position: absolute;
 			left: 0px;
@@ -206,6 +187,7 @@
 	<canvas id="ConnectRomanAdditiveToSubtractive"></canvas>
 	<canvas id="DisplayRomanAdditive"></canvas>
 	<label id="labelRNA">&larr;Roman numerals, simpler (additive notation)</label>
+	<canvas id="ConnectRomanToTally"></canvas>
 	<canvas id="tally"></canvas>
 	<button id="incrementButton" onclick=incrementNumber()>+</button>
 	<button id="decrementButton" onclick=decrementNumber()>-</button>
