@@ -2,6 +2,7 @@ const largestNumberToDisplay = 4999;
 const smallestNumberToDisplay = 0;
 
 const arabicNumeralsElement = document.getElementById("DisplayArabic");
+const ANinstructionsElement = document.getElementById("labelANinstructions");
 const romanToArabicConnectorCanvas = document.getElementById("ConnectRomanToArabic");
 const romanNumeralsAdditiveCanvas = document.getElementById("DisplayRomanAdditive");
 const romanNumeralsSubtractiveCanvas = document.getElementById("DisplayRomanSubtractive");
@@ -53,6 +54,10 @@ let incrementOrDecrementExecuting = false;
 let box1000hPos = 0;
 let box1000width = 0;
 
+ANinstructionsElement.innerText = "type in a number (at least " +
+	String(smallestNumberToDisplay) + " but less than " +
+	String(largestNumberToDisplay+1) +
+	") and press [Enter] or use the buttons below";
 setArabicNumeralsVisibility(ArabicNumeralsVisible);
 function ShowHideArabicNumerals()
 {
@@ -63,6 +68,7 @@ function ShowHideArabicNumerals()
 function setArabicNumeralsVisibility(v)
 {
 	showHideArabicNumeralsButton.textContent = v ? "hide" : "show";
+	showHideArabicNumeralsButton.setAttribute("title", v ? "click to hide Arabic numerals" : "click to show Arabic numerals");
 	const s = v ? "visible" : "hidden";
 	const els = document.getElementsByClassName("ArabicNumeralsDisplay");
 	for (let i=0; i<els.length; i++)
@@ -157,6 +163,7 @@ function setNumber(n)
 	connectRomanToArabic();
 	connectRomanAdditiveToSubtractive();
 	connectRomanToTally();
+	reenableButtons();
 }
 
 const fpTolerance = 0.0001;
@@ -1060,6 +1067,8 @@ function disableButtons(incrementButtonPressed)
 	arabicNumeralsElement.style.cursor = 'progress';
 	romanToArabicConnectorCanvas.style.cursor = 'progress';
 	romanNumeralsAdditiveCanvas.style.cursor = 'progress';
+	incrementButton.removeAttribute("title");
+	decrementButton.removeAttribute("title");
 }
 
 function reenableButtons()
@@ -1081,6 +1090,8 @@ function reenableButtons()
 	arabicNumeralsElement.style.cursor = 'default';
 	romanToArabicConnectorCanvas.style.cursor = 'default';
 	romanNumeralsAdditiveCanvas.style.cursor = 'default';
+	incrementButton.setAttribute("title", inputNumber < largestNumberToDisplay ? "click to increment number" : "");
+	decrementButton.setAttribute("title", inputNumber > smallestNumberToDisplay ? "click to decrement number" : "");
 }
 
 function setRomanNumeralsSubtractive(s)
@@ -2384,7 +2395,6 @@ function incrementNumber()
 	else
 	{
 		setNumber();
-		reenableButtons();
 		incrementNumberHandlerState = 0;
 	}
 	if (incrementNumberHandlerState > 0)
@@ -2426,7 +2436,6 @@ function decrementNumber()
 	else
 	{
 		setNumber();
-		reenableButtons();
 		decrementNumberHandlerState = 0;
 	}
 	if (decrementNumberHandlerState > 0)
