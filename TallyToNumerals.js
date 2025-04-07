@@ -2226,7 +2226,6 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		{
 			let s = replaceLastChars(this.entireText, this.initialText, this.finalText);
 			this.setRomanNumeralsFncn((s == null) ? this.entireText : s);
-			//setRomanNumeralsAdditive((s == null) ? this.entireText : s);
 		}
 		return !this.finished;
 	}
@@ -2401,26 +2400,55 @@ class AnimateNumeralInsertion
 	}
 }
 
-let mInI = new Fade(romanNumeralsAdditiveCanvas, null, "I");
+let mAddtvInI = new Fade(romanNumeralsAdditiveCanvas, null, "I");
 let mIIIIItoV = new MetamorphoseIIIIItoV(romanNumeralsAdditiveCanvas);
 let mVVtoX = new MetamorphoseVVtoX(romanNumeralsAdditiveCanvas);
 let mXXXXXtoL = new Fade(romanNumeralsAdditiveCanvas, "XXXXX", "L");
 let mLLtoC = new Fade(romanNumeralsAdditiveCanvas, "LL", "C");
 let mCCCCCtoD = new Fade(romanNumeralsAdditiveCanvas, "CCCCC", "D");
 let mDDtoM = new Fade(romanNumeralsAdditiveCanvas, "DD", "M");
-const incrementNumberAnimations = [];
-incrementNumberAnimations.push(new AnimateNumeralInsertion(mInI, setRomanNumeralsAdditive));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mIIIIItoV, setRomanNumeralsAdditive));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mVVtoX, setRomanNumeralsAdditive));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mXXXXXtoL, setRomanNumeralsAdditive));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mLLtoC, setRomanNumeralsAdditive));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mCCCCCtoD, setRomanNumeralsAdditive));
-incrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mDDtoM, setRomanNumeralsAdditive));
-let incrementNumberHandlerState = 0;
+const incNumAnmtnsAddtv = [];
+incNumAnmtnsAddtv.push(new AnimateNumeralInsertion(mAddtvInI, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mIIIIItoV, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mVVtoX, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mXXXXXtoL, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mLLtoC, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mCCCCCtoD, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mDDtoM, setRomanNumeralsAdditive));
+
+let mSbtrctvInI = new Fade(romanNumeralsSubtractiveCanvas, null, "I");
+let mVIIIItoIX = new Fade(romanNumeralsSubtractiveCanvas, "VIIII", "IX");
+let mIIIItoIV = new Fade(romanNumeralsSubtractiveCanvas, "IIII", "IV");
+let mIVItoV = new Fade(romanNumeralsSubtractiveCanvas, "IVI", "V");
+let mIXItoV = new Fade(romanNumeralsSubtractiveCanvas, "IXI", "X");
+let mLXXXXtoXC = new Fade(romanNumeralsSubtractiveCanvas, "LXXXX", "XC");
+let mXXXXtoXL = new Fade(romanNumeralsSubtractiveCanvas, "XXXX", "XL");
+let mXLXtoL = new Fade(romanNumeralsSubtractiveCanvas, "XLX", "L");
+let mXCXtoC = new Fade(romanNumeralsSubtractiveCanvas, "XCX", "C");
+let mDCCCCtoCM = new Fade(romanNumeralsSubtractiveCanvas, "DCCCC", "CM");
+let mCCCCtoCD = new Fade(romanNumeralsSubtractiveCanvas, "CCCC", "CD");
+let mCDCtoD = new Fade(romanNumeralsSubtractiveCanvas, "CDC", "D");
+let mCMCtoM = new Fade(romanNumeralsSubtractiveCanvas, "CMC", "M");
+const incNumAnmtnsSbtrctv = [];
+incNumAnmtnsSbtrctv.push(new AnimateNumeralInsertion(mSbtrctvInI, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mVIIIItoIX, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIIIItoIV, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIVItoV, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIXItoV, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mLXXXXtoXC, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mXXXXtoXL, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mXLXtoL, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mXCXtoC, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mDCCCCtoCM, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCCCCtoCD, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCDCtoD, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCMCtoM, setRomanNumeralsSubtractive));
+
+let incNumHndlrState = 0;
 
 function incrementNumber()
 {
-	if (incrementNumberHandlerState == 0)
+	if (incNumHndlrState == 0)
 	{
 		if (inputNumber >= largestNumberToDisplay) return;
  		if (incrementOrDecrementExecuting) return;
@@ -2429,39 +2457,51 @@ function incrementNumber()
 		eraseDrawings();
 		inputNumber++;
 	}
-	if (incrementNumberHandlerState < incrementNumberAnimations.length + 1)
+	if (incNumHndlrState < incNumAnmtnsAddtv.length + 1 || incNumHndlrState < incNumAnmtnsSbtrctv.length + 1)
 	{
-		if (incrementNumberHandlerState == 0 ||
-			incrementNumberAnimations[incrementNumberHandlerState-1].more()==false)
+		let mv2nxtState = false;
+		if (incNumHndlrState == 0)
+			mv2nxtState = true;
+		else
 		{
-			if (incrementNumberHandlerState < incrementNumberAnimations.length)
-				incrementNumberAnimations[incrementNumberHandlerState].reset(romanNumeralsAdditive);
-			incrementNumberHandlerState++;
+			mv2nxtState = true;
+			if (incNumHndlrState < incNumAnmtnsAddtv.length + 1 && incNumAnmtnsAddtv[incNumHndlrState-1].more())
+				mv2nxtState = false;
+			if (incNumHndlrState < incNumAnmtnsSbtrctv.length + 1 && incNumAnmtnsSbtrctv[incNumHndlrState-1].more())
+				mv2nxtState = false;
+		}
+		if (mv2nxtState)
+		{
+			if (incNumHndlrState < incNumAnmtnsAddtv.length)
+				incNumAnmtnsAddtv[incNumHndlrState].reset(romanNumeralsAdditive);
+			if (incNumHndlrState < incNumAnmtnsSbtrctv.length)
+				incNumAnmtnsSbtrctv[incNumHndlrState].reset(romanNumeralsSubtractive);
+			incNumHndlrState++;
 		}
 	}
 	else
 	{
 		setNumber();
-		incrementNumberHandlerState = 0;
+		incNumHndlrState = 0;
 	}
-	if (incrementNumberHandlerState > 0)
+	if (incNumHndlrState > 0)
 		window.requestAnimationFrame(incrementNumber);
 }
 
-let mOutI = new Fade(romanNumeralsAdditiveCanvas, "I", null);
-const decrementNumberAnimations = [];
-decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mDDtoM, setRomanNumeralsAdditive));
-decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mCCCCCtoD, setRomanNumeralsAdditive));
-decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mLLtoC,setRomanNumeralsAdditive));
-decrementNumberAnimations.push(new AnimateNumeralSubstitutionToMany(mXXXXXtoL, setRomanNumeralsAdditive));
-decrementNumberAnimations.push(new MetamorphoseXtoVV(mVVtoX, setRomanNumeralsAdditive));
-decrementNumberAnimations.push(new MetamorphoseVtoIIIII(mIIIIItoV, setRomanNumeralsAdditive));
-decrementNumberAnimations.push(new AnimateNumeralSubstitutionToFew(mOutI, setRomanNumeralsAdditive));
-let decrementNumberHandlerState = 0;
+let mAddtvOutI = new Fade(romanNumeralsAdditiveCanvas, "I", null);
+const decNumAnmtnsAddtv = [];
+decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mDDtoM, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mCCCCCtoD, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mLLtoC,setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mXXXXXtoL, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.push(new MetamorphoseXtoVV(mVVtoX, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.push(new MetamorphoseVtoIIIII(mIIIIItoV, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mAddtvOutI, setRomanNumeralsAdditive));
+let decNumHndlrState = 0;
 
 function decrementNumber()
 {
-	if (decrementNumberHandlerState == 0)
+	if (decNumHndlrState == 0)
 	{
 		if (inputNumber <= smallestNumberToDisplay) return;
  		if (incrementOrDecrementExecuting) return;
@@ -2470,22 +2510,22 @@ function decrementNumber()
 		eraseDrawings();
 		inputNumber--;
 	}
-	if (decrementNumberHandlerState < decrementNumberAnimations.length + 1)
+	if (decNumHndlrState < decNumAnmtnsAddtv.length + 1)
 	{
-		if (decrementNumberHandlerState == 0 ||
-			decrementNumberAnimations[decrementNumberHandlerState-1].more()==false)
+		if (decNumHndlrState == 0 ||
+			decNumAnmtnsAddtv[decNumHndlrState-1].more()==false)
 		{
-			if (decrementNumberHandlerState < decrementNumberAnimations.length)
-				decrementNumberAnimations[decrementNumberHandlerState].reset(romanNumeralsAdditive);
-			decrementNumberHandlerState++;
+			if (decNumHndlrState < decNumAnmtnsAddtv.length)
+				decNumAnmtnsAddtv[decNumHndlrState].reset(romanNumeralsAdditive);
+			decNumHndlrState++;
 		}
 	}
 	else
 	{
 		setNumber();
-		decrementNumberHandlerState = 0;
+		decNumHndlrState = 0;
 	}
-	if (decrementNumberHandlerState > 0)
+	if (decNumHndlrState > 0)
 		window.requestAnimationFrame(decrementNumber);
 }
 
