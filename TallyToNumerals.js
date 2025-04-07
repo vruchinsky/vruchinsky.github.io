@@ -42,10 +42,10 @@ const connectingLineBeginningVerticalSectionLength = 3;
 const connectingLineEndingVerticalSectionLength = 3;
 const boxCornerRadius = 2;
 const braceArcRadius = 4; // radius of each arc of a long brace
-const buttonNormalColor = incrementButton.style.backgroundColor;
-const buttonDisabledColor = "#707070";
-const buttonPressedColor = "#A0A0A0";
-const buttonHoverColor = "#C0C0C0";
+const buttonNormalBgColor = incrementButton.style.backgroundColor;
+const buttonHoverBgColor = "#707070";
+const buttonNormalColor = incrementButton.style.color;
+const buttonDisabledColor = "#505050";
 
 let ArabicNumeralsVisible = false;
 let settingsVisible = false;
@@ -58,7 +58,7 @@ let box1000width = 0;
 
 ANinstructionsElement.innerText = "type in a number (at least " +
 	String(smallestNumberToDisplay) + " but less than " +
-	String(largestNumberToDisplay+1) +
+	String(1+largestNumberToDisplay) +
 	") and press [Enter] or use the buttons below";
 setArabicNumeralsVisibility(ArabicNumeralsVisible);
 function ShowHideArabicNumerals()
@@ -166,7 +166,7 @@ function setNumber(n)
 	connectRomanToArabic();
 	connectRomanAdditiveToSubtractive();
 	connectRomanToTally();
-	reenableButtons();
+	enableButtons();
 }
 
 const fpTolerance = 0.0001;
@@ -1058,25 +1058,35 @@ function displayTextOnCanvas(s, cv)
 	ctx.fillText(s, hPos, vPos);
 }
 
-function incrementButtonMouseoverListener() {incrementButton.style.backgroundColor = buttonHoverColor;}
-function decrementButtonMouseoverListener() {decrementButton.style.backgroundColor = buttonHoverColor;}
-function incrementButtonMouseoutListener() {incrementButton.style.backgroundColor = buttonNormalColor;}
-function decrementButtonMouseoutListener() {decrementButton.style.backgroundColor = buttonNormalColor;}
+function incrementButtonMouseoverListener() {incrementButton.style.backgroundColor = buttonHoverBgColor;}
+function decrementButtonMouseoverListener() {decrementButton.style.backgroundColor = buttonHoverBgColor;}
+function incrementButtonMouseoutListener() {incrementButton.style.backgroundColor = buttonNormalBgColor;}
+function decrementButtonMouseoutListener() {decrementButton.style.backgroundColor = buttonNormalBgColor;}
 
 function disableButtons(incrementButtonPressed)
 {
 	incrementOrDecrementExecuting = true;
+	const incBtnAlrdyDsbld = incrementButton.disabled;
+	const decBtnAlrdyDsbld = decrementButton.disabled;
 	incrementButton.disabled = true;
 	decrementButton.disabled = true;
-	incrementButton.style.backgroundColor = incrementButtonPressed ? buttonDisabledColor : buttonPressedColor;
-	decrementButton.style.backgroundColor = incrementButtonPressed ? buttonPressedColor : buttonDisabledColor;
-	if (incrementButtonPressed)
-		incrementButton.style.fontWeight = "bold";
-	else
-		decrementButton.style.fontWeight = "bold";
+	if (!incBtnAlrdyDsbld)
+	{
+		incrementButton.style.backgroundColor = buttonNormalBgColor; // needed to reverse the effect of incrementButtonMouseoverListener()
+		incrementButton.style.color = incrementButton.style.borderColor = buttonDisabledColor;
+		if (incrementButtonPressed)
+			incrementButton.style.fontWeight = "bold";
+	}
+	if (!decBtnAlrdyDsbld)
+	{
+		decrementButton.style.backgroundColor = buttonNormalBgColor; // needed to reverse the effect of decrementButtonMouseoverListener()
+		decrementButton.style.color = decrementButton.style.borderColor = buttonDisabledColor;
+		if (!incrementButtonPressed)
+			decrementButton.style.fontWeight = "bold";
+	}
 	incrementButton.removeEventListener('mouseover', incrementButtonMouseoverListener);
-	decrementButton.removeEventListener('mouseover', decrementButtonMouseoverListener);
 	incrementButton.removeEventListener('mouseout', incrementButtonMouseoutListener);
+	decrementButton.removeEventListener('mouseover', decrementButtonMouseoverListener);
 	decrementButton.removeEventListener('mouseout', decrementButtonMouseoutListener);
 	document.body.style.cursor = 'progress';
 	incrementButton.style.cursor = 'progress';
@@ -1088,27 +1098,47 @@ function disableButtons(incrementButtonPressed)
 	decrementButton.removeAttribute("title");
 }
 
-function reenableButtons()
+function enableButtons()
 {
-	incrementButton.disabled = false;
-	decrementButton.disabled = false;
-	incrementButton.style.backgroundColor = buttonNormalColor;
-	decrementButton.style.backgroundColor = buttonNormalColor;
+	const notTooLarge = (inputNumber < largestNumberToDisplay);
+	incrementButton.disabled = !notTooLarge;
+	incrementButton.style.backgroundColor = buttonNormalBgColor; // needed to reverse the effect of incrementButtonMouseoverListener()
+	incrementButton.style.color = incrementButton.style.borderColor = notTooLarge ? buttonNormalColor : buttonDisabledColor;
 	incrementButton.style.fontWeight = "normal";
-	decrementButton.style.fontWeight = "normal";
-	incrementOrDecrementExecuting = false;
-	incrementButton.addEventListener('mouseover', incrementButtonMouseoverListener);
-	decrementButton.addEventListener('mouseover', decrementButtonMouseoverListener);
-	incrementButton.addEventListener('mouseout', incrementButtonMouseoutListener);
-	decrementButton.addEventListener('mouseout', decrementButtonMouseoutListener);
-	document.body.style.cursor = 'default';
 	incrementButton.style.cursor = 'default';
+	incrementButton.setAttribute("title", notTooLarge ? "click to increment number" : "");
+	if (notTooLarge)
+	{
+		incrementButton.addEventListener('mouseover', incrementButtonMouseoverListener);
+		incrementButton.addEventListener('mouseout', incrementButtonMouseoutListener);
+	}
+	else
+	{
+		incrementButton.removeEventListener('mouseover', incrementButtonMouseoverListener);
+		incrementButton.removeEventListener('mouseout', incrementButtonMouseoutListener);
+	}
+	const notTooSmall = (inputNumber > smallestNumberToDisplay);
+	decrementButton.disabled = !notTooSmall;
+	decrementButton.style.backgroundColor = buttonNormalBgColor; // needed to reverse the effect of decrementButtonMouseoverListener()
+	decrementButton.style.color = decrementButton.style.borderColor = notTooSmall ? buttonNormalColor : buttonDisabledColor;
+	decrementButton.style.fontWeight = "normal";
 	decrementButton.style.cursor = 'default';
+	decrementButton.setAttribute("title", notTooSmall ? "click to decrement number" : "");
+	if (notTooSmall)
+	{
+		decrementButton.addEventListener('mouseover', decrementButtonMouseoverListener);
+		decrementButton.addEventListener('mouseout', decrementButtonMouseoutListener);
+	}
+	else
+	{
+		decrementButton.removeEventListener('mouseover', decrementButtonMouseoverListener);
+		decrementButton.removeEventListener('mouseout', decrementButtonMouseoutListener);
+	}
+	document.body.style.cursor = 'default';
 	arabicNumeralsElement.style.cursor = 'default';
 	romanToArabicConnectorCanvas.style.cursor = 'default';
 	romanNumeralsAdditiveCanvas.style.cursor = 'default';
-	incrementButton.setAttribute("title", inputNumber < largestNumberToDisplay ? "click to increment number" : "");
-	decrementButton.setAttribute("title", inputNumber > smallestNumberToDisplay ? "click to decrement number" : "");
+	incrementOrDecrementExecuting = false;
 }
 
 function setRomanNumeralsSubtractive(s)
@@ -2435,7 +2465,7 @@ function decrementNumber()
 	{
 		if (inputNumber <= smallestNumberToDisplay) return;
  		if (incrementOrDecrementExecuting) return;
-		disableButtons(true);
+		disableButtons(false);
 		arabicNumeralsElement.value = "";
 		eraseDrawings();
 		inputNumber--;

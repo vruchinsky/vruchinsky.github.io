@@ -79,23 +79,23 @@
             font-size: var(--component-font-size);
             font-family: var(--component-font-family);
 		}
-        #incrementButton, #decrementButton,
+		#incrementButton, #decrementButton,
 		#ShowHideArabicNumeralsButton, #ShowHideSettingsButton {
 			position: absolute;
-            padding: 0px;
-            cursor: pointer;
-            border-color: var(--color);
-            background-color: var(--bg-color);
-            color: var(--color);
-            border: 1px solid;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
+			padding: 0px;
+			cursor: pointer;
+			border-color: var(--color);
+			background-color: var(--bg-color);
+			color: var(--color);
+			border: 1px solid;
+			border-radius: 5px;
+			transition: background-color 0.3s;
+		}
 		#incrementButton, #decrementButton {
 			left: 504px;
-            width: 25px;
-            height: 25px;
-            font-size: 21px;
+			width: 25px;
+			height: 25px;
+			font-size: 21px;
 		}
 		#ShowHideArabicNumeralsButton {
 			top: 4px;
@@ -106,12 +106,6 @@
 		}
 		#incrementButton {top: 150px;}
 		#decrementButton {top: 180px;}
-        button:hover {
-            background-color: #707070;
-        }
-		button:active {
-			font-weight: bold;
-		}
 		#labelAnimationSpeed, #labelAnimationSpeedSlow, #labelAnimationSpeedFast,
 			#labelAnimationSpeedMetamorphosis, #labelAnimationSpeedClosingTheGaps,
 			#AnimationSpeedMetamorphosis, #AnimationSpeedClosingTheGaps,
@@ -153,7 +147,7 @@
 		#labelAnimationSpeedClosingTheGaps, #labelAnimationSpeedClosingTheGapsValue {top: 507px;}
 		#AnimationSpeedMetamorphosis, #AnimationSpeedClosingTheGaps {
 			width: 200px;
-			height: 1px;
+			height: 1px; /* using minimal height hides the color of the track of the slider */
 			accent-color: var(--range-control-color);
 		}
 		#labelAnimationSpeedMetamorphosisValue, #labelAnimationSpeedClosingTheGapsValue {
