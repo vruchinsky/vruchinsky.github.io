@@ -2408,6 +2408,17 @@ class AnimationFragment
 	prcndtnSeq = null; // ref. to AnimationSequence object which contains AnimationFragment object which must finish executing before this.anmtn starts to execute
 	prcndtnIdx = null; // the index of that element in this.prcndtnSeq.anmtns which must finish executing before this.anmtn starts to execute
 	constructor(a) {this.anmtn = a;}
+	after(s, iniTxt, fnlTxt)
+	{
+		this.prcndtnSeq = s;
+		if (s === null)
+		{
+			console.log(this.constructor.name + ".after() error: s===null");
+			return false;
+		}
+		this.prcndtnIdx = s.findIndex(iniTxt, fnlTxt);
+		return true;
+	}
 }
 
 class AnimationSequence // array of AnimationFragment objects and index of the one currently executing
@@ -2416,7 +2427,7 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 	idx = 0; // index of that element of anmtns which is executing now
 	strtd = false; // becomes true when start to execute anmtns array, reset to false when finished
 	getRomanNumeralsFcn = null; // ref. to function which reads the appropriate romanNumerals variable
-	push(a) {this.anmtns.push(a);}
+	push(a) {this.anmtns.push(new AnimationFragment(a));}
 	reset()
 	{
 		this.strtd = false;
@@ -2426,7 +2437,15 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 	start()
 	{
 		if (0 < this.anmtns.length)
-			this.anmtns[0].reset(this.getRomanNumeralsFcn());
+		{
+			const a = this.anmtns[0].anmtn;
+			if (a === null)
+			{
+				console.log(this.constructor.name + ".start() error: anmtns[0].anmtn===null");
+				return;
+			}
+			a.reset(this.getRomanNumeralsFcn());
+		}
 		this.strtd = true;
 	}
 	finish() {return (this.started() && (this.idx >= this.anmtns.length));}
@@ -2435,13 +2454,59 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 	{
 		if (this.finish())
 			return false;
-		if (this.anmtns[this.idx].more())
+		let a = this.anmtns[this.idx].anmtn;
+		if (a === null)
+		{
+			console.log(this.constructor.name + ".more() error: anmtns[" + this.idx.toString() + "].anmtn===null (before this.more())");
+			return false;
+		}
+		if (a.more())
 			return true; // anmtns[idx] still executing
-		this.idx++; // otherwise, move to the next AnimationFragment objects
+		this.idx++; // otherwise, move to the next AnimationFragment object
 		if (this.finish())
 			return false;
-		this.anmtns[this.idx].reset(this.getRomanNumeralsFcn());
+		a = this.anmtns[this.idx].anmtn;
+		if (a === null)
+		{
+			console.log(this.constructor.name + ".more() error: anmtns[" + this.idx.toString() + "].anmtn===null (before this.reset())");
+			return false;
+		}
+		a.reset(this.getRomanNumeralsFcn());
 		return true;
+	}
+	findFragment(iniTxt, fnlTxt)
+	{
+		let i = this.findIndex(iniTxt, fnlTxt);
+		if (i === null)
+		{
+			console.log(this.constructor.name + ".findFragment() error: this.findIndex(" + iniTxt + ", " + fnlTxt + ") returned null");
+			return null;
+		}
+		return this.anmtns[i];
+	}
+	findIndex(iniTxt, fnlTxt)
+	{
+		let i = 0;
+		let f = null;
+		let a = null;
+		let m = null;
+		while (i < this.anmtns.length)
+		{
+			f = this.anmtns[i];
+			a = f.anmtn;
+			if (a === null)
+			{
+				console.log(this.constructor.name + ".findIndex() error: anmtns[" + i.toString() + "].anmtn===null");
+				return null;
+			}
+			m = a.morph;
+			if (m === null)
+				return null;
+			if (m.initialText === iniTxt &&	m.finalText === fnlTxt)
+				return i;
+			i++;
+		}
+		return null;
 	}
 }
 
@@ -2489,6 +2554,16 @@ incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mDCCCCtoCM, setRoma
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCCCCtoCD, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCDCtoD, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCMCtoM, setRomanNumeralsSubtractive));
+
+const f = incNumAnmtnsAddtv.findFragment("IIIII", "V");
+if (f === null)
+	console.log("not found IIIII V");
+else
+	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
+if (f.after(incNumAnmtnsSbtrctv, "IVI", "V")==false)
+	console.log("not found IVI V");
+else
+	console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
 
 function incrementNumber()
 {
