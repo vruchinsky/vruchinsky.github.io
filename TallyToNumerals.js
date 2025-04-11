@@ -1146,12 +1146,14 @@ function setRomanNumeralsSubtractive(s)
 	romanNumeralsSubtractive = s;
 	displayTextOnCanvas(s, romanNumeralsSubtractiveCanvas);
 }
+function getRomanNumeralsSubtractive(s) {return romanNumeralsSubtractive;}
 
 function setRomanNumeralsAdditive(s)
 {
 	romanNumeralsAdditive = s;
 	displayTextOnCanvas(s, romanNumeralsAdditiveCanvas);
 }
+function getRomanNumeralsAdditive() {return romanNumeralsAdditive;}
 
 class SlideTextHorizontally // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
 { // b/c such a metamorphosis leaves gaps in the entire numerical expression, e.g. XXIIIII -> XX  V
@@ -2400,6 +2402,52 @@ class AnimateNumeralInsertion
 	}
 }
 
+class AnimationFragment
+{ // the reference to a specific animation object and references to preconditions for the execution of this animation object
+	anmtn = null; // ref. to the animation object of class AnimateNumeralInsertion or AnimateNumeralSubstitutionToFew
+	prcndtnSeq = null; // ref. to AnimationSequence object which contains AnimationFragment object which must finish executing before this.anmtn starts to execute
+	prcndtnIdx = null; // the index of that element in this.prcndtnSeq.anmtns which must finish executing before this.anmtn starts to execute
+	constructor(a) {this.anmtn = a;}
+}
+
+class AnimationSequence // array of AnimationFragment objects and index of the one currently executing
+{
+	anmtns = []; // AnimationFragment objects (assuming they all are for drawing on the same HTML canvas element)
+	idx = 0; // index of that element of anmtns which is executing now
+	strtd = false; // becomes true when start to execute anmtns array, reset to false when finished
+	getRomanNumeralsFcn = null; // ref. to function which reads the appropriate romanNumerals variable
+	push(a) {this.anmtns.push(a);}
+	reset()
+	{
+		this.strtd = false;
+		this.idx = 0;
+	}
+	started() {return this.strtd;}
+	start()
+	{
+		if (0 < this.anmtns.length)
+			this.anmtns[0].reset(this.getRomanNumeralsFcn());
+		this.strtd = true;
+	}
+	finish() {return (this.started() && (this.idx >= this.anmtns.length));}
+	constructor(f) {this.getRomanNumeralsFcn = f;}
+	more()
+	{
+		if (this.finish())
+			return false;
+		if (this.anmtns[this.idx].more())
+			return true; // anmtns[idx] still executing
+		this.idx++; // otherwise, move to the next AnimationFragment objects
+		if (this.finish())
+			return false;
+		this.anmtns[this.idx].reset(this.getRomanNumeralsFcn());
+		return true;
+	}
+}
+
+const incNumAnmtnsAddtv = new AnimationSequence(getRomanNumeralsAdditive);
+const incNumAnmtnsSbtrctv = new AnimationSequence(getRomanNumeralsSubtractive);
+
 let mAddtvInI = new Fade(romanNumeralsAdditiveCanvas, null, "I");
 let mIIIIItoV = new MetamorphoseIIIIItoV(romanNumeralsAdditiveCanvas);
 let mVVtoX = new MetamorphoseVVtoX(romanNumeralsAdditiveCanvas);
@@ -2407,7 +2455,6 @@ let mXXXXXtoL = new Fade(romanNumeralsAdditiveCanvas, "XXXXX", "L");
 let mLLtoC = new Fade(romanNumeralsAdditiveCanvas, "LL", "C");
 let mCCCCCtoD = new Fade(romanNumeralsAdditiveCanvas, "CCCCC", "D");
 let mDDtoM = new Fade(romanNumeralsAdditiveCanvas, "DD", "M");
-const incNumAnmtnsAddtv = [];
 incNumAnmtnsAddtv.push(new AnimateNumeralInsertion(mAddtvInI, setRomanNumeralsAdditive));
 incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mIIIIItoV, setRomanNumeralsAdditive));
 incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mVVtoX, setRomanNumeralsAdditive));
@@ -2429,7 +2476,6 @@ let mDCCCCtoCM = new Fade(romanNumeralsSubtractiveCanvas, "DCCCC", "CM");
 let mCCCCtoCD = new Fade(romanNumeralsSubtractiveCanvas, "CCCC", "CD");
 let mCDCtoD = new Fade(romanNumeralsSubtractiveCanvas, "CDC", "D");
 let mCMCtoM = new Fade(romanNumeralsSubtractiveCanvas, "CMC", "M");
-const incNumAnmtnsSbtrctv = [];
 incNumAnmtnsSbtrctv.push(new AnimateNumeralInsertion(mSbtrctvInI, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mVIIIItoIX, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIIIItoIV, setRomanNumeralsSubtractive));
@@ -2444,47 +2490,35 @@ incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCCCCtoCD, setRoman
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCDCtoD, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCMCtoM, setRomanNumeralsSubtractive));
 
-let incNumHndlrState = 0;
-
 function incrementNumber()
 {
-	if (incNumHndlrState == 0)
+	if (incNumAnmtnsAddtv.started()==false && incNumAnmtnsSbtrctv.started()==false)
 	{
-		if (inputNumber >= largestNumberToDisplay) return;
- 		if (incrementOrDecrementExecuting) return;
+		if (inputNumber >= largestNumberToDisplay)
+			return;
+		if (incrementOrDecrementExecuting)
+			return;
 		disableButtons(true);
 		arabicNumeralsElement.value = "";
 		eraseDrawings();
 		inputNumber++;
-	}
-	if (incNumHndlrState < incNumAnmtnsAddtv.length + 1 || incNumHndlrState < incNumAnmtnsSbtrctv.length + 1)
-	{
-		let mv2nxtState = false;
-		if (incNumHndlrState == 0)
-			mv2nxtState = true;
-		else
-		{
-			mv2nxtState = true;
-			if (incNumHndlrState < incNumAnmtnsAddtv.length + 1 && incNumAnmtnsAddtv[incNumHndlrState-1].more())
-				mv2nxtState = false;
-			if (incNumHndlrState < incNumAnmtnsSbtrctv.length + 1 && incNumAnmtnsSbtrctv[incNumHndlrState-1].more())
-				mv2nxtState = false;
-		}
-		if (mv2nxtState)
-		{
-			if (incNumHndlrState < incNumAnmtnsAddtv.length)
-				incNumAnmtnsAddtv[incNumHndlrState].reset(romanNumeralsAdditive);
-			if (incNumHndlrState < incNumAnmtnsSbtrctv.length)
-				incNumAnmtnsSbtrctv[incNumHndlrState].reset(romanNumeralsSubtractive);
-			incNumHndlrState++;
-		}
+		incNumAnmtnsAddtv.start();
+		incNumAnmtnsSbtrctv.start();
 	}
 	else
 	{
-		setNumber();
-		incNumHndlrState = 0;
+		if (incNumAnmtnsAddtv.started())
+			incNumAnmtnsAddtv.more();
+		if (incNumAnmtnsSbtrctv.started())
+			incNumAnmtnsSbtrctv.more();
 	}
-	if (incNumHndlrState > 0)
+	if (incNumAnmtnsAddtv.finish() && incNumAnmtnsSbtrctv.finish())
+	{
+		incNumAnmtnsAddtv.reset(); // reset() method changes the internal state read by finish() accessor
+		incNumAnmtnsSbtrctv.reset(); // reset() method changes the internal state read by finish() accessor
+		setNumber();
+	}
+	else
 		window.requestAnimationFrame(incrementNumber);
 }
 
