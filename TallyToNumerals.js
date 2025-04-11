@@ -2407,9 +2407,10 @@ class AnimationFragment
 	anmtn = null; // ref. to the animation object of class AnimateNumeralInsertion or AnimateNumeralSubstitutionToFew
 	prcndtnSeq = null; // ref. to AnimationSequence object which contains AnimationFragment object which must finish executing before this.anmtn starts to execute
 	prcndtnIdx = null; // the index of that element in this.prcndtnSeq.anmtns which must finish executing before this.anmtn starts to execute
-	constructor(a) {this.anmtn = a;}
-	after(s, iniTxt, fnlTxt)
-	{
+	getRomanNumeralsFcn = null; // ref. to function which reads the appropriate romanNumerals variable
+	constructor(a, f) {this.anmtn = a; this.getRomanNumeralsFcn = f;}
+	after(s, iniTxt, fnlTxt) // set the constraint: this.anmtn can start only after the animation in s (identified using iniTxt and fnlTxt) finishes
+	{ // and implement this constraint in this.more()
 		this.prcndtnSeq = s;
 		if (s === null)
 		{
@@ -2417,6 +2418,25 @@ class AnimationFragment
 			return false;
 		}
 		this.prcndtnIdx = s.findIndex(iniTxt, fnlTxt);
+		return true;
+	}
+	more()
+	{
+		if (this.anmtn === null)
+		{
+			console.log(this.constructor.name + ".more() error: anmtn===null");
+			return false;
+		}
+		return this.anmtn.more(); // anmtn still executing?
+	}
+	reset()
+	{
+		if (this.anmtn === null)
+		{
+			console.log(this.constructor.name + ".reset() error: anmtn===null");
+			return false;
+		}
+		this.anmtn.reset(this.getRomanNumeralsFcn());
 		return true;
 	}
 }
@@ -2427,7 +2447,8 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 	idx = 0; // index of that element of anmtns which is executing now
 	strtd = false; // becomes true when start to execute anmtns array, reset to false when finished
 	getRomanNumeralsFcn = null; // ref. to function which reads the appropriate romanNumerals variable
-	push(a) {this.anmtns.push(new AnimationFragment(a));}
+	constructor(f) {this.getRomanNumeralsFcn = f;}
+	push(a) {this.anmtns.push(new AnimationFragment(a, this.getRomanNumeralsFcn));}
 	reset()
 	{
 		this.strtd = false;
@@ -2449,30 +2470,21 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 		this.strtd = true;
 	}
 	finish() {return (this.started() && (this.idx >= this.anmtns.length));}
-	constructor(f) {this.getRomanNumeralsFcn = f;}
 	more()
 	{
-		if (this.finish())
-			return false;
-		let a = this.anmtns[this.idx].anmtn;
-		if (a === null)
+		if (this.anmtns === null)
 		{
-			console.log(this.constructor.name + ".more() error: anmtns[" + this.idx.toString() + "].anmtn===null (before this.more())");
+			console.log(this.constructor.name + ".more() error: this.anmtns===null");
 			return false;
 		}
-		if (a.more())
+		if (this.finish())
+			return false;
+		if (this.anmtns[this.idx].more())
 			return true; // anmtns[idx] still executing
 		this.idx++; // otherwise, move to the next AnimationFragment object
 		if (this.finish())
 			return false;
-		a = this.anmtns[this.idx].anmtn;
-		if (a === null)
-		{
-			console.log(this.constructor.name + ".more() error: anmtns[" + this.idx.toString() + "].anmtn===null (before this.reset())");
-			return false;
-		}
-		a.reset(this.getRomanNumeralsFcn());
-		return true;
+		return this.anmtns[this.idx].reset();
 	}
 	findFragment(iniTxt, fnlTxt)
 	{
