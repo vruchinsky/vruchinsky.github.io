@@ -2407,18 +2407,20 @@ class AnimationFragment
 	anmtn = null; // ref. to the animation object of class AnimateNumeralInsertion or AnimateNumeralSubstitutionToFew
 	prcndtnSeq = null; // ref. to AnimationSequence object which contains AnimationFragment object which must finish executing before this.anmtn starts to execute
 	prcndtnIdx = null; // the index of that element in this.prcndtnSeq.anmtns which must finish executing before this.anmtn starts to execute
+	strtd = false; // becomes true when start to execute anmtns array, reset to false when finished
 	getRomanNumeralsFncn = null; // ref. to function which reads the appropriate romanNumerals variable
-	errorOccurred = false;
+	errOcrd = false;
 	constructor(a, f) {this.anmtn = a; this.getRomanNumeralsFncn = f;}
+	errorOccurred() {return this.errOcrd};
 	after(s, iniTxt, fnlTxt) // set the constraint: this.anmtn can start only after the animation in s (identified using iniTxt and fnlTxt) finishes
 	{ // and implement this constraint in this.more()
-		if (this.errorOccurred)
+		if (this.errorOccurred())
 			return false;
 		this.prcndtnSeq = s;
 		if (s === null)
 		{
 			console.log(this.constructor.name + ".after() error: s===null");
-			this.errorOccurred = true;
+			this.errOcrd = true;
 			return false;
 		}
 		this.prcndtnIdx = s.findIndex(iniTxt, fnlTxt);
@@ -2426,64 +2428,75 @@ class AnimationFragment
 	}
 	preconditionsMet()
 	{
-		if (this.errorOccurred)
+		if (this.errorOccurred())
 			return false;
 		if (this.prcndtnSeq === null || this.prcndtnIdx === null)
 			return true; // b/c there is no precondition at all recorded here
 		let i = this.prcndtnSeq.index();
 		if (i < this.prcndtnIdx)
-			return false; // the awaited animation fragment has not even started to execute yet
+			return false; // the awaited animation fragment has not started to execute yet
 		if (i > this.prcndtnIdx)
-			return true; // the awaited animation fragment finished b/c a later one is executing now
+			return true; // the awaited animation fragment finished (considering that a later one is executing now)
 		let f = this.prcndtnSeq.anmtns[i]; // here, i == this.prcndtnIdx, so check the execution status of the awaited animation fragment
 		if (f === null)
 		{
 			console.log(this.constructor.name + ".preconditionsMet() error: this.prcndtnSeq.anmtns[" + i.toString() + "]===null");
-			this.errorOccurred = true;
+			this.errOcrd = true;
 			return true; // b/c the precondition recorded here is invalid due to a corruption of its supporting data
 		}
 		let a = f.anmtn; // animation object (of class AnimateNumeralInsertion or AnimateNumeralSubstitutionToFew) referenced in f
 		if (a === null)
 		{
 			console.log(this.constructor.name + ".preconditionsMet() error: this.prcndtnSeq.anmtns[" + i.toString() + "].anmtn===null");
-			this.errorOccurred = true;
+			this.errOcrd = true;
 			return true; // b/c the precondition recorded here is invalid due to a corruption of its supporting data
 		}
 		return a.finished;
 	}
-	reset()
+	started() {return this.strtd;}
+	reset() {this.strtd = false;}
+	start()
 	{
-		if (this.errorOccurred)
+		if (this.errorOccurred())
 			return false;
 		if (this.anmtn === null)
 		{
-			console.log(this.constructor.name + ".reset() error: this.anmtn===null");
-			this.errorOccurred = true;
+			console.log(this.constructor.name + ".start() error: this.anmtn===null");
+			this.errOcrd = true;
 			return false;
 		}
 		if (this.getRomanNumeralsFncn === null)
 		{
-			console.log(this.constructor.name + ".reset() error: this.getRomanNumeralsFncn===null");
-			this.errorOccurred = true;
+			console.log(this.constructor.name + ".start() error: this.getRomanNumeralsFncn===null");
+			this.errOcrd = true;
 			return false;
 		}
 		if (this.preconditionsMet())
+		{
+			this.strtd = true;
 			this.anmtn.reset(this.getRomanNumeralsFncn());
+		}
 		return true;
 	}
 	more()
 	{
-		if (this.errorOccurred)
+		if (this.errorOccurred())
 			return false;
-		if (this.preconditionsMet() == false)
-			return true; // to wait until this.preconditionsMet() == true
 		if (this.anmtn === null)
 		{
 			console.log(this.constructor.name + ".more() error: this.anmtn===null");
-			this.errorOccurred = true;
+			this.errOcrd = true;
 			return false;
 		}
-		return this.anmtn.more(); // anmtn still executing?
+		if (this.started()) // anmtn already started?
+			return this.anmtn.more(); // if yes, then proceed and return status whether anmtn still executing
+		if (this.start()==false) // otherwise, try (again) to start anmtn
+		{
+			console.log(this.constructor.name + ".more() error: this.start() failed");
+			this.errOcrd = true;
+			return false; // some failure in this.anmtns[0].reset(), so stop executing this AnimationSequence
+		}
+		return true;
 	}
 }
 
@@ -2493,84 +2506,117 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 	idx = 0; // index of that element of anmtns which is executing now
 	strtd = false; // becomes true when start to execute anmtns array, reset to false when finished
 	getRomanNumeralsFncn = null; // ref. to function which reads the appropriate romanNumerals variable
-	errorOccurred = false;
+	errOcrd = false;
 	constructor(f) {this.getRomanNumeralsFncn = f;}
+	errorOccurred() {return this.errOcrd};
 	index() {return this.idx;}
 	push(a)
 	{
-		if (this.errorOccurred)
+		if (this.errorOccurred())
 			return;
 		if (this.getRomanNumeralsFncn === null)
 		{
 			console.log(this.constructor.name + ".push() error: this.getRomanNumeralsFncn===null (this.anmtns.length=" + this.anmtns.length.toString() + ")");
-			this.errorOccurred = true;
+			this.errOcrd = true;
 			return false;
 		}
 		this.anmtns.push(new AnimationFragment(a, this.getRomanNumeralsFncn));
 	}
 	reset()
 	{
-		if (this.errorOccurred)
+		if (this.errorOccurred())
 			return;
 		this.strtd = false;
 		this.idx = 0;
+		let i;
+		for (i=0; i<this.anmtns.length; i++)
+			this.anmtns[i].reset();
 	}
 	started() {return this.strtd;}
 	start()
 	{
-		if (this.errorOccurred)
+		if (this.errorOccurred())
 			return;
-		if (0 < this.anmtns.length)
+		if (this.anmtns.length <= 0)
+			return;
+		let f = this.anmtns[0];
+		if (f === null)
 		{
-			if (this.anmtns[0].reset()==false)
-			{
-				this.errorOccurred = true;
-				return; // some error in this.anmtns[0].reset(), so stop executing this AnimationSequence
-			}
+			console.log(this.constructor.name + ".start() error: this.anmtns[0]===null");
+			this.errOcrd = true;
+			return; // some failure in this.anmtns[0].reset(), so stop executing this AnimationSequence
+		}
+		if (f.start()==false)
+		{
+			console.log(this.constructor.name + ".start() error: this.anmtns[0].start() failed");
+			this.errOcrd = true;
+			return; // some failure in this.anmtns[0].reset(), so stop executing this AnimationSequence
 		}
 		this.strtd = true;
 	}
 	finished() {return (this.started() && (this.idx >= this.anmtns.length));}
 	more()
 	{
-		if (this.errorOccurred)
+		if (this.errorOccurred())
 			return false;
 		if (this.anmtns === null)
 		{
 			console.log(this.constructor.name + ".more() error: this.anmtns===null");
-			this.errorOccurred = true;
+			this.errOcrd = true;
 			return false;
 		}
+		if (this.started()==false)
+			return true;
 		if (this.finished())
 			return false;
-		if (this.anmtns[this.idx].more())
+		let f = this.anmtns[this.idx];
+		if (f === null)
+		{
+			console.log(this.constructor.name + ".start() error: this.anmtns[" + this.idx.toString() + "]===null (before call to more() method)");
+			this.errOcrd = true;
+			return; // some failure in this.anmtns[0].reset(), so stop executing this AnimationSequence
+		}
+		if (f.more())
 			return true; // anmtns[idx] still executing
 		this.idx++; // otherwise, move to the next AnimationFragment object
 		if (this.finished())
 			return false;
-		return this.anmtns[this.idx].reset();
+		f = this.anmtns[this.idx];
+		if (f === null)
+		{
+			console.log(this.constructor.name + ".start() error: this.anmtns[" + this.idx.toString() + "]===null (before call to start() method)");
+			this.errOcrd = true;
+			return; // some failure in this.anmtns[0].reset(), so stop executing this AnimationSequence
+		}
+		if (f.start()==false)
+		{
+			console.log(this.constructor.name + ".more() error: this.anmtns[" + this.idx.toString() + "].start() failed");
+			this.errOcrd = true;
+			return false; // some error in this.anmtns[this.idx].reset(), so stop executing this AnimationSequence
+		}
+		return true;
 	}
 	findFragment(iniTxt, fnlTxt)
 	{
-		if (this.errorOccurred)
+		if (this.errorOccurred())
 			return null;
 		let i = this.findIndex(iniTxt, fnlTxt);
 		if (i === null)
 		{
 			console.log(this.constructor.name + ".findFragment() error: this.findIndex(" + iniTxt + ", " + fnlTxt + ") returned null");
-			this.errorOccurred = true;
+			this.errOcrd = true;
 			return null;
 		}
 		return this.anmtns[i];
 	}
 	findIndex(iniTxt, fnlTxt)
 	{
-		if (this.errorOccurred)
+		if (this.errorOccurred())
 			return null;
-		let i = 0;
 		let f = null;
 		let a = null;
 		let m = null;
+		let i = 0;
 		while (i < this.anmtns.length)
 		{
 			f = this.anmtns[i];
@@ -2578,14 +2624,14 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 			if (a === null)
 			{
 				console.log(this.constructor.name + ".findIndex() error: this.anmtns[" + i.toString() + "].anmtn===null");
-				this.errorOccurred = true;
+				this.errOcrd = true;
 				return null;
 			}
 			m = a.morph;
 			if (m === null)
 			{
 				console.log(this.constructor.name + ".findIndex() error: this.anmtns[" + i.toString() + "].anmtn.morph===null");
-				this.errorOccurred = true;
+				this.errOcrd = true;
 				return null;
 			}
 			if (m.initialText === iniTxt &&	m.finalText === fnlTxt)
@@ -2641,18 +2687,26 @@ incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCCCCtoCD, setRoman
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCDCtoD, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCMCtoM, setRomanNumeralsSubtractive));
 
-const f = incNumAnmtnsSbtrctv.findFragment("IVI", "V");
-if (f === null)
-	console.log("not found IVI V");
-else
-	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
-if (f.after(incNumAnmtnsAddtv, "IIIII", "V")==false)
-	console.log("not found IIIII V");
-else
-	console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
+let f = incNumAnmtnsSbtrctv.findFragment("IVI", "V");
+if (f !== null)
+	f.after(incNumAnmtnsAddtv, "IIIII", "V");
+f = incNumAnmtnsSbtrctv.findFragment("IXI", "X");
+if (f !== null)
+	f.after(incNumAnmtnsAddtv, "VV", "X");
+f = incNumAnmtnsAddtv.findFragment("XXXXX", "L");
+if (f !== null)
+	f.after(incNumAnmtnsSbtrctv, "IXI", "X");
+f = incNumAnmtnsSbtrctv.findFragment("XLX", "L");
+if (f !== null)
+	f.after(incNumAnmtnsAddtv, "XXXXX", "L");
+f = incNumAnmtnsSbtrctv.findFragment("XCX", "C");
+if (f !== null)
+	f.after(incNumAnmtnsAddtv, "LL", "C");
 
 function incrementNumber()
 {
+	if (incNumAnmtnsAddtv.errorOccurred() || incNumAnmtnsSbtrctv.errorOccurred())
+		return;
 	if (incNumAnmtnsAddtv.started()==false && incNumAnmtnsSbtrctv.started()==false)
 	{
 		if (inputNumber >= largestNumberToDisplay)
@@ -2668,16 +2722,14 @@ function incrementNumber()
 	}
 	else
 	{
-		if (incNumAnmtnsAddtv.started())
-			incNumAnmtnsAddtv.more();
-		if (incNumAnmtnsSbtrctv.started())
-			incNumAnmtnsSbtrctv.more();
+		incNumAnmtnsAddtv.more();
+		incNumAnmtnsSbtrctv.more();
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
 	{
-		incNumAnmtnsAddtv.reset(); // reset() method changes the internal state read by finished() accessor
-		incNumAnmtnsSbtrctv.reset(); // reset() method changes the internal state read by finished() accessor
-		setNumber();
+		incNumAnmtnsAddtv.reset(); // reset() method changes the internal state read by finished() accessor...
+		incNumAnmtnsSbtrctv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
+		setNumber(); //...otherwise this branch of this if-statement will never execute
 	}
 	else
 		window.requestAnimationFrame(incrementNumber);
