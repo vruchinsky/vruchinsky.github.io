@@ -1471,7 +1471,7 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	started = false; // true iff initialText was found in entireText
-	finished = true; // iff finished the metamorphosis of intialText into finalText
+	finished = false; // iff finished the metamorphosis of intialText into finalText
 	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
 	constructor(m, f) // m must be object of class MetamorphoseIIIIItoV
 	{ // f must be name of function: either setRomanNumeralsAdditive or setRomanNumeralsSubtractive
@@ -1485,22 +1485,34 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 		this.cnv = m.cnv;
 		this.ctx = m.ctx;
 	}
-	reset(sText)
+	reset()
 	{
 		this.started = false;
-		this.finished = true;
+		this.finished = false;
+	}
+	start(sText)
+	{
 		if (sText == null || this.initialText == null || this.finalText == null ||
 			typeof(sText) !== 'string' || typeof(this.initialText) !== 'string' ||
 			typeof(this.finalText) !== 'string' ||
 			this.initialText.length < 1 || this.finalText.length < 1)
+		{
+			this.finished = true;
 			return; // invalid parameters, so nothing to do here
+		}
 		this.entireText = sText;
  		this.nCsame = this.entireText.length - this.initialText.length;
 		if ((this.nCsame < 0) || (this.entireText.substring(this.nCsame) !== this.initialText))
+		{
+			this.finished = true;
 			return; // nothing to substitute, so nothing to do here
+		}
 		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.cnv === null || this.ctx === null)
+		{
+			this.finished = true;
 			return; // browser does not support canvas
+		}
 		this.started = true;
 		this.finished = false;
 		const cvw = this.cnv.width - hOffset;
@@ -1785,7 +1797,7 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 	x1m = 0; // midpoint, between x1 initial and x1f, where to start using v1AdjFast instead of v1AdjSlow
 	t = 0; // (msec) time of last update
 	started = false; // true iff initialText was found in entireText
-	finished = true; // iff finished the metamorphosis of intialText into finalText
+	finished = false; // iff finished the metamorphosis of intialText into finalText
 	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
 	constructor(m, f) // m must be object of class MetamorphoseVVtoX
 	{ // f must be name of function: either setRomanNumeralsAdditive or setRomanNumeralsSubtractive
@@ -1801,24 +1813,39 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		this.cnv = m.cnv;
 		this.ctx = m.ctx;
 	}
-	reset(sText)
+	reset()
 	{
 		this.started = false;
-		this.finished = true;
+		this.finished = false;
+	}
+	start(sText)
+	{
 		if (sText == null || this.initialText == null || this.finalText == null ||
 			typeof(sText) !== 'string' || typeof(this.initialText) !== 'string' ||
 			typeof(this.finalText) !== 'string' ||
 			this.initialText.length < 1 || this.finalText.length < 1)
+		{
+			this.finished = true;
 			return; // invalid parameters, so nothing to do here
+		}
 		this.entireText = sText;
  		this.nCsame = this.entireText.length - this.initialText.length;
 		if (this.nCsame < 0)
+		{
+			this.finished = true;
 			return; // this.entireText shorter than initialText, so nothing to substitute, so nothing to do here
+		}
 		if (this.entireText.substring(this.nCsame) !== this.initialText)
+		{
+			this.finished = true;
 			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
+		}
 		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.cnv === null || this.ctx === null)
+		{
+			this.finished = true;
 			return; // browser does not support canvas
+		}
 		this.started = true;
 		this.finished = false;
 		const cvw = this.cnv.width - hOffset;
@@ -2056,7 +2083,7 @@ class Fade // used to fade text in, to fade text out...
 }
 
 class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) into finalText...
-{//...(more than 1 numeral) while moving the numerals of finalText from overlapping each other to usual spacing
+{//...(more than 1 numeral) while moving the numerals of finalText apart (starting from overlapping each other and ending at their usual spacing)
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
 	initialText = null; // (constant) text to fade out
@@ -2082,7 +2109,7 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
 	started = false; // true iff initialText was found in entireText
-	finished = true; // iff finished the metamorphosis of intialText into finalText
+	finished = false; // iff finished the metamorphosis of intialText into finalText
 	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
 	constructor(m, f)
 	{
@@ -2098,24 +2125,39 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		this.cnv = m.cnv;
 		this.ctx = m.ctx;
 	}
-	reset(sText)
+	reset()
 	{
 		this.started = false;
-		this.finished = true;
+		this.finished = false;
+	}
+	start(sText)
+	{
 		if (sText == null || this.initialText == null || this.finalText == null ||
 			typeof(sText) !== 'string' || typeof(this.initialText) !== 'string' ||
 			typeof(this.finalText) !== 'string' ||
 			this.initialText.length < 1 || this.finalText.length < 1)
+		{
+			this.finished = true;
 			return; // invalid parameters, so nothing to do here
+		}
 		this.entireText = sText;
 		this.nCsame = this.entireText.length - this.initialText.length; // how many numerals in sameText
 		if (this.nCsame < 0)
+		{
+			this.finished = true;
 			return; // this.entireText shorter than initialText, so nothing to substitute, so nothing to do here
+		}
 		if (this.entireText.substring(this.nCsame) !== this.initialText)
+		{
+			this.finished = true;
 			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
+		}
 		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.cnv === null || this.ctx === null)
+		{
+			this.finished = true;
 			return; // browser does not support canvas
+		}
 		this.started = true;
 		this.finished = false;
 		const cvw = this.cnv.width - hOffset;
@@ -2245,7 +2287,7 @@ class AnimateNumeralSubstitutionToFew
 	xiSameText = 0; // initial horizontal position of sameText on canvas
 	xfSameText = 0; // final horizontal position of sameText on canvas
 	started = false; // true iff initialText was found in entireText
-	finished = true; // iff finished all the stages of this animation
+	finished = false; // iff finished all the stages of this animation
 	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
 	constructor(m, f)
 	{
@@ -2257,22 +2299,37 @@ class AnimateNumeralSubstitutionToFew
 		this.cnv = this.morph.cnv;
 		this.ctx = this.morph.ctx;
 	}
-	reset(sText)
+	reset()
 	{
 		this.started = false;
-		this.finished = true;
+		this.finished = false;
+	}
+	start(sText)
+	{
 		if (sText == null || this.morph.initialText == null ||
 			typeof(sText) !== 'string' || typeof(this.morph.initialText) !== 'string')
+		{
+			this.finished = true;
 			return; // invalid parameters, so nothing to do here
+		}
 		this.entireText = sText;
 		this.nCsame = this.entireText.length - this.morph.initialText.length; // how many numerals in sameText
 		if (this.nCsame < 0)
+		{
+			this.finished = true;
 			return; // this.entireText shorter than initialText, so nothing to substitute, so nothing to do here
+		}
 		if (this.entireText.substring(this.nCsame) !== this.morph.initialText)
+		{
+			this.finished = true;
 			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
+		}
 		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.cnv === null || this.ctx === null)
+		{
+			this.finished = true;
 			return; // browser does not support canvas
+		}
 		this.started = true;
 		this.finished = false;
 		this.morph.reset();
@@ -2337,7 +2394,7 @@ class AnimateNumeralInsertion
 	makeSpace = null; // to store SlideTextHorizontally object
 	entireText = null; // sameText followed by initialText
 	started = false; // true iff initialText was found in romanNumeralsAdditive
-	finished = true; // iff finished all the stages of this animation
+	finished = false; // iff finished all the stages of this animation
 	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
 	constructor(m, f)
 	{
@@ -2349,19 +2406,27 @@ class AnimateNumeralInsertion
 		this.ctx = this.morph.ctx;
 		this.makeSpace = new SlideTextHorizontally(m, null);
 	}
-	reset(sText)
+	reset()
 	{
 		this.started = false;
-		this.finished = true;
+		this.finished = false;
+	}
+	start(sText)
+	{
 		if (sText == null || this.morph.finalText == null ||
 			typeof(sText) !== 'string' || typeof(this.morph.finalText) !== 'string' ||
 			this.morph.finalText.length < 1)
+		{
+			this.finished = true;
 			return; // invalid parameters, so nothing to do here
+		}
 		this.entireText = sText;
 		if (this.cnv === null || this.ctx === null)
+		{
+			this.finished = true;
 			return; // browser does not support canvas
+		}
 		this.started = true;
-		this.finished = false;
 		let xi = this.cnv.width - hOffset;
 		let xf = xi;
 		let metrics = this.ctx.measureText(this.entireText);
@@ -2424,6 +2489,12 @@ class AnimationFragment
 			return false;
 		}
 		this.prcndtnIdx = s.findIndex(iniTxt, fnlTxt);
+		if (this.prcndtnIdx === null)
+		{
+			console.log(this.constructor.name + ".after() error: s.findIndex(" + iniTxt + "," + fnlTxt + ") failed");
+			this.errOcrd = true;
+			return false;
+		}
 		return true;
 	}
 	preconditionsMet()
@@ -2454,7 +2525,17 @@ class AnimationFragment
 		return a.finished;
 	}
 	started() {return this.strtd;}
-	reset() {this.strtd = false;}
+	reset()
+	{
+		this.strtd = false;
+		if (this.anmtn === null)
+		{
+			console.log(this.constructor.name + ".reset() error: this.anmtn===null");
+			this.errOcrd = true;
+			return false;
+		}
+		this.anmtn.reset();
+	}
 	start()
 	{
 		if (this.errorOccurred())
@@ -2474,7 +2555,7 @@ class AnimationFragment
 		if (this.preconditionsMet())
 		{
 			this.strtd = true;
-			this.anmtn.reset(this.getRomanNumeralsFncn());
+			this.anmtn.start(this.getRomanNumeralsFncn());
 		}
 		return true;
 	}
@@ -2494,7 +2575,7 @@ class AnimationFragment
 		{
 			console.log(this.constructor.name + ".more() error: this.start() failed");
 			this.errOcrd = true;
-			return false; // some failure in this.anmtns[0].reset(), so stop executing this AnimationSequence
+			return false;
 		}
 		return true;
 	}
@@ -2544,13 +2625,13 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 		{
 			console.log(this.constructor.name + ".start() error: this.anmtns[0]===null");
 			this.errOcrd = true;
-			return; // some failure in this.anmtns[0].reset(), so stop executing this AnimationSequence
+			return;
 		}
 		if (f.start()==false)
 		{
 			console.log(this.constructor.name + ".start() error: this.anmtns[0].start() failed");
 			this.errOcrd = true;
-			return; // some failure in this.anmtns[0].reset(), so stop executing this AnimationSequence
+			return; // some failure in this.anmtns[0].start(), so stop executing this AnimationSequence
 		}
 		this.strtd = true;
 	}
@@ -2574,7 +2655,7 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 		{
 			console.log(this.constructor.name + ".start() error: this.anmtns[" + this.idx.toString() + "]===null (before call to more() method)");
 			this.errOcrd = true;
-			return; // some failure in this.anmtns[0].reset(), so stop executing this AnimationSequence
+			return;
 		}
 		if (f.more())
 			return true; // anmtns[idx] still executing
@@ -2586,13 +2667,13 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 		{
 			console.log(this.constructor.name + ".start() error: this.anmtns[" + this.idx.toString() + "]===null (before call to start() method)");
 			this.errOcrd = true;
-			return; // some failure in this.anmtns[0].reset(), so stop executing this AnimationSequence
+			return;
 		}
 		if (f.start()==false)
 		{
 			console.log(this.constructor.name + ".more() error: this.anmtns[" + this.idx.toString() + "].start() failed");
 			this.errOcrd = true;
-			return false; // some error in this.anmtns[this.idx].reset(), so stop executing this AnimationSequence
+			return false; // some error in this.anmtns[this.idx].start(), so stop executing this AnimationSequence
 		}
 		return true;
 	}
@@ -2689,19 +2770,99 @@ incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCMCtoM, setRomanNu
 
 let f = incNumAnmtnsSbtrctv.findFragment("IVI", "V");
 if (f !== null)
-	f.after(incNumAnmtnsAddtv, "IIIII", "V");
+{
+	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
+	if (f.after(incNumAnmtnsAddtv, "IIIII", "V"))
+		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
+	else
+		console.log('failed in f.after(incNumAnmtnsAddtv, "IIIII", "V")');
+}
+else
+	console.log('failed in incNumAnmtnsSbtrctv.findFragment("IVI", "V")');
+
 f = incNumAnmtnsSbtrctv.findFragment("IXI", "X");
 if (f !== null)
-	f.after(incNumAnmtnsAddtv, "VV", "X");
+{
+	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
+	if (f.after(incNumAnmtnsAddtv, "VV", "X"))
+		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
+	else
+		console.log('failed in f.after(incNumAnmtnsAddtv, "VV", "X")');
+}
+else
+	console.log('failed in incNumAnmtnsSbtrctv.findFragment("IXI", "X")');
+
 f = incNumAnmtnsAddtv.findFragment("XXXXX", "L");
 if (f !== null)
-	f.after(incNumAnmtnsSbtrctv, "IXI", "X");
+{
+	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
+	if (f.after(incNumAnmtnsSbtrctv, "IXI", "X"))
+		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
+	else
+		console.log('failed in f.after(incNumAnmtnsSbtrctv, "IXI", "X")');
+}
+else
+	console.log('failed in incNumAnmtnsAddtv.findFragment("XXXXX", "L")');
+
 f = incNumAnmtnsSbtrctv.findFragment("XLX", "L");
 if (f !== null)
-	f.after(incNumAnmtnsAddtv, "XXXXX", "L");
+{
+	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
+	if (f.after(incNumAnmtnsAddtv, "XXXXX", "L"))
+		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
+	else
+		console.log('failed in f.after(incNumAnmtnsAddtv, "XXXXX", "L")');
+}
+else
+	console.log('failed in incNumAnmtnsSbtrctv.findFragment("XLX", "L")');
+
 f = incNumAnmtnsSbtrctv.findFragment("XCX", "C");
 if (f !== null)
-	f.after(incNumAnmtnsAddtv, "LL", "C");
+{
+	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
+	if (f.after(incNumAnmtnsAddtv, "LL", "C"))
+		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
+	else
+		console.log('failed in f.after(incNumAnmtnsAddtv, "LL", "C")');
+}
+else
+	console.log('failed in incNumAnmtnsSbtrctv.findFragment("XCX", "C")');
+
+f = incNumAnmtnsAddtv.findFragment("CCCCC", "D");
+if (f !== null)
+{
+	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
+	if (f.after(incNumAnmtnsSbtrctv, "XCX", "C"))
+		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
+	else
+		console.log('failed in f.after(incNumAnmtnsSbtrctv, "XCX", "C")');
+}
+else
+	console.log('failed in incNumAnmtnsAddtv.findFragment("CCCCC", "D")');
+
+f = incNumAnmtnsSbtrctv.findFragment("CDC", "D");
+if (f !== null)
+{
+	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
+	if (f.after(incNumAnmtnsAddtv, "CCCCC", "D"))
+		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
+	else
+		console.log('failed in f.after(incNumAnmtnsAddtv, "CCCCC", "D")');
+}
+else
+	console.log('failed in incNumAnmtnsSbtrctv.findFragment("CDC", "D")');
+
+f = incNumAnmtnsSbtrctv.findFragment("CMC", "M");
+if (f !== null)
+{
+	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
+	if (f.after(incNumAnmtnsAddtv, "DD", "M"))
+		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
+	else
+		console.log('failed in f.after(incNumAnmtnsAddtv, "DD", "M")');
+}
+else
+	console.log('failed in incNumAnmtnsSbtrctv.findFragment("CMC", "M")');
 
 function incrementNumber()
 {
@@ -2763,7 +2924,7 @@ function decrementNumber()
 			decNumAnmtnsAddtv[decNumHndlrState-1].more()==false)
 		{
 			if (decNumHndlrState < decNumAnmtnsAddtv.length)
-				decNumAnmtnsAddtv[decNumHndlrState].reset(romanNumeralsAdditive);
+				decNumAnmtnsAddtv[decNumHndlrState].start(romanNumeralsAdditive);
 			decNumHndlrState++;
 		}
 	}
