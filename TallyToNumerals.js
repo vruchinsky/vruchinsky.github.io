@@ -141,6 +141,7 @@ function clearCanvas(cv)
 
 function eraseDrawings()
 {
+	arabicNumeralsElement.value = "";
 	clearCanvas(tallyCanvas);
 	clearCanvas(romanToTallyConnectorCanvas);
 	clearCanvas(romanToArabicConnectorCanvas);
@@ -2745,7 +2746,7 @@ let mSbtrctvInI = new Fade(romanNumeralsSubtractiveCanvas, null, "I");
 let mVIIIItoIX = new Fade(romanNumeralsSubtractiveCanvas, "VIIII", "IX");
 let mIIIItoIV = new Fade(romanNumeralsSubtractiveCanvas, "IIII", "IV");
 let mIVItoV = new Fade(romanNumeralsSubtractiveCanvas, "IVI", "V");
-let mIXItoV = new Fade(romanNumeralsSubtractiveCanvas, "IXI", "X");
+let mIXItoX = new Fade(romanNumeralsSubtractiveCanvas, "IXI", "X");
 let mLXXXXtoXC = new Fade(romanNumeralsSubtractiveCanvas, "LXXXX", "XC");
 let mXXXXtoXL = new Fade(romanNumeralsSubtractiveCanvas, "XXXX", "XL");
 let mXLXtoL = new Fade(romanNumeralsSubtractiveCanvas, "XLX", "L");
@@ -2758,7 +2759,7 @@ incNumAnmtnsSbtrctv.push(new AnimateNumeralInsertion(mSbtrctvInI, setRomanNumera
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mVIIIItoIX, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIIIItoIV, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIVItoV, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIXItoV, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIXItoX, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mLXXXXtoXC, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mXXXXtoXL, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mXLXtoL, setRomanNumeralsSubtractive));
@@ -2875,7 +2876,6 @@ function incrementNumber()
 		if (incrementOrDecrementExecuting)
 			return;
 		disableButtons(true);
-		arabicNumeralsElement.value = "";
 		eraseDrawings();
 		inputNumber++;
 		incNumAnmtnsAddtv.start();
@@ -2897,7 +2897,7 @@ function incrementNumber()
 }
 
 let mAddtvOutI = new Fade(romanNumeralsAdditiveCanvas, "I", null);
-const decNumAnmtnsAddtv = [];
+const decNumAnmtnsAddtv = new AnimationSequence(getRomanNumeralsAdditive);
 decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mDDtoM, setRomanNumeralsAdditive));
 decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mCCCCCtoD, setRomanNumeralsAdditive));
 decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mLLtoC,setRomanNumeralsAdditive));
@@ -2905,38 +2905,51 @@ decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mXXXXXtoL, setRomanN
 decNumAnmtnsAddtv.push(new MetamorphoseXtoVV(mVVtoX, setRomanNumeralsAdditive));
 decNumAnmtnsAddtv.push(new MetamorphoseVtoIIIII(mIIIIItoV, setRomanNumeralsAdditive));
 decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mAddtvOutI, setRomanNumeralsAdditive));
-let decNumHndlrState = 0;
+
+let mSbtrctvOutI = new Fade(romanNumeralsSubtractiveCanvas, "I", null);
+const decNumAnmtnsSbtrctv = new AnimationSequence(getRomanNumeralsSubtractive);
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mDCCCCtoCM, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mCMCtoM, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mCCCCtoCD, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mCDCtoD, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mLXXXXtoXC, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mXCXtoC, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mXXXXtoXL, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mXLXtoL, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mVIIIItoIX, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mIXItoX, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mIIIItoIV, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mIVItoV, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI, setRomanNumeralsSubtractive));
 
 function decrementNumber()
 {
-	if (decNumHndlrState == 0)
+	if (decNumAnmtnsAddtv.errorOccurred() || decNumAnmtnsSbtrctv.errorOccurred())
+		return;
+	if (decNumAnmtnsAddtv.started()==false && decNumAnmtnsSbtrctv.started()==false)
 	{
-		if (inputNumber <= smallestNumberToDisplay) return;
- 		if (incrementOrDecrementExecuting) return;
+		if (inputNumber <= smallestNumberToDisplay)
+			return;
+ 		if (incrementOrDecrementExecuting)
+			return;
 		disableButtons(false);
-		arabicNumeralsElement.value = "";
 		eraseDrawings();
 		inputNumber--;
-	}
-	if (decNumHndlrState < decNumAnmtnsAddtv.length + 1)
-	{
-		if (decNumHndlrState == 0 ||
-			decNumAnmtnsAddtv[decNumHndlrState-1].more()==false)
-		{
-			if (decNumHndlrState < decNumAnmtnsAddtv.length)
-				decNumAnmtnsAddtv[decNumHndlrState].start(romanNumeralsAdditive);
-			decNumHndlrState++;
-		}
+		decNumAnmtnsAddtv.start();
+		decNumAnmtnsSbtrctv.start();
 	}
 	else
 	{
-		setNumber();
-		decNumHndlrState = 0;
-		let i;
-		for (i=0; i<decNumAnmtnsAddtv.length; i++)
-			decNumAnmtnsAddtv[i].reset();
+		decNumAnmtnsAddtv.more();
+		decNumAnmtnsSbtrctv.more();
 	}
-	if (decNumHndlrState > 0)
+	if (decNumAnmtnsAddtv.finished() && decNumAnmtnsSbtrctv.finished())
+	{
+		decNumAnmtnsAddtv.reset(); // reset() method changes the internal state read by finished() accessor...
+		decNumAnmtnsSbtrctv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
+		setNumber(); //...otherwise this branch of this if-statement will never execute
+	}
+	else
 		window.requestAnimationFrame(decrementNumber);
 }
 
