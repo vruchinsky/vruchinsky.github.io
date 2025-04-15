@@ -2932,6 +2932,9 @@ function decrementNumber()
 	{
 		setNumber();
 		decNumHndlrState = 0;
+		let i;
+		for (i=0; i<decNumAnmtnsAddtv.length; i++)
+			decNumAnmtnsAddtv[i].reset();
 	}
 	if (decNumHndlrState > 0)
 		window.requestAnimationFrame(decrementNumber);
