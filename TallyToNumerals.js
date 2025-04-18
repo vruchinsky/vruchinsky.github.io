@@ -175,6 +175,7 @@ function fpEqual(a, b, tol) {return (a < b + tol && b < a + tol);}
 function fpLess(a, b, tol) {return (a + tol < b);}
 function fpLessEq(a, b, tol) {return !fpLess(b, a, tol);}
 function fpMax(a, b, tol) {return fpLess(a, b, tol) ? b : a;}
+function fpMin(a, b, tol) {return fpLess(a, b, tol) ? a : b;}
 
 function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclude) // draw rectangle with rounded corners
 { // based on https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes
@@ -2106,6 +2107,7 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	vaIn = 0; // how fast to change aIn to aInF (calculated from aInF, aInI and AnimationSpeedMetamorphosis)
 	aIn = 0; // current alpha value for finalText (starts = aInI and increases to aInF)
 	vx = null; // (px/msec) how fast to move x[i] towards xf[i]
+	vxPos = null; // array of booleans: vxPos[i] == (vx[i] > 0)
 	vxs = 0; // (px/msec) how fast to move xs towards xSf
 	t = 0; // (msec) time of last update
 	vPos = 0; // vertical position of all the text treated by this class
@@ -2168,16 +2170,24 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 			this.xf = new Array(this.x.length);
 		if (this.vx === null)
 			this.vx = new Array(this.x.length);
-		let metrics = null;
+		if (this.vxPos === null)
+			this.vxPos = new Array(this.x.length);
+		let metrics = this.ctx.measureText(this.initialText);
+		this.vPos = metrics.actualBoundingBoxAscent;
+		this.wInitialText = metrics.width;
 		for (let i=0; i<this.x.length; i++)
 		{
 			metrics = this.ctx.measureText(this.finalText.substring(i));
 			this.xf[i] = cvw - metrics.width;
 		}
-		metrics = this.ctx.measureText(this.initialText);
-		this.wInitialText = metrics.width;
-		this.x.fill(cvw - this.wInitialText); // the characters of finalText diverge from the same initial position
-		this.vPos = metrics.actualBoundingBoxAscent;
+		if (this.initialText.length < 2)
+			this.x.fill(cvw - this.wInitialText); // the characters of finalText diverge from the same initial position
+		else
+		{
+			const initialToFinalLengthRatio = this.initialText.length / (this.finalText.length);
+			for (let i=0; i<this.x.length; i++)
+				this.x[i] = cvw - Math.round( (cvw - this.xf[i]) * initialToFinalLengthRatio );
+		}
 		metrics = this.ctx.measureText(this.sameText);
 		this.xSf = this.xf[0] - metrics.width;
 		this.xs = this.x[0] - metrics.width;
@@ -2187,7 +2197,10 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		this.vaIn = AnimationSpeedMetamorphosis*(this.aInF - this.aInI);
 		this.vxs = AnimationSpeedMetamorphosis*(this.xSf - this.xs);
 		for (let i=0; i<this.x.length; i++)
+		{
 			this.vx[i] = AnimationSpeedMetamorphosis*(this.xf[i] - this.x[i]);
+			this.vxPos[i] = fpLessEq(0, this.vx[i], fpTolerance);
+		}
 		this.t = Date.now();
 	}
 	done()
@@ -2211,18 +2224,22 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		let u = this.xs + (this.vxs)*dt;
 		this.xs = fpLessEq(this.xSf, u, fpTolerance) ? u : this.xSf; // prevent xs from surpassing xSf
 		let xLim;
-		let xPrior;
+		let xNext;
+		let withinBound;
 		const iLast = this.x.length - 1;
-		for (let i=0; i<iLast; i++)
-		{
-			xPrior = (i < 1) ? this.xs : this.x[i-1]; // use xs instead of x[i-1] if i==0
-			xLim = fpMax(xPrior, this.xf[i], fpTolerance);
+		for (let i=0; i<this.x.length; i++)
+		{ // xLim = the closest bound for x[i], determined using xf[i] and either x[i-1] or x[i+1]
+			if (this.vxPos[i])
+				xLim = (i==iLast) ? this.xf[i] : fpMin(this.x[i+1], this.xf[i], fpTolerance);
+			else
+			{
+				xNext = (i < 1) ? this.xs : this.x[i-1]; // use xs instead of x[i-1] if i==0
+				xLim = fpMax(xNext, this.xf[i], fpTolerance);
+			}
 			u = this.x[i] + (this.vx[i])*dt;
-			this.x[i] = fpLessEq(xLim, u, fpTolerance) ? u : xLim; // prevent x[i] from surpassing max(x[i-1],xf[i])
+			withinBound = this.vxPos[i] ? fpLessEq(u, xLim, fpTolerance) : fpLessEq(xLim, u, fpTolerance);
+			this.x[i] = withinBound ? u : xLim; // prevent x[i] from surpassing xLim
 		}
-		u = this.x[iLast] + (this.vx[iLast])*dt;
-		xLim = this.xf[iLast];
-		this.x[iLast] = fpLessEq(u, xLim, fpTolerance) ? u : xLim; // prevent x0 from surpassing max(xs,x0f)
 		if (this.initialText !== null)
 		{
 			u = this.aOut + (this.vaOut) * dt;
