@@ -2488,59 +2488,75 @@ class AnimateNumeralInsertion
 class AnimationFragment
 { // the reference to a specific animation object and references to preconditions for the execution of this animation object
 	anmtn = null; // ref. to the animation object of class AnimateNumeralInsertion or AnimateNumeralSubstitutionToFew
-	prcndtnSeq = null; // ref. to AnimationSequence object which contains AnimationFragment object which must finish executing before this.anmtn starts to execute
-	prcndtnIdx = null; // the index of that element in this.prcndtnSeq.anmtns which must finish executing before this.anmtn starts to execute
-	strtd = false; // becomes true when start to execute anmtns array, reset to false when finished
+	strtd = false; // becomes true when start to execute this.anmtn, reset to false when finished
 	getRomanNumeralsFncn = null; // ref. to function which reads the appropriate romanNumerals variable
+	prcndtns = []; // ref-s to AnimationSequence objects which contains AnimationFragment objects which must finish executing before this.anmtn starts to execute
 	errOcrd = false;
 	constructor(a, f) {this.anmtn = a; this.getRomanNumeralsFncn = f;}
 	errorOccurred() {return this.errOcrd};
-	after(s, iniTxt, fnlTxt) // set the constraint: this.anmtn can start only after the animation in s (identified using iniTxt and fnlTxt) finishes
+	after(seq, iniTxt, fnlTxt) // set the constraint: this.anmtn can start only after the animation in s (identified using iniTxt and fnlTxt) finishes
 	{ // and implement this constraint in this.more()
 		if (this.errorOccurred())
 			return false;
-		this.prcndtnSeq = s;
-		if (s === null)
+		if (seq === null)
 		{
 			console.log(this.constructor.name + ".after() error: s===null");
 			this.errOcrd = true;
 			return false;
 		}
-		this.prcndtnIdx = s.findIndex(iniTxt, fnlTxt);
-		if (this.prcndtnIdx === null)
+		const idx = seq.findIndex(iniTxt, fnlTxt); // the index of that element in seq which must finish executing before this.anmtn starts to execute
+		if (idx === null)
 		{
 			console.log(this.constructor.name + ".after() error: s.findIndex(" + iniTxt + "," + fnlTxt + ") failed");
 			this.errOcrd = true;
 			return false;
 		}
+		this.prcndtns.push({seq, idx});
 		return true;
+	}
+	logPreconditions(f)
+	{
+		let prc;
+		let j = 0;
+		while (j < this.prcndtns.length)
+		{
+			prc = this.prcndtns[j];
+			f(prc.seq.anmtns[prc.idx].anmtn.morph.initialText + "->" + prc.seq.anmtns[prc.idx].anmtn.morph.finalText +
+				" < " +	this.anmtn.morph.initialText + "->" + this.anmtn.morph.finalText);
+			j++;
+		}
 	}
 	preconditionsMet()
 	{
 		if (this.errorOccurred())
 			return false;
-		if (this.prcndtnSeq === null || this.prcndtnIdx === null)
-			return true; // b/c there is no precondition at all recorded here
-		let i = this.prcndtnSeq.index();
-		if (i < this.prcndtnIdx)
-			return false; // the awaited animation fragment has not started to execute yet
-		if (i > this.prcndtnIdx)
-			return true; // the awaited animation fragment finished (considering that a later one is executing now)
-		let f = this.prcndtnSeq.anmtns[i]; // here, i == this.prcndtnIdx, so check the execution status of the awaited animation fragment
-		if (f === null)
+		let prc, i, f, a, j;
+		for (j=0; j<this.prcndtns.length; j++)
 		{
-			console.log(this.constructor.name + ".preconditionsMet() error: this.prcndtnSeq.anmtns[" + i.toString() + "]===null");
-			this.errOcrd = true;
-			return true; // b/c the precondition recorded here is invalid due to a corruption of its supporting data
+			prc = this.prcndtns[j];
+			i = prc.seq.index();
+			if (i < prc.idx)
+				return false; // an awaited animation fragment has not started to execute yet
+			if (i > prc.idx)
+				continue; // an awaited animation fragment finished (considering that a later one is executing now)
+			f = prc.seq.anmtns[i]; // here, i == prc.idx, so check the execution status of the awaited animation fragment
+			if (f === null)
+			{
+				console.log(this.constructor.name + ".preconditionsMet() error: this.prcndtns[" + j.toString() + "].seq.anmtns[" + i.toString() + "]===null");
+				this.errOcrd = true;
+				return false; // b/c the precondition recorded here is invalid due to a corruption of its supporting data
+			}
+			a = f.anmtn; // animation object (of class AnimateNumeralInsertion or AnimateNumeralSubstitutionToFew) referenced in f
+			if (a === null)
+			{
+				console.log(this.constructor.name + ".preconditionsMet() error: this.prcndtns[" + j.toString() + "].seq.anmtns[" + i.toString() + "].anmtn===null");
+				this.errOcrd = true;
+				return false; // b/c the precondition recorded here is invalid due to a corruption of its supporting data
+			}
+			if (a.finished == false)
+				return false;
 		}
-		let a = f.anmtn; // animation object (of class AnimateNumeralInsertion or AnimateNumeralSubstitutionToFew) referenced in f
-		if (a === null)
-		{
-			console.log(this.constructor.name + ".preconditionsMet() error: this.prcndtnSeq.anmtns[" + i.toString() + "].anmtn===null");
-			this.errOcrd = true;
-			return true; // b/c the precondition recorded here is invalid due to a corruption of its supporting data
-		}
-		return a.finished;
+		return true;
 	}
 	started() {return this.strtd;}
 	reset()
@@ -2609,17 +2625,23 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 	constructor(f) {this.getRomanNumeralsFncn = f;}
 	errorOccurred() {return this.errOcrd};
 	index() {return this.idx;}
-	push(a)
+	append(a)
 	{
 		if (this.errorOccurred())
 			return;
 		if (this.getRomanNumeralsFncn === null)
 		{
-			console.log(this.constructor.name + ".push() error: this.getRomanNumeralsFncn===null (this.anmtns.length=" + this.anmtns.length.toString() + ")");
+			console.log(this.constructor.name + ".append() error: this.getRomanNumeralsFncn===null (this.anmtns.length=" + this.anmtns.length.toString() + ")");
 			this.errOcrd = true;
 			return false;
 		}
 		this.anmtns.push(new AnimationFragment(a, this.getRomanNumeralsFncn));
+	}
+	logPreconditions(f)
+	{
+		let i;
+		for (i=0; i<this.anmtns.length; i++)
+			this.anmtns[i].logPreconditions(f);
 	}
 	reset()
 	{
@@ -2751,13 +2773,13 @@ let mXXXXXtoL = new Fade(romanNumeralsAdditiveCanvas, "XXXXX", "L");
 let mLLtoC = new Fade(romanNumeralsAdditiveCanvas, "LL", "C");
 let mCCCCCtoD = new Fade(romanNumeralsAdditiveCanvas, "CCCCC", "D");
 let mDDtoM = new Fade(romanNumeralsAdditiveCanvas, "DD", "M");
-incNumAnmtnsAddtv.push(new AnimateNumeralInsertion(mAddtvInI, setRomanNumeralsAdditive));
-incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mIIIIItoV, setRomanNumeralsAdditive));
-incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mVVtoX, setRomanNumeralsAdditive));
-incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mXXXXXtoL, setRomanNumeralsAdditive));
-incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mLLtoC, setRomanNumeralsAdditive));
-incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mCCCCCtoD, setRomanNumeralsAdditive));
-incNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mDDtoM, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.append(new AnimateNumeralInsertion(mAddtvInI, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mIIIIItoV, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mVVtoX, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mXXXXXtoL, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mLLtoC, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mCCCCCtoD, setRomanNumeralsAdditive));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mDDtoM, setRomanNumeralsAdditive));
 
 let mSbtrctvInI = new Fade(romanNumeralsSubtractiveCanvas, null, "I");
 let mVIIIItoIX = new Fade(romanNumeralsSubtractiveCanvas, "VIIII", "IX");
@@ -2772,115 +2794,70 @@ let mDCCCCtoCM = new Fade(romanNumeralsSubtractiveCanvas, "DCCCC", "CM");
 let mCCCCtoCD = new Fade(romanNumeralsSubtractiveCanvas, "CCCC", "CD");
 let mCDCtoD = new Fade(romanNumeralsSubtractiveCanvas, "CDC", "D");
 let mCMCtoM = new Fade(romanNumeralsSubtractiveCanvas, "CMC", "M");
-incNumAnmtnsSbtrctv.push(new AnimateNumeralInsertion(mSbtrctvInI, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mVIIIItoIX, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIIIItoIV, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIVItoV, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mIXItoX, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mLXXXXtoXC, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mXXXXtoXL, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mXLXtoL, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mXCXtoC, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mDCCCCtoCM, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCCCCtoCD, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCDCtoD, setRomanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mCMCtoM, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralInsertion(mSbtrctvInI, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mVIIIItoIX, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIIIItoIV, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIVItoV, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIXItoX, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mLXXXXtoXC, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXXXXtoXL, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXLXtoL, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXCXtoC, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mDCCCCtoCM, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCCCCtoCD, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCDCtoD, setRomanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM, setRomanNumeralsSubtractive));
 
 let f = incNumAnmtnsSbtrctv.findFragment("IVI", "V");
-if (f !== null)
-{
-	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
-	if (f.after(incNumAnmtnsAddtv, "IIIII", "V"))
-		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
-	else
-		console.log('failed in f.after(incNumAnmtnsAddtv, "IIIII", "V")');
-}
-else
+if (f === null)
 	console.log('failed in incNumAnmtnsSbtrctv.findFragment("IVI", "V")');
+else if (f.after(incNumAnmtnsAddtv, "IIIII", "V") == false)
+	console.log('failed in f.after(incNumAnmtnsAddtv, "IIIII", "V")');
 
 f = incNumAnmtnsSbtrctv.findFragment("IXI", "X");
-if (f !== null)
-{
-	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
-	if (f.after(incNumAnmtnsAddtv, "VV", "X"))
-		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
-	else
-		console.log('failed in f.after(incNumAnmtnsAddtv, "VV", "X")');
-}
-else
+if (f === null)
 	console.log('failed in incNumAnmtnsSbtrctv.findFragment("IXI", "X")');
+else if (f.after(incNumAnmtnsAddtv, "VV", "X") == false)
+	console.log('failed in f.after(incNumAnmtnsAddtv, "VV", "X")');
 
 f = incNumAnmtnsAddtv.findFragment("XXXXX", "L");
-if (f !== null)
-{
-	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
-	if (f.after(incNumAnmtnsSbtrctv, "IXI", "X"))
-		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
-	else
-		console.log('failed in f.after(incNumAnmtnsSbtrctv, "IXI", "X")');
-}
-else
+if (f === null)
 	console.log('failed in incNumAnmtnsAddtv.findFragment("XXXXX", "L")');
+else if (f.after(incNumAnmtnsSbtrctv, "IXI", "X") == false)
+	console.log('failed in f.after(incNumAnmtnsSbtrctv, "IXI", "X")');
 
 f = incNumAnmtnsSbtrctv.findFragment("XLX", "L");
-if (f !== null)
-{
-	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
-	if (f.after(incNumAnmtnsAddtv, "XXXXX", "L"))
-		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
-	else
-		console.log('failed in f.after(incNumAnmtnsAddtv, "XXXXX", "L")');
-}
-else
+if (f === null)
 	console.log('failed in incNumAnmtnsSbtrctv.findFragment("XLX", "L")');
+else if (f.after(incNumAnmtnsAddtv, "XXXXX", "L") == false)
+	console.log('failed in f.after(incNumAnmtnsAddtv, "XXXXX", "L")');
 
 f = incNumAnmtnsSbtrctv.findFragment("XCX", "C");
-if (f !== null)
-{
-	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
-	if (f.after(incNumAnmtnsAddtv, "LL", "C"))
-		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
-	else
-		console.log('failed in f.after(incNumAnmtnsAddtv, "LL", "C")');
-}
-else
+if (f === null)
 	console.log('failed in incNumAnmtnsSbtrctv.findFragment("XCX", "C")');
+else if (f.after(incNumAnmtnsAddtv, "LL", "C") == false)
+	console.log('failed in f.after(incNumAnmtnsAddtv, "LL", "C")');
 
 f = incNumAnmtnsAddtv.findFragment("CCCCC", "D");
-if (f !== null)
-{
-	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
-	if (f.after(incNumAnmtnsSbtrctv, "XCX", "C"))
-		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
-	else
-		console.log('failed in f.after(incNumAnmtnsSbtrctv, "XCX", "C")');
-}
-else
+if (f === null)
 	console.log('failed in incNumAnmtnsAddtv.findFragment("CCCCC", "D")');
+else if (f.after(incNumAnmtnsSbtrctv, "XCX", "C") == false)
+	console.log('failed in f.after(incNumAnmtnsSbtrctv, "XCX", "C")');
 
 f = incNumAnmtnsSbtrctv.findFragment("CDC", "D");
-if (f !== null)
-{
-	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
-	if (f.after(incNumAnmtnsAddtv, "CCCCC", "D"))
-		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
-	else
-		console.log('failed in f.after(incNumAnmtnsAddtv, "CCCCC", "D")');
-}
-else
+if (f === null)
 	console.log('failed in incNumAnmtnsSbtrctv.findFragment("CDC", "D")');
+else if (f.after(incNumAnmtnsAddtv, "CCCCC", "D") == false)
+	console.log('failed in f.after(incNumAnmtnsAddtv, "CCCCC", "D")');
 
 f = incNumAnmtnsSbtrctv.findFragment("CMC", "M");
-if (f !== null)
-{
-	console.log("initialText=" + f.anmtn.morph.initialText + " finalText=" + f.anmtn.morph.finalText);
-	if (f.after(incNumAnmtnsAddtv, "DD", "M"))
-		console.log(f.prcndtnIdx + " initialText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.initialText + " finalText=" + f.prcndtnSeq.anmtns[f.prcndtnIdx].anmtn.morph.finalText);
-	else
-		console.log('failed in f.after(incNumAnmtnsAddtv, "DD", "M")');
-}
-else
+if (f === null)
 	console.log('failed in incNumAnmtnsSbtrctv.findFragment("CMC", "M")');
+else if (f.after(incNumAnmtnsAddtv, "DD", "M") == false)
+	console.log('failed in f.after(incNumAnmtnsAddtv, "DD", "M")');
+
+incNumAnmtnsAddtv.logPreconditions((s)=>{console.log(s)});
+incNumAnmtnsSbtrctv.logPreconditions((s)=>{console.log(s)});
 
 function incrementNumber()
 {
@@ -2915,29 +2892,29 @@ function incrementNumber()
 
 let mAddtvOutI = new Fade(romanNumeralsAdditiveCanvas, "I", null);
 const decNumAnmtnsAddtv = new AnimationSequence(getRomanNumeralsAdditive);
-decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mDDtoM, setRomanNumeralsAdditive));
-decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mCCCCCtoD, setRomanNumeralsAdditive));
-decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mLLtoC,setRomanNumeralsAdditive));
-decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToMany(mXXXXXtoL, setRomanNumeralsAdditive));
-decNumAnmtnsAddtv.push(new MetamorphoseXtoVV(mVVtoX, setRomanNumeralsAdditive));
-decNumAnmtnsAddtv.push(new MetamorphoseVtoIIIII(mIIIIItoV, setRomanNumeralsAdditive));
-decNumAnmtnsAddtv.push(new AnimateNumeralSubstitutionToFew(mAddtvOutI, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mDDtoM, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mCCCCCtoD, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mLLtoC,setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mXXXXXtoL, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.append(new MetamorphoseXtoVV(mVVtoX, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.append(new MetamorphoseVtoIIIII(mIIIIItoV, setRomanNumeralsAdditive));
+decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mAddtvOutI, setRomanNumeralsAdditive));
 
 let mSbtrctvOutI = new Fade(romanNumeralsSubtractiveCanvas, "I", null);
 const decNumAnmtnsSbtrctv = new AnimationSequence(getRomanNumeralsSubtractive);
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mDCCCCtoCM, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mCMCtoM, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mCCCCtoCD, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mCDCtoD, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mLXXXXtoXC, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mXCXtoC, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mXXXXtoXL, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mXLXtoL, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mVIIIItoIX, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mIXItoX, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mIIIItoIV, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToMany(mIVItoV, setRomanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.push(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mDCCCCtoCM, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCMCtoM, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCCCCtoCD, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCDCtoD, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mLXXXXtoXC, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXCXtoC, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXXXXtoXL, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXLXtoL, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mVIIIItoIX, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIXItoX, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIIIItoIV, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIVItoV, setRomanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI, setRomanNumeralsSubtractive));
 
 function decrementNumber()
 {
