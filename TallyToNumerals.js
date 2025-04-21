@@ -2514,15 +2514,120 @@ class AnimationFragment
 		this.prcndtns.push({seq, idx});
 		return true;
 	}
+	getText()
+	{
+		let iTxt, fTxt;
+		const a = this.anmtn;
+		if (a === undefined)
+		{
+			console.log(this.constructor.name + ".getText() error: this.anmtn===undefined");
+			this.errOcrd = true;
+			return;
+		}
+		if (a === null)
+		{
+			console.log(this.constructor.name + ".getText() error: this.anmtn===null");
+			this.errOcrd = true;
+			return;
+		}
+		let m = null;
+		if (a.initialText !== undefined && a.finalText !== undefined)
+		{
+			iTxt = a.initialText;
+			fTxt = a.finalText;
+		}
+		else
+		{
+			m = a.morph;
+			if (m === undefined)
+			{
+				console.log(this.constructor.name + ".getText() error: this.anmtn.morph===undefined");
+				this.errOcrd = true;
+				return null;
+			}
+			if (m === null)
+			{
+				console.log(this.constructor.name + ".getText() error: this.anmtn.morph===null");
+				this.errOcrd = true;
+				return null;
+			}
+			iTxt = m.initialText;
+			fTxt = m.finalText;
+		}
+		const txt = {iTxt, fTxt};
+		return txt;
+	}
+	matchText(iniTxt, fnlTxt)
+	{
+		const txt = this.getText();
+		if (txt === null)
+		{
+			console.log(this.constructor.name + ".matchText(" + iniTxt + "," + fnlTxt + ") error: this.getText() failed");
+			this.errOcrd = true;
+			return null;
+		}
+		return (txt.iTxt === iniTxt && txt.fTxt === fnlTxt);
+	}
 	logPreconditions(f)
 	{
-		let prc;
+		let prc, pa, ptxt;
+		const txt = this.getText();
+		if (txt === null)
+		{
+			console.log(this.constructor.name + ".logPreconditions() error: this.getText() failed");
+			this.errOcrd = true;
+			return;
+		}
 		let j = 0;
 		while (j < this.prcndtns.length)
 		{
 			prc = this.prcndtns[j];
-			f(prc.seq.anmtns[prc.idx].anmtn.morph.initialText + "->" + prc.seq.anmtns[prc.idx].anmtn.morph.finalText +
-				" < " +	this.anmtn.morph.initialText + "->" + this.anmtn.morph.finalText);
+			if (Number.isInteger(prc.idx) == false || fpLess(prc.idx, 0, fpTolerance))
+			{
+				console.log(this.constructor.name + ".logPreconditions() error: this.prcndtns[" + j.toString() + "].idx is not a whole number");
+				this.errOcrd = true;
+				return;
+			}
+			if (prc.seq === undefined)
+			{
+				console.log(this.constructor.name + ".logPreconditions() error: this.prcndtns[" + j.toString() + "].seq===undefined");
+				this.errOcrd = true;
+				return;
+			}
+			if (prc.seq === null)
+			{
+				console.log(this.constructor.name + ".logPreconditions() error: this.prcndtns[" + j.toString() + "].seq===null");
+				this.errOcrd = true;
+				return;
+			}
+			if (Array.isArray(prc.seq.anmtns) == false)
+			{
+				console.log(this.constructor.name + ".logPreconditions() error: this.prcndtns[" + j.toString() + "].seq.anmtns is not an array");
+				this.errOcrd = true;
+				return;
+			}
+			if (prc.seq.anmtns.length <= prc.idx)
+			{
+				console.log(this.constructor.name + ".logPreconditions() error: this.prcndtns[" + j.toString() + "].seq.anmtns.length=" +
+					prc.seq.anmtns.length.toString() + " <= this.prcndtns[" + j.toString() + "].idx=" + prc.idx.toString());
+				this.errOcrd = true;
+				return;
+			}
+			pa = prc.seq.anmtns[prc.idx];
+			if (this.constructor.name !== pa.constructor.name)
+			{
+				console.log(this.constructor.name + ".logPreconditions() error: this.prcndtns[" + j.toString() + "].seq.anmtns[" + prc.idx.toString() + "].constructor.name=" + pa.constructor.name);
+				this.errOcrd = true;
+				return;
+			}
+			ptxt = pa.getText();
+			if (ptxt === null)
+			{
+				console.log(this.constructor.name + ".logPreconditions() error: this.prcndtns[" + j.toString() + "].seq.anmtns[" + prc.idx.toString() + "].getText() failed");
+				this.errOcrd = true;
+				return;
+			}
+			f(ptxt.iTxt + "->" + ptxt.fTxt + " < " + txt.iTxt + "->" + txt.fTxt);
 			j++;
 		}
 	}
@@ -2734,28 +2839,19 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 	{
 		if (this.errorOccurred())
 			return null;
-		let f = null;
-		let a = null;
-		let m = null;
+		let f, m;
 		let i = 0;
 		while (i < this.anmtns.length)
 		{
 			f = this.anmtns[i];
-			a = f.anmtn;
-			if (a === null)
-			{
-				console.log(this.constructor.name + ".findIndex() error: this.anmtns[" + i.toString() + "].anmtn===null");
-				this.errOcrd = true;
-				return null;
-			}
-			m = a.morph;
+			m = f.matchText(iniTxt, fnlTxt);
 			if (m === null)
 			{
-				console.log(this.constructor.name + ".findIndex() error: this.anmtns[" + i.toString() + "].anmtn.morph===null");
+				console.log(this.constructor.name + ".findIndex(" + iniTxt + "," + fnlTxt + ") error: this.anmtns[" + i.toString() + "].anmtn.matchText() failed");
 				this.errOcrd = true;
 				return null;
 			}
-			if (m.initialText === iniTxt &&	m.finalText === fnlTxt)
+			if (m == true)
 				return i;
 			i++;
 		}
@@ -2808,56 +2904,56 @@ incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCCCCtoCD, setRom
 incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCDCtoD, setRomanNumeralsSubtractive));
 incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM, setRomanNumeralsSubtractive));
 
-let f = incNumAnmtnsSbtrctv.findFragment("IVI", "V");
-if (f === null)
-	console.log('failed in incNumAnmtnsSbtrctv.findFragment("IVI", "V")');
-else if (f.after(incNumAnmtnsAddtv, "IIIII", "V") == false)
-	console.log('failed in f.after(incNumAnmtnsAddtv, "IIIII", "V")');
+function incNumAnmtnsConstraints()
+{
+	let f = incNumAnmtnsSbtrctv.findFragment("IVI", "V");
+	if (f === null)
+		console.log('failed in incNumAnmtnsSbtrctv.findFragment("IVI", "V")');
+	else if (f.after(incNumAnmtnsAddtv, "IIIII", "V") == false)
+		console.log('failed in f.after(incNumAnmtnsAddtv, "IIIII", "V")');
 
-f = incNumAnmtnsSbtrctv.findFragment("IXI", "X");
-if (f === null)
-	console.log('failed in incNumAnmtnsSbtrctv.findFragment("IXI", "X")');
-else if (f.after(incNumAnmtnsAddtv, "VV", "X") == false)
-	console.log('failed in f.after(incNumAnmtnsAddtv, "VV", "X")');
+	f = incNumAnmtnsSbtrctv.findFragment("IXI", "X");
+	if (f === null)
+		console.log('failed in incNumAnmtnsSbtrctv.findFragment("IXI", "X")');
+	else if (f.after(incNumAnmtnsAddtv, "VV", "X") == false)
+		console.log('failed in f.after(incNumAnmtnsAddtv, "VV", "X")');
 
-f = incNumAnmtnsAddtv.findFragment("XXXXX", "L");
-if (f === null)
-	console.log('failed in incNumAnmtnsAddtv.findFragment("XXXXX", "L")');
-else if (f.after(incNumAnmtnsSbtrctv, "IXI", "X") == false)
-	console.log('failed in f.after(incNumAnmtnsSbtrctv, "IXI", "X")');
+	f = incNumAnmtnsAddtv.findFragment("XXXXX", "L");
+	if (f === null)
+		console.log('failed in incNumAnmtnsAddtv.findFragment("XXXXX", "L")');
+	else if (f.after(incNumAnmtnsSbtrctv, "IXI", "X") == false)
+		console.log('failed in f.after(incNumAnmtnsSbtrctv, "IXI", "X")');
 
-f = incNumAnmtnsSbtrctv.findFragment("XLX", "L");
-if (f === null)
-	console.log('failed in incNumAnmtnsSbtrctv.findFragment("XLX", "L")');
-else if (f.after(incNumAnmtnsAddtv, "XXXXX", "L") == false)
-	console.log('failed in f.after(incNumAnmtnsAddtv, "XXXXX", "L")');
+	f = incNumAnmtnsSbtrctv.findFragment("XLX", "L");
+	if (f === null)
+		console.log('failed in incNumAnmtnsSbtrctv.findFragment("XLX", "L")');
+	else if (f.after(incNumAnmtnsAddtv, "XXXXX", "L") == false)
+		console.log('failed in f.after(incNumAnmtnsAddtv, "XXXXX", "L")');
 
-f = incNumAnmtnsSbtrctv.findFragment("XCX", "C");
-if (f === null)
-	console.log('failed in incNumAnmtnsSbtrctv.findFragment("XCX", "C")');
-else if (f.after(incNumAnmtnsAddtv, "LL", "C") == false)
-	console.log('failed in f.after(incNumAnmtnsAddtv, "LL", "C")');
+	f = incNumAnmtnsSbtrctv.findFragment("XCX", "C");
+	if (f === null)
+		console.log('failed in incNumAnmtnsSbtrctv.findFragment("XCX", "C")');
+	else if (f.after(incNumAnmtnsAddtv, "LL", "C") == false)
+		console.log('failed in f.after(incNumAnmtnsAddtv, "LL", "C")');
 
-f = incNumAnmtnsAddtv.findFragment("CCCCC", "D");
-if (f === null)
-	console.log('failed in incNumAnmtnsAddtv.findFragment("CCCCC", "D")');
-else if (f.after(incNumAnmtnsSbtrctv, "XCX", "C") == false)
-	console.log('failed in f.after(incNumAnmtnsSbtrctv, "XCX", "C")');
+	f = incNumAnmtnsAddtv.findFragment("CCCCC", "D");
+	if (f === null)
+		console.log('failed in incNumAnmtnsAddtv.findFragment("CCCCC", "D")');
+	else if (f.after(incNumAnmtnsSbtrctv, "XCX", "C") == false)
+		console.log('failed in f.after(incNumAnmtnsSbtrctv, "XCX", "C")');
 
-f = incNumAnmtnsSbtrctv.findFragment("CDC", "D");
-if (f === null)
-	console.log('failed in incNumAnmtnsSbtrctv.findFragment("CDC", "D")');
-else if (f.after(incNumAnmtnsAddtv, "CCCCC", "D") == false)
-	console.log('failed in f.after(incNumAnmtnsAddtv, "CCCCC", "D")');
+	f = incNumAnmtnsSbtrctv.findFragment("CDC", "D");
+	if (f === null)
+		console.log('failed in incNumAnmtnsSbtrctv.findFragment("CDC", "D")');
+	else if (f.after(incNumAnmtnsAddtv, "CCCCC", "D") == false)
+		console.log('failed in f.after(incNumAnmtnsAddtv, "CCCCC", "D")');
 
-f = incNumAnmtnsSbtrctv.findFragment("CMC", "M");
-if (f === null)
-	console.log('failed in incNumAnmtnsSbtrctv.findFragment("CMC", "M")');
-else if (f.after(incNumAnmtnsAddtv, "DD", "M") == false)
-	console.log('failed in f.after(incNumAnmtnsAddtv, "DD", "M")');
-
-incNumAnmtnsAddtv.logPreconditions((s)=>{console.log(s)});
-incNumAnmtnsSbtrctv.logPreconditions((s)=>{console.log(s)});
+	f = incNumAnmtnsSbtrctv.findFragment("CMC", "M");
+	if (f === null)
+		console.log('failed in incNumAnmtnsSbtrctv.findFragment("CMC", "M")');
+	else if (f.after(incNumAnmtnsAddtv, "DD", "M") == false)
+		console.log('failed in f.after(incNumAnmtnsAddtv, "DD", "M")');
+}
 
 function incrementNumber()
 {
@@ -2916,6 +3012,117 @@ decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIIIItoIV, setRo
 decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIVItoV, setRomanNumeralsSubtractive));
 decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI, setRomanNumeralsSubtractive));
 
+function decNumAnmtnsConstraints()
+{
+/* 	f = decNumAnmtnsSbtrctv.findFragment("M", "CMC");
+	if (f === null)
+		console.log('failed in decNumAnmtnsSbtrctv.findFragment("M", "CMC")');
+	else if (f.after(decNumAnmtnsAddtv, "M", "DD") == false)
+		console.log('failed in f.after(decNumAnmtnsAddtv, "M", "DD")');
+ */
+	f = decNumAnmtnsSbtrctv.findFragment("M", "CMC");
+	if (f === null)
+		console.log('failed in decNumAnmtnsSbtrctv.findFragment("M", "CMC")');
+	else if (f.after(decNumAnmtnsAddtv, "D", "CCCCC") == false)
+		console.log('failed in f.after(decNumAnmtnsAddtv, "D", "CCCCC")');
+
+	f = decNumAnmtnsAddtv.findFragment("C", "LL");
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("C", "LL")');
+	else if (f.after(decNumAnmtnsSbtrctv, "M", "CMC") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "M", "CMC")');
+
+	f = decNumAnmtnsAddtv.findFragment("C", "LL");
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("C", "LL")');
+	else if (f.after(decNumAnmtnsSbtrctv, "CM", "DCCCC") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "CM", "DCCCC")');
+
+	f = decNumAnmtnsSbtrctv.findFragment("D", "CDC");
+	if (f === null)
+		console.log('failed in decNumAnmtnsSbtrctv.findFragment("D", "CDC")');
+	else if (f.after(decNumAnmtnsAddtv, "D", "CCCCC") == false)
+		console.log('failed in f.after(decNumAnmtnsAddtv, "D", "CCCCC")');
+
+	f = decNumAnmtnsAddtv.findFragment("C", "LL");
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("C", "LL")');
+	else if (f.after(decNumAnmtnsSbtrctv, "D", "CDC") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "D", "CDC")');
+
+	f = decNumAnmtnsAddtv.findFragment("C", "LL");
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("C", "LL")');
+	else if (f.after(decNumAnmtnsSbtrctv, "CD", "CCCC") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "CD", "CCCC")');
+
+	f = decNumAnmtnsAddtv.findFragment("X", "VV");
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("X", "VV")');
+	else if (f.after(decNumAnmtnsSbtrctv, "XC", "LXXXX") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "XC", "LXXXX")');
+
+	f = decNumAnmtnsSbtrctv.findFragment("C", "XCX");
+	if (f === null)
+		console.log('failed in decNumAnmtnsSbtrctv.findFragment("C", "XCX")');
+	else if (f.after(decNumAnmtnsAddtv, "L", "XXXXX") == false)
+		console.log('failed in f.after(decNumAnmtnsAddtv, "L", "XXXXX")');
+
+	f = decNumAnmtnsAddtv.findFragment("X", "VV");
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("X", "VV")');
+	else if (f.after(decNumAnmtnsSbtrctv, "C", "XCX") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "C", "XCX")');
+
+	f = decNumAnmtnsSbtrctv.findFragment("L", "XLX");
+	if (f === null)
+		console.log('failed in decNumAnmtnsSbtrctv.findFragment("L", "XLX")');
+	else if (f.after(decNumAnmtnsAddtv, "L", "XXXXX") == false)
+		console.log('failed in f.after(decNumAnmtnsAddtv, "L", "XXXXX")');
+
+	f = decNumAnmtnsAddtv.findFragment("X", "VV");
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("X", "VV")');
+	else if (f.after(decNumAnmtnsSbtrctv, "L", "XLX") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "L", "XLX")');
+
+	f = decNumAnmtnsAddtv.findFragment("X", "VV");
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("X", "VV")');
+	else if (f.after(decNumAnmtnsSbtrctv, "XL", "XXXX") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "XL", "XXXX")');
+
+	f = decNumAnmtnsSbtrctv.findFragment("X", "IXI");
+	if (f === null)
+		console.log('failed in decNumAnmtnsSbtrctv.findFragment("X", "IXI")');
+	else if (f.after(decNumAnmtnsAddtv, "V", "IIIII") == false)
+		console.log('failed in f.after(decNumAnmtnsAddtv, "V", "IIIII")');
+
+	f = decNumAnmtnsSbtrctv.findFragment("V", "IVI");
+	if (f === null)
+		console.log('failed in decNumAnmtnsSbtrctv.findFragment("V", "IVI")');
+	else if (f.after(decNumAnmtnsAddtv, "V", "IIIII") == false)
+		console.log('failed in f.after(decNumAnmtnsAddtv, "V", "IIIII")');
+
+	f = decNumAnmtnsAddtv.findFragment("I", null);
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("I", null)');
+	else if (f.after(decNumAnmtnsSbtrctv, "IX", "VIIII") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "IX", "VIIII")');
+
+	f = decNumAnmtnsAddtv.findFragment("I", null);
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("I", null)');
+	else if (f.after(decNumAnmtnsSbtrctv, "IV", "IIII") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "IV", "IIII")');
+
+	f = decNumAnmtnsAddtv.findFragment("I", null);
+	if (f === null)
+		console.log('failed in decNumAnmtnsAddtv.findFragment("I", null)');
+	else if (f.after(decNumAnmtnsSbtrctv, "V", "IVI") == false)
+		console.log('failed in f.after(decNumAnmtnsSbtrctv, "V", "IVI")');
+}
+
 function decrementNumber()
 {
 	if (decNumAnmtnsAddtv.errorOccurred() || decNumAnmtnsSbtrctv.errorOccurred())
@@ -2968,6 +3175,13 @@ function processNumberArabic()
 	}
 	setNumber(inputNumber);
 }
+
+incNumAnmtnsConstraints();
+incNumAnmtnsAddtv.logPreconditions((s)=>{console.log(s)});
+incNumAnmtnsSbtrctv.logPreconditions((s)=>{console.log(s)});
+decNumAnmtnsConstraints();
+decNumAnmtnsAddtv.logPreconditions((s)=>{console.log(s)});
+decNumAnmtnsSbtrctv.logPreconditions((s)=>{console.log(s)});
 
 initializeCanvas(romanToArabicConnectorCanvas, true);
 initializeCanvas(romanNumeralsSubtractiveCanvas, false);
