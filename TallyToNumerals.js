@@ -973,16 +973,14 @@ function connectRomanAdditiveToSubtractive() // draw connecting lines (and horiz
 	let srs, sra;
 	let si = r.i1;
 	let ai = r.i2;
-	let lastOoMcnctd = -1;
 	let lastOoMcnctdDashed = false;
 	while (si >= 0 && ai >= 0)
 	{
 		srs = scanOneOrderOfMagnitude(s, si);
 		sra = scanOneOrderOfMagnitude(a, ai);
-		if ((lastStart + 1 < srs.end) || (srs.end - srs.start < sra.end - sra.start))
+		if (srs.end - srs.start < sra.end - sra.start)
 		{
-			lastStart = srs.start;
-			if (lastOoMcnctd + 1 == sra.o && lastOoMcnctdDashed == false)
+			if ((lastStart == srs.end + 1) && (lastOoMcnctdDashed == false))
 			{ // if drawing this connector immediately next to one drawn with solid lines,
 				ctx.setLineDash([2,2]); // then use dashed lines for this connector 
 				setIntermediateColor(ctx, foregroundWeightConnector2); // and increase the contrast slightly
@@ -995,7 +993,7 @@ function connectRomanAdditiveToSubtractive() // draw connecting lines (and horiz
 				lastOoMcnctdDashed = false;
 			}
 			connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, h, srs, sra, a, s);
-			lastOoMcnctd = sra.o;
+			lastStart = srs.start;
 		}
 		si = srs.i;
 		ai = sra.i;
