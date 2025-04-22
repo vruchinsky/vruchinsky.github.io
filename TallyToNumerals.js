@@ -848,6 +848,9 @@ function connectRomanToArabic() // draw connecting lines (and horizontal braces)
 	const rn = romanNumeralsSubtractive; // romanNumeralsAdditive;
 	if (rn.length < 1) return "";
 	let lastOoMcnctd = 0; // last order of magnitude for which connection was drawn
+	let lastOoMcnctdDashed = true; //false;
+	let lastOoMcnctdLength = 0;
+	let OoMlength = 0;
 	const h = romanToArabicConnectorCanvas.height;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	const oldLineWidth = ctx.lineWidth;
@@ -855,20 +858,35 @@ function connectRomanToArabic() // draw connecting lines (and horizontal braces)
 	const oldLineDashOffset = ctx.lineDashOffset;
 	ctx.lineWidth = 1;
 	ctx.lineDashOffset = 0;
-	let i = rn.length-1;
+	let i = rn.length - 1;
 	let sr;
 	while (i >= 0)
 	{
 		sr = scanOneOrderOfMagnitude(rn, i);
 		if (lastOoMcnctd + 1 < sr.o || sr.n > sr.o + 1)
 		{
-			lastOoMcnctd = sr.o;
+			OoMlength = sr.end - sr.start + 1;
+			if (OoMlength > 1 && lastOoMcnctdLength > 1 && lastOoMcnctdDashed == false)
+			{ // if drawing this connector immediately next to one drawn with solid lines,
+				ctx.setLineDash([2,2]); // then use dashed lines for this connector 
+				setIntermediateColor(ctx, foregroundWeightConnector2); // and increase the contrast slightly
+				lastOoMcnctdDashed = true;
+			}
+			else // otherwise, drawing this connector immediately next to one drawn with dashed lines
+			{
+				ctx.setLineDash([]); // then use solid lines for this connector
+				setIntermediateColor(ctx, foregroundWeightConnector); // and use smaller contrast
+				lastOoMcnctdDashed = false;
+			}
 			connectOrderOfMagnitudeRomanToArabic(ctx, h, sr, rn, an);
+			lastOoMcnctd = sr.o;
+			lastOoMcnctdLength = OoMlength;
 		}
 		i = sr.i;
 	}
 	ctx.strokeStyle = foregroundColor; // restore foreground color etc.
 	ctx.lineWidth = oldLineWidth;
+	ctx.setLineDash(oldLineDash);
 	ctx.lineDashOffset = oldLineDashOffset;
 }
 
@@ -962,7 +980,7 @@ function connectRomanAdditiveToSubtractive() // draw connecting lines (and horiz
 		if ((lastStart + 1 < srs.end) || (srs.end - srs.start < sra.end - sra.start))
 		{
 			lastStart = srs.start;
-			if (lastOoMcnctd + 1 == sra.o && !lastOoMcnctdDashed)
+			if (lastOoMcnctd + 1 == sra.o && lastOoMcnctdDashed == false)
 			{ // if drawing this connector immediately next to one drawn with solid lines,
 				ctx.setLineDash([2,2]); // then use dashed lines for this connector 
 				setIntermediateColor(ctx, foregroundWeightConnector2); // and increase the contrast slightly
@@ -971,7 +989,7 @@ function connectRomanAdditiveToSubtractive() // draw connecting lines (and horiz
 			else // otherwise, drawing this connector immediately next to one drawn with dashed lines
 			{
 				ctx.setLineDash([]); // then use solid lines for this connector
-				setIntermediateColor(ctx, foregroundWeightConnector); // and use less contrast
+				setIntermediateColor(ctx, foregroundWeightConnector); // and use smaller contrast
 				lastOoMcnctdDashed = false;
 			}
 			connectOrderOfMagnitudeRomanAdditiveToSubtractive(ctx, h, srs, sra, a, s);
