@@ -851,6 +851,7 @@ function connectRomanToArabic() // draw connecting lines (and horizontal braces)
 	let lastOoMcnctdDashed = true; //false;
 	let lastOoMcnctdLength = 0;
 	let OoMlength = 0;
+	let lastStart = 0; // starting position of the last order of magnitude for which connection was drawn
 	const h = romanToArabicConnectorCanvas.height;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	const oldLineWidth = ctx.lineWidth;
@@ -866,7 +867,7 @@ function connectRomanToArabic() // draw connecting lines (and horizontal braces)
 		if (lastOoMcnctd + 1 < sr.o || sr.n > sr.o + 1)
 		{
 			OoMlength = sr.end - sr.start + 1;
-			if (OoMlength > 1 && lastOoMcnctdLength > 1 && lastOoMcnctdDashed == false)
+			if ((lastStart == sr.end + 1) && (OoMlength > 1) && (lastOoMcnctdLength > 1) && (lastOoMcnctdDashed == false))
 			{ // if drawing this connector immediately next to one drawn with solid lines,
 				ctx.setLineDash([2,2]); // then use dashed lines for this connector 
 				setIntermediateColor(ctx, foregroundWeightConnector2); // and increase the contrast slightly
@@ -881,6 +882,7 @@ function connectRomanToArabic() // draw connecting lines (and horizontal braces)
 			connectOrderOfMagnitudeRomanToArabic(ctx, h, sr, rn, an);
 			lastOoMcnctd = sr.o;
 			lastOoMcnctdLength = OoMlength;
+			lastStart = sr.start;
 		}
 		i = sr.i;
 	}
