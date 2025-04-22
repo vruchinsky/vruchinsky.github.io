@@ -1487,6 +1487,12 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 		this.cnv = m.cnv;
 		this.ctx = m.ctx;
 	}
+	getText()
+	{
+		const iTxt = this.initialText;
+		const fTxt = this.finalText;
+		return {iTxt, fTxt};
+	}
 	reset()
 	{
 		this.started = false;
@@ -1815,6 +1821,12 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		this.cnv = m.cnv;
 		this.ctx = m.ctx;
 	}
+	getText()
+	{
+		const iTxt = this.initialText;
+		const fTxt = this.finalText;
+		return {iTxt, fTxt};
+	}
 	reset()
 	{
 		this.started = false;
@@ -2128,6 +2140,12 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		this.cnv = m.cnv;
 		this.ctx = m.ctx;
 	}
+	getText()
+	{
+		const iTxt = this.initialText;
+		const fTxt = this.finalText;
+		return {iTxt, fTxt};
+	}
 	reset()
 	{
 		this.started = false;
@@ -2317,6 +2335,17 @@ class AnimateNumeralSubstitutionToFew
 		this.cnv = this.morph.cnv;
 		this.ctx = this.morph.ctx;
 	}
+	getText()
+	{
+		if (this.morph === null)
+		{
+			console.log(this.constructor.name + ".getText() error: this.morph===null");
+			return null;
+		}
+		const iTxt = this.morph.initialText;
+		const fTxt = this.morph.finalText;
+		return {iTxt, fTxt};
+	}
 	reset()
 	{
 		this.started = false;
@@ -2424,6 +2453,17 @@ class AnimateNumeralInsertion
 		this.ctx = this.morph.ctx;
 		this.makeSpace = new SlideTextHorizontally(m, null);
 	}
+	getText()
+	{
+		if (this.morph === null)
+		{
+			console.log(this.constructor.name + ".getText() error: this.morph===null");
+			return null;
+		}
+		const iTxt = this.morph.initialText;
+		const fTxt = this.morph.finalText;
+		return {iTxt, fTxt};
+	}
 	reset()
 	{
 		this.started = false;
@@ -2516,45 +2556,25 @@ class AnimationFragment
 	}
 	getText()
 	{
-		let iTxt, fTxt;
 		const a = this.anmtn;
 		if (a === undefined)
 		{
 			console.log(this.constructor.name + ".getText() error: this.anmtn===undefined");
 			this.errOcrd = true;
-			return;
+			return null;
 		}
 		if (a === null)
 		{
 			console.log(this.constructor.name + ".getText() error: this.anmtn===null");
 			this.errOcrd = true;
-			return;
+			return null;
 		}
-		let m = null;
-		if (a.initialText !== undefined && a.finalText !== undefined)
+		const txt = a.getText();
+		if (txt === null)
 		{
-			iTxt = a.initialText;
-			fTxt = a.finalText;
+			console.log(this.constructor.name + ".getText() error: this.anmtn.getText() failed");
+			this.errOcrd = true;
 		}
-		else
-		{
-			m = a.morph;
-			if (m === undefined)
-			{
-				console.log(this.constructor.name + ".getText() error: this.anmtn.morph===undefined");
-				this.errOcrd = true;
-				return null;
-			}
-			if (m === null)
-			{
-				console.log(this.constructor.name + ".getText() error: this.anmtn.morph===null");
-				this.errOcrd = true;
-				return null;
-			}
-			iTxt = m.initialText;
-			fTxt = m.finalText;
-		}
-		const txt = {iTxt, fTxt};
 		return txt;
 	}
 	matchText(iniTxt, fnlTxt)
@@ -2839,15 +2859,14 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 	{
 		if (this.errorOccurred())
 			return null;
-		let f, m;
+		let m;
 		let i = 0;
 		while (i < this.anmtns.length)
 		{
-			f = this.anmtns[i];
-			m = f.matchText(iniTxt, fnlTxt);
+			m = this.anmtns[i].matchText(iniTxt, fnlTxt);
 			if (m === null)
 			{
-				console.log(this.constructor.name + ".findIndex(" + iniTxt + "," + fnlTxt + ") error: this.anmtns[" + i.toString() + "].anmtn.matchText() failed");
+				console.log(this.constructor.name + ".findIndex(" + iniTxt + "," + fnlTxt + ") error: this.anmtns[" + i.toString() + "].matchText() failed");
 				this.errOcrd = true;
 				return null;
 			}
