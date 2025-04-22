@@ -61,6 +61,8 @@ ANinstructionsElement.innerText = "type in a number (at least " +
 	String(1+largestNumberToDisplay) +
 	") and press [Enter] or use the buttons below";
 setArabicNumeralsVisibility(ArabicNumeralsVisible);
+showHideArabicNumeralsButton.addEventListener('mouseover', () => {showHideArabicNumeralsButton.style.backgroundColor = buttonHoverBgColor;});
+showHideArabicNumeralsButton.addEventListener('mouseout', () => {showHideArabicNumeralsButton.style.backgroundColor = buttonNormalBgColor;});
 function ShowHideArabicNumerals()
 {
 	ArabicNumeralsVisible = !ArabicNumeralsVisible;
@@ -84,6 +86,8 @@ function ShowHideSettings()
 	setSettingsVisibility(settingsVisible);
 }
 
+showHideSettingsButton.addEventListener('mouseover', () => {showHideSettingsButton.style.backgroundColor = buttonHoverBgColor;});
+showHideSettingsButton.addEventListener('mouseout', () => {showHideSettingsButton.style.backgroundColor = buttonNormalBgColor;});
 function setSettingsVisibility(v)
 {
 	const s = v ? "visible" : "hidden";
