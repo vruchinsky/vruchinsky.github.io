@@ -54,7 +54,6 @@ let romanNumeralsAdditive = "";
 let romanNumeralsSubtractive = "";
 let incrementOrDecrementExecuting = false;
 let box1000hPos = 0;
-let box1000width = 0;
 
 ANinstructionsElement.innerText = "type in a number (at least " +
 	String(smallestNumberToDisplay) + " but less than " +
@@ -150,9 +149,7 @@ function eraseDrawings()
 	clearCanvas(romanToTallyConnectorCanvas);
 	clearCanvas(romanToArabicConnectorCanvas);
 	clearCanvas(romanAdditiveToSubtractiveConnectorCanvas);
-//	clearCanvas(romanNumeralsSubtractiveCanvas);
 	box1000hPos = 0;
-	box1000width = 0;
 }
 
 function setNumber(n)
@@ -703,7 +700,6 @@ function writeTally(n)
 	{
 		sz = drawBox1000(ctx, x, y, r);
 		box1000hPos = x;
-		box1000width = sz.w;
 		x = x + sz.w;
 	}
 	n = Math.floor(n / 5);
