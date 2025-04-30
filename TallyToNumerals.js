@@ -634,8 +634,7 @@ function writeTally(n)
 {
 	if (tallyCanvas.getContext == null)
 	{ // fallback in case browser does not support canvas
-		let tallyMark = "|"; // simplest: write out the tally marks
-		tallyCanvas.textContent = tallyMark.repeat(n);
+		tallyCanvas.textContent = "|".repeat(n); // simplest: write out the tally marks
 		return;
 	}
 	const ctx = tallyCanvas.getContext("2d");
