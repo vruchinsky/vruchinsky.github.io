@@ -638,6 +638,8 @@ function writeTally(n)
 		return;
 	}
 	const ctx = tallyCanvas.getContext("2d");
+	const oldStrokeStyle = ctx.strokeStyle;
+	const oldLineWidth = ctx.lineWidth;
 	const canvasStyle = getComputedStyle(tallyCanvas);
 	const foregroundColor = canvasStyle.color;
 	let x = horizontalOffset;
@@ -650,7 +652,7 @@ function writeTally(n)
 	for (let i=0; i<r; i++)
 	{
 		drawTallyMark(ctx, x, y);
-		x = x + dx;
+		x += dx;
 	}
 	n = Math.floor(n / 5);
 	r = n % 2;
@@ -658,7 +660,7 @@ function writeTally(n)
 	if (r > 0)
 	{
 		drawBox5(ctx, x, y);
-		x = x + dx;
+		x += dx;
 	}
 	n = Math.floor(n / 2);
 	r = n % 5;
@@ -666,7 +668,7 @@ function writeTally(n)
 	for (let i=0; i<r; i++)
 	{
 		drawBox10(ctx, x, y);
-		x = x + dx;
+		x += dx;
 	}
 	n = Math.floor(n / 5);
 	r = n % 2;
@@ -674,7 +676,7 @@ function writeTally(n)
 	if (r > 0)
 	{
 		drawBox50(ctx, x, y);
-		x = x + dx;
+		x += dx;
 	}
 	n = Math.floor(n / 2);
 	r = n % 5;
@@ -682,7 +684,7 @@ function writeTally(n)
 	for (let i=0; i<r; i++)
 	{
 		drawBox100(ctx, x, y);
-		x = x + dx;
+		x += dx;
 	}
 	n = Math.floor(n / 5);
 	r = n % 2;
@@ -691,7 +693,7 @@ function writeTally(n)
 	if (r > 0)
 	{
 		sz = drawBox500(ctx, x, y);
-		x = x + sz.w;
+		x += sz.w;
 	}
 	n = Math.floor(n / 2);
 	r = n % 5;
@@ -699,15 +701,17 @@ function writeTally(n)
 	{
 		sz = drawBox1000(ctx, x, y, r);
 		box1000hPos = x;
-		x = x + sz.w;
+		x += sz.w;
 	}
 	n = Math.floor(n / 5);
 	r = n % 2;
 	if (r > 0)
 	{
 		sz = drawBox1000(ctx, x, y, 10);
-		x = x + sz.w;
+		x += sz.w;
 	}
+	ctx.strokeStyle = oldStrokeStyle;
+	ctx.lineWidth = oldLineWidth;
 }
 
 function replaceLastChars(s, a, b) // if string s ends with string a,
