@@ -25,19 +25,19 @@ const foregroundWeightConnector2 = 0.3;
 const tallyMarkHeight = 25;
 const tallyMarkThickness = 1;
 const hSpace = 2;
-const vSpaceBetweenTallyMarks = 3;
-const vSpaceBetween5s = 6;
-const vSpaceBetween50s = 6;
-const hOffset = 2;
-const vOffset = 2;
+const verticalSpaceBetweenTallyMarks = 3;
+const verticalSpaceBetween5s = 6;
+const verticalSpaceBetween50s = 6;
+const horizontalOffset = 2;
+const verticalOffset = 2;
 const boundaryThickness = 1;
 const boundaryPadding = 2;
 const hSpaceBetween5s = 2;
 const hSpaceBetween100s = 3.6;
 const hSpaceBetween500s = 8;
-const hOffsetBetween1000s = 1;
-const vOffsetBetween1000s = 1;
-const vOffsetBetween5s = Math.ceil(vSpaceBetweenTallyMarks / 2);
+const horizontalOffsetBetween1000s = 1;
+const verticalOffsetBetween1000s = 1;
+const verticalOffsetBetween5s = Math.ceil(verticalSpaceBetweenTallyMarks / 2);
 const connectingLineBeginningVerticalSectionLength = 3;
 const connectingLineEndingVerticalSectionLength = 3;
 const boxCornerRadius = 2;
@@ -429,9 +429,9 @@ function drawColumnHlines(ctx, x, y, len, n)
 	for (let i=0; i<n; i++)
 	{
 		drawHline(ctx, x, y, len);
-		y = y + vSpaceBetweenTallyMarks + tallyMarkThickness;
+		y = y + verticalSpaceBetweenTallyMarks + tallyMarkThickness;
 	}
-	return (n*tallyMarkThickness + (n-1)*vSpaceBetweenTallyMarks); // column height
+	return (n*tallyMarkThickness + (n-1)*verticalSpaceBetweenTallyMarks); // column height
 }
 
 function drawBox5(ctx, x, y)
@@ -462,9 +462,9 @@ function drawBox10(ctx, x, y)
 	const lineHpos = x + boundaryPadding + boundaryThickness;
 	let lineVpos = y + boundaryPadding + boundaryThickness;
 	const columnHeight1 = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // column of five horizontal,
-	lineVpos = lineVpos + columnHeight1 + vSpaceBetween5s; // then space underneath,
+	lineVpos = lineVpos + columnHeight1 + verticalSpaceBetween5s; // then space underneath,
 	const columnHeight2 = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // then another column of five horizontal
-	const boundingRectHeight = columnHeight1 + columnHeight2 + vSpaceBetween5s + 2*boundaryPadding + boundaryThickness;
+	const boundingRectHeight = columnHeight1 + columnHeight2 + verticalSpaceBetween5s + 2*boundaryPadding + boundaryThickness;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
@@ -483,12 +483,12 @@ function drawColumn50Hlines(ctx, x, y, len)
 	for (let i=0; i<5; i++)
 	{
 		const dHeight = drawColumnHlines(ctx, x, y, len, 5); // left column of five horizontal,
-		drawColumnHlines(ctx, xr, y + vOffsetBetween5s, len, 5); // right column (offset horizontally&vertically),
-		y = y + dHeight + vSpaceBetween5s; // regular vertical spacing (for visual clarity)
-		columnHeight = columnHeight + dHeight + vSpaceBetween5s;
+		drawColumnHlines(ctx, xr, y + verticalOffsetBetween5s, len, 5); // right column (offset horizontally&vertically),
+		y = y + dHeight + verticalSpaceBetween5s; // regular vertical spacing (for visual clarity)
+		columnHeight = columnHeight + dHeight + verticalSpaceBetween5s;
 	}
 	const w = 2*len + hSpaceBetween5s;  // width of the drawing
-	const h = columnHeight + vOffsetBetween5s - vSpaceBetween5s; // height of the drawing
+	const h = columnHeight + verticalOffsetBetween5s - verticalSpaceBetween5s; // height of the drawing
 	return {w, h};
 }
 
@@ -515,10 +515,10 @@ function drawBox50(ctx, x, y) // column of 25 short horizontal tally marks on th
 function drawColumn100Hlines(ctx, x, y, len)
 { // used in drawBox100() and drawColumns500Hlines()
 	const columnSize1 = drawColumn50Hlines(ctx, x, y, len); // column of 50 horizontal tally marks,
-	y = y + columnSize1.h + vSpaceBetween50s; // extra space halfway down,
+	y = y + columnSize1.h + verticalSpaceBetween50s; // extra space halfway down,
 	const columnSize2 = drawColumn50Hlines(ctx, x, y, len); // another column of 50 horizontal tally marks underneath
 	const w = columnSize1.w;  // width of the drawing
-	const h = columnSize1.h + columnSize2.h + vSpaceBetween50s; // height of the drawing	
+	const h = columnSize1.h + columnSize2.h + verticalSpaceBetween50s; // height of the drawing	
 	return {w, h};
 }
 
@@ -611,8 +611,8 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	{
 		if (i%5==0)
 		{ // extra offset between groups of 5
-			x = x + hShift + hOffsetBetween1000s;
-			y = y + vShift + vOffsetBetween1000s;
+			x = x + hShift + horizontalOffsetBetween1000s;
+			y = y + vShift + verticalOffsetBetween1000s;
 			j = 0;
 		}
 		else
@@ -640,8 +640,8 @@ function writeTally(n)
 	const ctx = tallyCanvas.getContext("2d");
 	const canvasStyle = getComputedStyle(tallyCanvas);
 	const foregroundColor = canvasStyle.color;
-	let x = hOffset;
-	let y = vOffset;
+	let x = horizontalOffset;
+	let y = verticalOffset;
 	if (n < smallestNumberToDisplay || n===0) return;
 	ctx.strokeStyle = foregroundColor;
 	ctx.lineWidth = tallyMarkThickness;
@@ -1026,15 +1026,15 @@ function connectRomanToTally() // draw connecting lines (and horizontal braces) 
 	const ctx = romanToTallyConnectorCanvas.getContext("2d");
 	const nPastEnd = rn.length - 1 - end;
 	const fromX1 = (0<nPastEnd) ? stringWidthOnCanvas(ctx, rn.substring(end+1)) : 0;
-	const lessOrEqX1 = fpLessEq(box1000hPos-hOffset, fromX1, fpTolerance);
+	const lessOrEqX1 = fpLessEq(box1000hPos-horizontalOffset, fromX1, fpTolerance);
 	if (lessOrEqX1) return; // box1000 is directly under the Ms so no connections to draw here
-	let fromY = vOffset;
+	let fromY = verticalOffset;
 	const fromX2 = stringWidthOnCanvas(ctx, rn.substring(start));
 	const fromXm = 0.5 * (fromX1 + fromX2);
-	const rFromXm = romanToTallyConnectorCanvas.width - fromXm - hOffset;
-	const rFromX2 = romanToTallyConnectorCanvas.width - fromX2 - hOffset;
+	const rFromXm = romanToTallyConnectorCanvas.width - fromXm - horizontalOffset;
+	const rFromX2 = romanToTallyConnectorCanvas.width - fromX2 - horizontalOffset;
 	const toY = romanToTallyConnectorCanvas.height;
-	const rToX = romanToTallyConnectorCanvas.width - box1000hPos - hOffset;
+	const rToX = romanToTallyConnectorCanvas.width - box1000hPos - horizontalOffset;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	const oldLineWidth = ctx.lineWidth;
 	const oldLineDash = ctx.getLineDash();
@@ -1072,7 +1072,7 @@ function displayTextOnCanvas(s, cv)
 	if (s == null || s.length < 1)
 		return;
 	const metrics = ctx.measureText(s);
-	const hPos = cv.width - metrics.width - hOffset;
+	const hPos = cv.width - metrics.width - horizontalOffset;
 	const vPos = metrics.actualBoundingBoxAscent;
 	ctx.fillText(s, hPos, vPos);
 }
@@ -1220,7 +1220,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			this.xLf = xAnotherArg; // this instance is used to move only this.leftText
 		else
 			this.xr = this.xRi = xAnotherArg; // move both this.leftText and this.rightText
-		const cvw = this.cnv.width - hOffset;
+		const cvw = this.cnv.width - horizontalOffset;
 		this.vPos = this.cnv.height; // default value, in case cannot obtain valid text metrics
 		let metrics = null;
 		if (this.rightText !== null)
@@ -1365,7 +1365,7 @@ class MetamorphoseIIIIItoV
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		const cvw = this.cnv.width - hOffset;
+		const cvw = this.cnv.width - horizontalOffset;
 		let metrics = this.ctx.measureText(this.initialText);
 		this.vPos = metrics.actualBoundingBoxAscent;
 		this.x0i = this.x0 = cvw - metrics.width;
@@ -1540,7 +1540,7 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 		}
 		this.started = true;
 		this.finished = false;
-		const cvw = this.cnv.width - hOffset;
+		const cvw = this.cnv.width - horizontalOffset;
 		let metrics = this.ctx.measureText(this.finalText);
 		this.vPos = metrics.actualBoundingBoxAscent;
 		this.x0f = cvw - metrics.width;
@@ -1700,7 +1700,7 @@ class MetamorphoseVVtoX
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		const cvw = this.cnv.width - hOffset;
+		const cvw = this.cnv.width - horizontalOffset;
 		let metrics = this.ctx.measureText(this.initialText);
 		this.y2 = this.y1f = this.y1 = metrics.actualBoundingBoxAscent;
 		this.y2f = 0.5 * (this.y2);
@@ -1879,7 +1879,7 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		}
 		this.started = true;
 		this.finished = false;
-		const cvw = this.cnv.width - hOffset;
+		const cvw = this.cnv.width - horizontalOffset;
 		let metrics = this.ctx.measureText(this.finalText);
 		this.yf = this.y1 = metrics.actualBoundingBoxAscent;
 		this.y2 = 0.5 * (this.yf);
@@ -2022,7 +2022,7 @@ class Fade // used to fade text in, to fade text out...
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		const cvw = this.cnv.width - hOffset;
+		const cvw = this.cnv.width - horizontalOffset;
 		this.vPos = this.cnv.height;
 		this.xi = cvw;
 		this.xf = cvw;
@@ -2198,7 +2198,7 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		}
 		this.started = true;
 		this.finished = false;
-		const cvw = this.cnv.width - hOffset;
+		const cvw = this.cnv.width - horizontalOffset;
 		if (this.x === null)
 			this.x = new Array(this.finalText.length);
 		if (this.xf === null)
@@ -2296,7 +2296,7 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		const cw = this.cnv.width - this.xs;
 		this.ctx.clearRect(this.xs, -0.5, cw, this.cnv.height);
 		this.ctx.fillText(this.sameText, this.xs, this.vPos);
-		const cvw = this.cnv.width - hOffset;
+		const cvw = this.cnv.width - horizontalOffset;
 		const wCleared = cvw - this.x[0]; // draw initialText in the middle of the space
 		const xi = cvw - 0.5 * (wCleared + this.wInitialText); // cleared for finalText
 		const oldFillStyle = this.ctx.fillStyle;
@@ -2397,7 +2397,7 @@ class AnimateNumeralSubstitutionToFew
 		this.started = true;
 		this.finished = false;
 		this.morph.reset();
-		this.xiSameText = this.cnv.width - hOffset;
+		this.xiSameText = this.cnv.width - horizontalOffset;
 		this.xfSameText = this.xiSameText;
 		let metrics = this.ctx.measureText(this.entireText);
 		if (metrics !== null &&
@@ -2502,7 +2502,7 @@ class AnimateNumeralInsertion
 			return; // browser does not support canvas
 		}
 		this.started = true;
-		let xi = this.cnv.width - hOffset;
+		let xi = this.cnv.width - horizontalOffset;
 		let xf = xi;
 		let metrics = this.ctx.measureText(this.entireText);
 		if (metrics !== null &&
