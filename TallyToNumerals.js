@@ -3054,13 +3054,7 @@ decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI, set
 
 function decNumAnmtnsConstraints()
 {
-/* 	f = decNumAnmtnsSbtrctv.findFragment("M", "CMC");
-	if (f === null)
-		console.log('failed in decNumAnmtnsSbtrctv.findFragment("M", "CMC")');
-	else if (f.after(decNumAnmtnsAddtv, "M", "DD") == false)
-		console.log('failed in f.after(decNumAnmtnsAddtv, "M", "DD")');
- */
-	f = decNumAnmtnsSbtrctv.findFragment("M", "CMC");
+	let f = decNumAnmtnsSbtrctv.findFragment("M", "CMC");
 	if (f === null)
 		console.log('failed in decNumAnmtnsSbtrctv.findFragment("M", "CMC")');
 	else if (f.after(decNumAnmtnsAddtv, "D", "CCCCC") == false)
@@ -3188,7 +3182,7 @@ function decrementNumber()
 	{
 		decNumAnmtnsAddtv.reset(); // reset() method changes the internal state read by finished() accessor...
 		decNumAnmtnsSbtrctv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
-		setNumber(); //...otherwise this branch of this if-statement will never execute
+		setNumber(); //...otherwise this branch of this if-statement will never be executed
 	}
 	else
 		window.requestAnimationFrame(decrementNumber);
