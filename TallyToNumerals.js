@@ -47,7 +47,7 @@ const buttonHoverBgColor = "#707070";
 const buttonNormalColor = incrementButton.style.color;
 const buttonDisabledColor = "#505050";
 
-let ArabicNumeralsVisible = false;
+let ArabicNumeralsVisible = true; //false;
 let settingsVisible = false;
 let inputNumber = 0;
 let romanNumeralsAdditive = "";
@@ -1531,10 +1531,15 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 		}
 		this.entireText = sText;
  		this.nCsame = this.entireText.length - this.initialText.length;
-		if ((this.nCsame < 0) || (this.entireText.substring(this.nCsame) !== this.initialText))
+		if (this.nCsame < 0)
 		{
 			this.finished = true;
-			return; // nothing to substitute, so nothing to do here
+			return; // entireText shorter than initialText, so nothing to substitute, so nothing to do here
+		}
+		if (this.entireText.substring(this.nCsame) !== this.initialText)
+		{
+			this.finished = true;
+			return; // entireText does not end with initialText, so nothing to substitute, so nothing to do here
 		}
 		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.cnv === null || this.ctx === null)
@@ -1868,12 +1873,12 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		if (this.nCsame < 0)
 		{
 			this.finished = true;
-			return; // this.entireText shorter than initialText, so nothing to substitute, so nothing to do here
+			return; // entireText shorter than initialText, so nothing to substitute, so nothing to do here
 		}
 		if (this.entireText.substring(this.nCsame) !== this.initialText)
 		{
 			this.finished = true;
-			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
+			return; // entireText does not end with initialText, so nothing to substitute, so nothing to do here
 		}
 		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.cnv === null || this.ctx === null)
@@ -2187,12 +2192,12 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		if (this.nCsame < 0)
 		{
 			this.finished = true;
-			return; // this.entireText shorter than initialText, so nothing to substitute, so nothing to do here
+			return; // entireText shorter than initialText, so nothing to substitute, so nothing to do here
 		}
 		if (this.entireText.substring(this.nCsame) !== this.initialText)
 		{
 			this.finished = true;
-			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
+			return; // entireText does not end with initialText, so nothing to substitute, so nothing to do here
 		}
 		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.cnv === null || this.ctx === null)
@@ -2385,12 +2390,12 @@ class AnimateNumeralSubstitutionToFew
 		if (this.nCsame < 0)
 		{
 			this.finished = true;
-			return; // this.entireText shorter than initialText, so nothing to substitute, so nothing to do here
+			return; // entireText shorter than initialText, so nothing to substitute, so nothing to do here
 		}
 		if (this.entireText.substring(this.nCsame) !== this.morph.initialText)
 		{
 			this.finished = true;
-			return; // this.entireText does not end with initialText, so nothing to substitute, so nothing to do here
+			return; // entireText does not end with initialText, so nothing to substitute, so nothing to do here
 		}
 		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.cnv === null || this.ctx === null)
@@ -3007,7 +3012,6 @@ function incrementNumber()
 			return;
 		disableButtons(true);
 		eraseDrawings();
-		inputNumber++;
 		incNumAnmtnsAddtv.start();
 		incNumAnmtnsSbtrctv.start();
 	}
@@ -3017,10 +3021,11 @@ function incrementNumber()
 		incNumAnmtnsSbtrctv.more();
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
-	{
-		incNumAnmtnsAddtv.reset(); // reset() method changes the internal state read by finished() accessor...
-		incNumAnmtnsSbtrctv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
-		setNumber(); //...otherwise this branch of this if-statement will never be executed
+	{ // reset() method changes the internal state read by finished() accessor...
+		incNumAnmtnsAddtv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
+		incNumAnmtnsSbtrctv.reset(); //...otherwise this branch of this if-statement will never be executed
+		inputNumber++;
+		setNumber();
 	}
 	else
 		window.requestAnimationFrame(incrementNumber);
@@ -3169,7 +3174,6 @@ function decrementNumber()
 			return;
 		disableButtons(false);
 		eraseDrawings();
-		inputNumber--;
 		decNumAnmtnsAddtv.start();
 		decNumAnmtnsSbtrctv.start();
 	}
@@ -3179,10 +3183,11 @@ function decrementNumber()
 		decNumAnmtnsSbtrctv.more();
 	}
 	if (decNumAnmtnsAddtv.finished() && decNumAnmtnsSbtrctv.finished())
-	{
-		decNumAnmtnsAddtv.reset(); // reset() method changes the internal state read by finished() accessor...
-		decNumAnmtnsSbtrctv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
-		setNumber(); //...otherwise this branch of this if-statement will never be executed
+	{ // reset() method changes the internal state read by finished() accessor...
+		decNumAnmtnsAddtv.reset(); //...so call reset() only (immediately) after _both_ animation sequences finish,...
+		decNumAnmtnsSbtrctv.reset(); //...otherwise this branch of this if-statement will never be executed
+		inputNumber--;
+		setNumber();
 	}
 	else
 		window.requestAnimationFrame(decrementNumber);
