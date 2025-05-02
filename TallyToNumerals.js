@@ -53,7 +53,7 @@ let inputNumber = 0;
 let romanNumeralsAdditive = "";
 let romanNumeralsSubtractive = "";
 let incrementOrDecrementExecuting = false;
-let box1000hPos = 0;
+let box1000horizontalPosition = 0;
 
 ANinstructionsElement.innerText = "type in a number (at least " +
 	String(smallestNumberToDisplay) + " but less than " +
@@ -149,7 +149,7 @@ function eraseDrawings()
 	clearCanvas(romanToTallyConnectorCanvas);
 	clearCanvas(romanToArabicConnectorCanvas);
 	clearCanvas(romanAdditiveToSubtractiveConnectorCanvas);
-	box1000hPos = 0;
+	box1000horizontalPosition = 0;
 }
 
 function setNumber(n)
@@ -334,32 +334,32 @@ function testCanvas()
 		return;
 	let ctx = tallyCanvas.getContext("2d");
 	ctx.lineWidth = 1;
-	let hPos = 1;
-	let vPos = 1;
-	let sz = drawTallyMark(ctx, hPos, vPos);
-	hPos = hPos + sz.w;
-	sz = drawBox5(ctx, hPos, vPos);
-	hPos = hPos + sz.w;
-	sz = drawBox10(ctx, hPos, vPos);
-	hPos = hPos + sz.w;
-	sz = drawBox50(ctx, hPos, vPos);
-	hPos = hPos + sz.w;
-	sz = drawBox100(ctx, hPos, vPos);
-	hPos = hPos + sz.w;
-	sz = drawBox500(ctx, hPos, vPos);
-	hPos = hPos + sz.w;
-	sz = drawBox1000(ctx, hPos, vPos, 10);
-	hPos = hPos + sz.w;
+	let horizontalPosition = 1;
+	let verticalPosition = 1;
+	let sz = drawTallyMark(ctx, horizontalPosition, verticalPosition);
+	horizontalPosition = horizontalPosition + sz.w;
+	sz = drawBox5(ctx, horizontalPosition, verticalPosition);
+	horizontalPosition = horizontalPosition + sz.w;
+	sz = drawBox10(ctx, horizontalPosition, verticalPosition);
+	horizontalPosition = horizontalPosition + sz.w;
+	sz = drawBox50(ctx, horizontalPosition, verticalPosition);
+	horizontalPosition = horizontalPosition + sz.w;
+	sz = drawBox100(ctx, horizontalPosition, verticalPosition);
+	horizontalPosition = horizontalPosition + sz.w;
+	sz = drawBox500(ctx, horizontalPosition, verticalPosition);
+	horizontalPosition = horizontalPosition + sz.w;
+	sz = drawBox1000(ctx, horizontalPosition, verticalPosition, 10);
+	horizontalPosition = horizontalPosition + sz.w;
 	if (romanToArabicConnectorCanvas.getContext == null)
 		return;
 	ctx = romanToArabicConnectorCanvas.getContext("2d");
 	ctx.lineWidth = 1;
-	hPos = 0;
-	vPos = romanToArabicConnectorCanvas.height;
+	horizontalPosition = 0;
+	verticalPosition = romanToArabicConnectorCanvas.height;
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = 1;
 	let foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
-	drawHorizontalBrace(ctx, hPos, vPos, 60, true);
+	drawHorizontalBrace(ctx, horizontalPosition, verticalPosition, 60, true);
 	drawHorizontalBrace(ctx, 70, 1, 60, false);
 	ctx.lineWidth = oldlw;
 	ctx.strokeStyle = foregroundColor; // restore foreground color
@@ -700,7 +700,7 @@ function writeTally(n)
 	if (r > 0)
 	{
 		sz = drawBox1000(ctx, x, y, r);
-		box1000hPos = x;
+		box1000horizontalPosition = x;
 		x += sz.w;
 	}
 	n = Math.floor(n / 5);
@@ -1030,7 +1030,7 @@ function connectRomanToTally() // draw connecting lines (and horizontal braces) 
 	const ctx = romanToTallyConnectorCanvas.getContext("2d");
 	const nPastEnd = rn.length - 1 - end;
 	const fromX1 = (0<nPastEnd) ? stringWidthOnCanvas(ctx, rn.substring(end+1)) : 0;
-	const lessOrEqX1 = fpLessEq(box1000hPos-horizontalOffset, fromX1, fpTolerance);
+	const lessOrEqX1 = fpLessEq(box1000horizontalPosition-horizontalOffset, fromX1, fpTolerance);
 	if (lessOrEqX1) return; // box1000 is directly under the Ms so no connections to draw here
 	let fromY = verticalOffset;
 	const fromX2 = stringWidthOnCanvas(ctx, rn.substring(start));
@@ -1038,7 +1038,7 @@ function connectRomanToTally() // draw connecting lines (and horizontal braces) 
 	const rFromXm = romanToTallyConnectorCanvas.width - fromXm - horizontalOffset;
 	const rFromX2 = romanToTallyConnectorCanvas.width - fromX2 - horizontalOffset;
 	const toY = romanToTallyConnectorCanvas.height;
-	const rToX = romanToTallyConnectorCanvas.width - box1000hPos - horizontalOffset;
+	const rToX = romanToTallyConnectorCanvas.width - box1000horizontalPosition - horizontalOffset;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightConnector);
 	const oldLineWidth = ctx.lineWidth;
 	const oldLineDash = ctx.getLineDash();
@@ -1053,7 +1053,7 @@ function connectRomanToTally() // draw connecting lines (and horizontal braces) 
 		bLen = 0;
 		drawHorizontalBrace(ctx, rFromX2, fromY, fromX2-fromX1, false);
 		fromY += braceArcRadius;
-		const lessOrEqX2 = fpLessEq(box1000hPos+boxCornerRadius, fromX2-braceArcRadius, fpTolerance);
+		const lessOrEqX2 = fpLessEq(box1000horizontalPosition+boxCornerRadius, fromX2-braceArcRadius, fpTolerance);
 		rFromX = lessOrEqX2 ? (rToX - boxCornerRadius) : (rFromX2 + braceArcRadius);
 	} else rFromX = rFromXm;
 	drawConnectingLine(ctx, rFromX, fromY, rToX - boxCornerRadius, toY, bLen, eLen);
@@ -1076,9 +1076,9 @@ function displayTextOnCanvas(s, cv)
 	if (s == null || s.length < 1)
 		return;
 	const metrics = ctx.measureText(s);
-	const hPos = cv.width - metrics.width - horizontalOffset;
-	const vPos = metrics.actualBoundingBoxAscent;
-	ctx.fillText(s, hPos, vPos);
+	const horizontalPosition = cv.width - metrics.width - horizontalOffset;
+	const verticalPosition = metrics.actualBoundingBoxAscent;
+	ctx.fillText(s, horizontalPosition, verticalPosition);
 }
 
 function incrementButtonMouseoverListener() {incrementButton.style.backgroundColor = buttonHoverBgColor;}
@@ -1202,7 +1202,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	xClear = 0; // horizontal position (in pixels) of the leftmost corner of the part of canvas to be cleared before redrawing
 	wClear = 0; // width (in pixels) of the part of canvas to be cleared before redrawing
 	t = 0; // (msec) time of last update
-	vPos = 0; // vertical position of all the text treated by this class
+	verticalPosition = 0; // vertical position of all the text treated by this class
 	finished = true; // used to implement this.done()
 	justFinished = false; // used to implement this.recent()
 	constructor(m, s)
@@ -1225,7 +1225,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		else
 			this.xr = this.xRi = xAnotherArg; // move both this.leftText and this.rightText
 		const cvw = this.cnv.width - horizontalOffset;
-		this.vPos = this.cnv.height; // default value, in case cannot obtain valid text metrics
+		this.verticalPosition = this.cnv.height; // default value, in case cannot obtain valid text metrics
 		let metrics = null;
 		if (this.rightText !== null)
 		{
@@ -1234,7 +1234,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
 			{
 				this.xRf = cvw - metrics.width;
-				this.vPos = metrics.actualBoundingBoxAscent;
+				this.verticalPosition = metrics.actualBoundingBoxAscent;
 			}
 		}
 		this.wLeftText = 0; // default value, in case cannot obtain valid text metrics
@@ -1246,7 +1246,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			this.wLeftText = metrics.width;
 			if (this.rightText !== null)
 				this.xLf = this.xRf - this.wLeftText;
-			this.vPos = metrics.actualBoundingBoxAscent;
+			this.verticalPosition = metrics.actualBoundingBoxAscent;
 		}
 		this.vxl = AnimationSpeedClosingTheGaps*(this.xLf - this.xLi);
 		this.lStationary = (this.leftText===null) ||
@@ -1322,9 +1322,9 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			return; // browser does not support canvas
 		this.ctx.clearRect(this.xClear, -0.5, this.wClear, this.cnv.height);
 		if (this.leftText !== null)
-			this.ctx.fillText(this.leftText, this.xl, this.vPos);
+			this.ctx.fillText(this.leftText, this.xl, this.verticalPosition);
 		if (this.rightText !== null)
-			this.ctx.fillText(this.rightText, this.xr, this.vPos);
+			this.ctx.fillText(this.rightText, this.xr, this.verticalPosition);
 	}
 }
 
@@ -1351,7 +1351,7 @@ class MetamorphoseIIIIItoV
 	vx3 = 0; // (px/msec) how fast to move x3 towards xf
 	vx4 = 0; // (px/msec) how fast to move x4 towards xf
 	t = 0; // (msec) time of last update
-	vPos = 0; // vertical position of all the text treated by this class
+	verticalPosition = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
 	justFinished = false; // used to implement this.recent()
 	constructor(c)
@@ -1371,7 +1371,7 @@ class MetamorphoseIIIIItoV
 		this.finished = false;
 		const cvw = this.cnv.width - horizontalOffset;
 		let metrics = this.ctx.measureText(this.initialText);
-		this.vPos = metrics.actualBoundingBoxAscent;
+		this.verticalPosition = metrics.actualBoundingBoxAscent;
 		this.x0i = this.x0 = cvw - metrics.width;
 		metrics = this.ctx.measureText(this.initialText.substring(1));
 		this.x1 = cvw - metrics.width;
@@ -1436,24 +1436,24 @@ class MetamorphoseIIIIItoV
 			return; // browser does not support canvas
 		const w = this.cnv.width - this.x0i;
 		this.ctx.clearRect(this.xInitialText(), -0.5, w, this.cnv.height);
-		this.ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,vPos), before doing the same for the next position
-		this.ctx.transform(1, 0, this.skew, 1, this.x0, this.vPos); // translate the axes to (x0,vPos) and skew leftwards
+		this.ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,verticalPosition), before doing the same for the next position
+		this.ctx.transform(1, 0, this.skew, 1, this.x0, this.verticalPosition); // translate the axes to (x0,verticalPosition) and skew leftwards
 		this.ctx.fillText(this.initialText[0], 0, 0);
 		this.ctx.restore();
 		this.ctx.save(); // use transform()n rather than setTransform() b/c setTransform() discards useful transforms applied earlier often causing letters drawn by this method to be not perfectly aligned with each other vertically
-		this.ctx.transform(1, 0, -this.skew, 1, this.x1, this.vPos); // translate the axes to (x1,vPos) and skew rightwards
+		this.ctx.transform(1, 0, -this.skew, 1, this.x1, this.verticalPosition); // translate the axes to (x1,verticalPosition) and skew rightwards
 		this.ctx.fillText(this.initialText[1], 0, 0);
 		this.ctx.restore();
 		this.ctx.save(); // set the position of drawing, together with the skew, via the call to transform() to ensure correct horizontal positioning of all the letters drawn by this method
-		this.ctx.transform(1, 0, -this.skew, 1, this.x2, this.vPos); // translate the axes to (x2,vPos) and skew rightwards
+		this.ctx.transform(1, 0, -this.skew, 1, this.x2, this.verticalPosition); // translate the axes to (x2,verticalPosition) and skew rightwards
 		this.ctx.fillText(this.initialText[2], 0, 0);
 		this.ctx.restore();
 		this.ctx.save();
-		this.ctx.transform(1, 0, -this.skew, 1, this.x3, this.vPos); // translate the axes to (x3,vPos) and skew rightwards
+		this.ctx.transform(1, 0, -this.skew, 1, this.x3, this.verticalPosition); // translate the axes to (x3,verticalPosition) and skew rightwards
 		this.ctx.fillText(this.initialText[3], 0, 0);
 		this.ctx.restore();
 		this.ctx.save();
-		this.ctx.transform(1, 0, -this.skew, 1, this.x4, this.vPos); // translate the axes to (x4,vPos) and skew rightwards
+		this.ctx.transform(1, 0, -this.skew, 1, this.x4, this.verticalPosition); // translate the axes to (x4,verticalPosition) and skew rightwards
 		this.ctx.fillText(this.initialText[4], 0, 0);
 		this.ctx.restore();
 	}
@@ -1492,7 +1492,7 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 	vx4 = 0; // (px/msec) how fast to move x4 towards x4f
 	vxs = 0; // (px/msec) how fast to move xs towards xSf
 	t = 0; // (msec) time of last update
-	vPos = 0; // vertical position of all the text treated by this class
+	verticalPosition = 0; // vertical position of all the text treated by this class
 	started = false; // true iff initialText was found in entireText
 	finished = false; // iff finished the metamorphosis of intialText into finalText
 	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
@@ -1546,7 +1546,7 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 		this.finished = false;
 		const cvw = this.cnv.width - horizontalOffset;
 		let metrics = this.ctx.measureText(this.finalText);
-		this.vPos = metrics.actualBoundingBoxAscent;
+		this.verticalPosition = metrics.actualBoundingBoxAscent;
 		this.x0f = cvw - metrics.width;
 		metrics = this.ctx.measureText(this.finalText.substring(1));
 		this.x1f = cvw - metrics.width;
@@ -1618,25 +1618,25 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 			return; // browser does not support canvas
 		const cvw = this.cnv.width - this.xs;
 		this.ctx.clearRect(this.xs, -0.5, cvw, this.cnv.height);
-		this.ctx.fillText(this.sameText, this.xs, this.vPos);
-		this.ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,vPos), before doing the same for the next position
-		this.ctx.transform(1, 0, this.skew, 1, this.x0, this.vPos); // translate the axes to (x0,vPos) and skew leftwards
+		this.ctx.fillText(this.sameText, this.xs, this.verticalPosition);
+		this.ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,verticalPosition), before doing the same for the next position
+		this.ctx.transform(1, 0, this.skew, 1, this.x0, this.verticalPosition); // translate the axes to (x0,verticalPosition) and skew leftwards
 		this.ctx.fillText(this.finalText[0], 0, 0);
 		this.ctx.restore();
 		this.ctx.save(); // use transform()n rather than setTransform() b/c setTransform() discards useful transforms applied earlier often causing letters drawn by this method to be not perfectly aligned with each other vertically
-		this.ctx.transform(1, 0, -this.skew, 1, this.x1, this.vPos); // translate the axes to (x1,vPos) and skew rightwards
+		this.ctx.transform(1, 0, -this.skew, 1, this.x1, this.verticalPosition); // translate the axes to (x1,verticalPosition) and skew rightwards
 		this.ctx.fillText(this.finalText[1], 0, 0);
 		this.ctx.restore();
 		this.ctx.save(); // set the position of drawing, together with the skew, via the call to transform() to ensure correct horizontal positioning of all the letters drawn by this method
-		this.ctx.transform(1, 0, -this.skew, 1, this.x2, this.vPos); // translate the axes to (x2,vPos) and skew rightwards
+		this.ctx.transform(1, 0, -this.skew, 1, this.x2, this.verticalPosition); // translate the axes to (x2,verticalPosition) and skew rightwards
 		this.ctx.fillText(this.finalText[2], 0, 0);
 		this.ctx.restore();
 		this.ctx.save();
-		this.ctx.transform(1, 0, -this.skew, 1, this.x3, this.vPos); // translate the axes to (x3,vPos) and skew rightwards
+		this.ctx.transform(1, 0, -this.skew, 1, this.x3, this.verticalPosition); // translate the axes to (x3,verticalPosition) and skew rightwards
 		this.ctx.fillText(this.finalText[3], 0, 0);
 		this.ctx.restore();
 		this.ctx.save();
-		this.ctx.transform(1, 0, -this.skew, 1, this.x4, this.vPos); // translate the axes to (x4,vPos) and skew rightwards
+		this.ctx.transform(1, 0, -this.skew, 1, this.x4, this.verticalPosition); // translate the axes to (x4,verticalPosition) and skew rightwards
 		this.ctx.fillText(this.finalText[4], 0, 0);
 		this.ctx.restore();
 	}
@@ -2006,7 +2006,7 @@ class Fade // used to fade text in, to fade text out...
 	xClear = 0; // horizontal position (in pixels) of the leftmost corner of the part of canvas to be cleared before redrawing
 	wClear = 0; // width (in pixels) of the part of canvas to be cleared before redrawing
 	t = 0; // (msec) time of last update
-	vPos = 0; // vertical position of all the text treated by this class
+	verticalPosition = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
 	justFinished = false; // used to implement this.recent()
 	xInitialText() {return this.xi;} // initial horizontal position of initialText
@@ -2027,14 +2027,14 @@ class Fade // used to fade text in, to fade text out...
 			return; // browser does not support canvas
 		this.finished = false;
 		const cvw = this.cnv.width - horizontalOffset;
-		this.vPos = this.cnv.height;
+		this.verticalPosition = this.cnv.height;
 		this.xi = cvw;
 		this.xf = cvw;
 		let metrics = null;
 		if (this.initialText !== null)
 		{
 			metrics = this.ctx.measureText(this.initialText);
-			this.vPos = metrics.actualBoundingBoxAscent;
+			this.verticalPosition = metrics.actualBoundingBoxAscent;
 			const wInitialText = metrics.width;
 			this.xi = cvw - wInitialText;
 			if (this.finalText !== null)
@@ -2046,7 +2046,7 @@ class Fade // used to fade text in, to fade text out...
 				this.xf = cvw;
 		} else if (this.finalText !== null) {
 			metrics = this.ctx.measureText(this.finalText);
-			this.vPos = metrics.actualBoundingBoxAscent;
+			this.verticalPosition = metrics.actualBoundingBoxAscent;
 			this.xf = cvw - metrics.width;
 		}
 		this.aOut = this.aOutI;
@@ -2106,12 +2106,12 @@ class Fade // used to fade text in, to fade text out...
 		if (this.initialText !== null)
 		{
 			this.ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
-			this.ctx.fillText(this.initialText, this.xInitialText(), this.vPos);
+			this.ctx.fillText(this.initialText, this.xInitialText(), this.verticalPosition);
 		}
 		if (this.finalText !== null)
 		{
 			this.ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
-			this.ctx.fillText(this.finalText, this.xFinalText(), this.vPos);
+			this.ctx.fillText(this.finalText, this.xFinalText(), this.verticalPosition);
 		}
 		this.ctx.fillStyle = oldFillStyle; // restore original value
 	}
@@ -2143,7 +2143,7 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	vxPos = null; // array of booleans: vxPos[i] == (vx[i] > 0)
 	vxs = 0; // (px/msec) how fast to move xs towards xSf
 	t = 0; // (msec) time of last update
-	vPos = 0; // vertical position of all the text treated by this class
+	verticalPosition = 0; // vertical position of all the text treated by this class
 	started = false; // true iff initialText was found in entireText
 	finished = false; // iff finished the metamorphosis of intialText into finalText
 	setRomanNumeralsFncn = null; // to be called at the conclusion of each animation process
@@ -2212,7 +2212,7 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		if (this.vxPos === null)
 			this.vxPos = new Array(this.x.length);
 		let metrics = this.ctx.measureText(this.initialText);
-		this.vPos = metrics.actualBoundingBoxAscent;
+		this.verticalPosition = metrics.actualBoundingBoxAscent;
 		this.wInitialText = metrics.width;
 		for (let i=0; i<this.x.length; i++)
 		{
@@ -2299,7 +2299,7 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 			return; // browser does not support canvas
 		const cw = this.cnv.width - this.xs;
 		this.ctx.clearRect(this.xs, -0.5, cw, this.cnv.height);
-		this.ctx.fillText(this.sameText, this.xs, this.vPos);
+		this.ctx.fillText(this.sameText, this.xs, this.verticalPosition);
 		const cvw = this.cnv.width - horizontalOffset;
 		const wCleared = cvw - this.x[0]; // draw initialText in the middle of the space
 		const xi = cvw - 0.5 * (wCleared + this.wInitialText); // cleared for finalText
@@ -2308,10 +2308,10 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		const foregroundColor = canvasStyle.color;
 		const fgc = extractRGBValues(foregroundColor);
 		this.ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
-		this.ctx.fillText(this.initialText, xi, this.vPos);
+		this.ctx.fillText(this.initialText, xi, this.verticalPosition);
 		this.ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
 		for (let i=0; i<this.x.length; i++)
-			this.ctx.fillText(this.finalText[i], this.x[i], this.vPos);
+			this.ctx.fillText(this.finalText[i], this.x[i], this.verticalPosition);
 		this.ctx.fillStyle = oldFillStyle; // restore original value
 	}
 	more()
@@ -3020,7 +3020,7 @@ function incrementNumber()
 	{
 		incNumAnmtnsAddtv.reset(); // reset() method changes the internal state read by finished() accessor...
 		incNumAnmtnsSbtrctv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
-		setNumber(); //...otherwise this branch of this if-statement will never execute
+		setNumber(); //...otherwise this branch of this if-statement will never be executed
 	}
 	else
 		window.requestAnimationFrame(incrementNumber);
