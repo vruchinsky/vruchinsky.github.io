@@ -64,10 +64,12 @@ class DrawingOnCanvas
 	}
 	get() {return this.text;}
 	initializeCanvas() {initializeCanvas(this.canvas, this.flipHorizontalAxis);}
-//	clearCanvas() {clearCanvas(this.canvas);}
+	clearCanvas() {clearCanvas(this.canvas);}
 }
+
 let romanNumeralsAdditive = new DrawingOnCanvas(romanNumeralsAdditiveCanvas, false);
 let romanNumeralsSubtractive = new DrawingOnCanvas(romanNumeralsSubtractiveCanvas, false);
+let tally = new DrawingOnCanvas(tallyCanvas, true);
 
 let ArabicNumeralsVisible = true; //false;
 let settingsVisible = false;
@@ -165,7 +167,7 @@ function clearCanvas(cv)
 function eraseDrawings()
 {
 	arabicNumeralsElement.value = "";
-	clearCanvas(tallyCanvas);
+	tally.clearCanvas();
 	clearCanvas(romanToTallyConnectorCanvas);
 	clearCanvas(romanToArabicConnectorCanvas);
 	clearCanvas(romanAdditiveToSubtractiveConnectorCanvas);
@@ -182,7 +184,7 @@ function setNumber(n)
 		romanNumeralsAdditive.set(s);
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
-	writeTally(inputNumber);
+	writeTally(tally.canvas, inputNumber);
 	const s = convertRomanNumeralsAdditiveToSubtractive(romanNumeralsAdditive.get());
 	romanNumeralsSubtractive.set(s);
 	connectRomanToArabic();
@@ -350,9 +352,9 @@ function drawConnectingLine(ctx, xi, yi, xf, yf, bvLen, evLen) // from (Xi,Yi) t
 
 function testCanvas()
 {
-	if (tallyCanvas.getContext == null)
+	if (tally.canvas.getContext == null)
 		return;
-	let ctx = tallyCanvas.getContext("2d");
+	let ctx = tally.canvas.getContext("2d");
 	ctx.lineWidth = 1;
 	let horizontalPosition = 1;
 	let verticalPosition = 1;
@@ -650,17 +652,17 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	return {w, h};
 }
 
-function writeTally(n)
+function writeTally(cnv, n)
 {
-	if (tallyCanvas.getContext == null)
+	if (cnv.getContext == null)
 	{ // fallback in case browser does not support canvas
-		tallyCanvas.textContent = "|".repeat(n); // simplest: write out the tally marks
+		cnv.textContent = "|".repeat(n); // simplest: write out the tally marks
 		return;
 	}
-	const ctx = tallyCanvas.getContext("2d");
+	const ctx = cnv.getContext("2d");
 	const oldStrokeStyle = ctx.strokeStyle;
 	const oldLineWidth = ctx.lineWidth;
-	const canvasStyle = getComputedStyle(tallyCanvas);
+	const canvasStyle = getComputedStyle(cnv);
 	const foregroundColor = canvasStyle.color;
 	let x = horizontalOffset;
 	let y = verticalOffset;
@@ -1140,7 +1142,7 @@ function disableButtons(incrementButtonPressed)
 	romanNumeralsSubtractive.canvas.style.cursor = 'progress';
 	romanAdditiveToSubtractiveConnectorCanvas.style.cursor = 'progress';
 	romanToTallyConnectorCanvas.style.cursor = 'progress';
-	tallyCanvas.style.cursor = 'progress';
+	tally.canvas.style.cursor = 'progress';
 	incrementButton.removeAttribute("title");
 	decrementButton.removeAttribute("title");
 }
@@ -1188,7 +1190,7 @@ function enableButtons()
 	romanNumeralsSubtractive.canvas.style.cursor = 'default';
 	romanAdditiveToSubtractiveConnectorCanvas.style.cursor = 'default';
 	romanToTallyConnectorCanvas.style.cursor = 'default';
-	tallyCanvas.style.cursor = 'default';
+	tally.canvas.style.cursor = 'default';
 	incrementOrDecrementExecuting = false;
 }
 
@@ -2806,6 +2808,18 @@ class AnimationSequence // array of AnimationFragment objects and index of the o
 	{
 		if (this.errorOccurred())
 			return;
+		if (a === null)
+		{
+			console.log(this.constructor.name + ".append() error: a===null (this.anmtns.length=" + this.anmtns.length.toString() + ")");
+			this.errOcrd = true;
+			return false;
+		}
+		if (("drawingOnCanvas" in a) == false)
+		{
+			console.log(this.constructor.name + ".append() error: a lacks drawingOnCanvas member (this.anmtns.length=" + this.anmtns.length.toString() + ")");
+			this.errOcrd = true;
+			return false;
+		}
 		if (this.drawingOnCanvas === null)
 		{
 			console.log(this.constructor.name + ".append() error: this.drawingOnCanvas===null (this.anmtns.length=" + this.anmtns.length.toString() + ")");
@@ -3253,7 +3267,7 @@ romanNumeralsSubtractive.initializeCanvas();
 initializeCanvas(romanAdditiveToSubtractiveConnectorCanvas, true);
 romanNumeralsAdditive.initializeCanvas();
 initializeCanvas(romanToTallyConnectorCanvas, false);
-initializeCanvas(tallyCanvas, true);
+tally.initializeCanvas();
 //testCanvas();
 setNumber(0);
 //the code to bind keyup listener to input text element is based on example from
