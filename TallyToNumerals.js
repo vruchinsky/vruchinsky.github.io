@@ -51,16 +51,37 @@ class DrawingOnCanvas
 {
 	text = "";
 	canvas = null;
+	ctx = null;
 	flipHorizontalAxis = false;
 	constructor(cv, flipHA)
 	{
 		this.canvas = cv;
 		this.flipHorizontalAxis = flipHA;
+		if (this.canvas.getContext == null)
+			return; // browser does not support canvas
+		this.ctx = this.canvas.getContext("2d");
+	}
+	displayText()
+	{
+		if (this.ctx == null)
+		{ // fallback in case browser does not support canvas
+			this.canvas.textContent = this.text;
+			return;
+		}
+		this.clearCanvas();
+		if (this.text == null || this.text.length < 1)
+			return;
+		const metrics = this.ctx.measureText(this.text);
+		const verticalPosition = metrics.actualBoundingBoxAscent;
+		let horizontalPosition = metrics.width + horizontalOffset;
+		if (this.flipHorizontalAxis == false)
+			horizontalPosition = this.canvas.width - horizontalPosition;
+		this.ctx.fillText(this.text, horizontalPosition, verticalPosition);
 	}
 	set(t)
 	{
 		this.text = t;
-		displayTextOnCanvas(this.text, this.canvas);
+		this.displayText();
 	}
 	get() {return this.text;}
 	initializeCanvas() {initializeCanvas(this.canvas, this.flipHorizontalAxis);}
@@ -1082,25 +1103,6 @@ function connectRomanToTally() // draw connecting lines (and horizontal braces) 
 	ctx.strokeStyle = foregroundColor; // restore foreground color etc.
 	ctx.lineWidth = oldLineWidth;
 	ctx.lineDashOffset = oldLineDashOffset;
-}
-
-function displayTextOnCanvas(s, cv)
-{
-	if (cv == null)
-		return;
-	if (cv.getContext == null)
-	{ // fallback in case browser does not support canvas
-		cv.textContent = s;
-		return;
-	}
-	clearCanvas(cv);
-	const ctx = cv.getContext("2d");
-	if (s == null || s.length < 1)
-		return;
-	const metrics = ctx.measureText(s);
-	const horizontalPosition = cv.width - metrics.width - horizontalOffset;
-	const verticalPosition = metrics.actualBoundingBoxAscent;
-	ctx.fillText(s, horizontalPosition, verticalPosition);
 }
 
 function incrementButtonMouseoverListener() {incrementButton.style.backgroundColor = buttonHoverBgColor;}
