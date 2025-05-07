@@ -205,7 +205,7 @@ function setNumber(n)
 		romanNumeralsAdditive.set(s);
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
-	writeTally(tally.canvas, inputNumber);
+	writeTally(tally.canvas, inputNumber, romanNumeralsAdditive.text);
 	const s = convertRomanNumeralsAdditiveToSubtractive(romanNumeralsAdditive.get());
 	romanNumeralsSubtractive.set(s);
 	connectRomanToArabic();
@@ -673,7 +673,7 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	return {w, h};
 }
 
-function writeTally(cnv, n)
+function writeTally(cnv, n, rna)
 {
 	if (cnv.getContext == null)
 	{ // fallback in case browser does not support canvas
@@ -690,64 +690,36 @@ function writeTally(cnv, n)
 	if (n < smallestNumberToDisplay || n===0) return;
 	ctx.strokeStyle = foregroundColor;
 	ctx.lineWidth = tallyMarkThickness;
-	let r = n % 5;
-	let dx = stringWidthOnCanvas(ctx, "I");
-	for (let i=0; i<r; i++)
+	let dx, i, c, sz;
+	let pc = null;
+	let nMs = 0;
+	for (i=rna.length-1; i>=0; i--)
 	{
-		drawTallyMark(ctx, x, y);
+		c = rna[i];
+		if (c != pc)
+			dx = stringWidthOnCanvas(ctx, c);
+		switch (c)
+		{
+			case "I": drawTallyMark(ctx, x, y); break;
+			case "V": drawBox5(ctx, x, y); break;
+			case "X": drawBox10(ctx, x, y); break;
+			case "L": drawBox50(ctx, x, y); break;
+			case "C": drawBox100(ctx, x, y); break;
+			case "D": sz = drawBox500(ctx, x, y); dx = sz.w; break;
+			case "M": nMs++; dx = 0; break;
+		}
 		x += dx;
+		pc = c;
 	}
-	n = Math.floor(n / 5);
-	r = n % 2;
-	dx = stringWidthOnCanvas(ctx, "V");
-	if (r > 0)
-	{
-		drawBox5(ctx, x, y);
-		x += dx;
-	}
-	n = Math.floor(n / 2);
-	r = n % 5;
-	dx = stringWidthOnCanvas(ctx, "X");
-	for (let i=0; i<r; i++)
-	{
-		drawBox10(ctx, x, y);
-		x += dx;
-	}
-	n = Math.floor(n / 5);
-	r = n % 2;
-	dx = stringWidthOnCanvas(ctx, "L");
-	if (r > 0)
-	{
-		drawBox50(ctx, x, y);
-		x += dx;
-	}
-	n = Math.floor(n / 2);
-	r = n % 5;
-	dx = stringWidthOnCanvas(ctx, "C");
-	for (let i=0; i<r; i++)
-	{
-		drawBox100(ctx, x, y);
-		x += dx;
-	}
-	n = Math.floor(n / 5);
-	r = n % 2;
-	dx = stringWidthOnCanvas(ctx, "D");
-	let sz;
-	if (r > 0)
-	{
-		sz = drawBox500(ctx, x, y);
-		x += sz.w;
-	}
-	n = Math.floor(n / 2);
-	r = n % 5;
+	let r = nMs % 5;
 	if (r > 0)
 	{
 		sz = drawBox1000(ctx, x, y, r);
 		box1000horizontalPosition = x;
 		x += sz.w;
 	}
-	n = Math.floor(n / 5);
-	r = n % 2;
+	nMs = Math.floor(nMs / 5);
+	r = nMs % 2;
 	if (r > 0)
 	{
 		sz = drawBox1000(ctx, x, y, 10);
