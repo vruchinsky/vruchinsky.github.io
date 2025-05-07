@@ -1514,11 +1514,11 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 	verticalPosition = 0; // vertical position of all the text treated by this class
 	started = false; // true iff initialText was found in entireText
 	finished = false; // iff finished the metamorphosis of intialText into finalText
-	constructor(m, d) // m must be object of class MetamorphoseIIIIItoV
-	{ // d must be ref. to DrawingOnCanvas object: either romanNumeralsAdditive or romanNumeralsSubtractive
-		if (m === null || d === null)
+	constructor(m) // m must be object of class MetamorphoseIIIIItoV
+	{
+		if (m === null)
 			return;
-		this.drawingOnCanvas = d;
+		this.drawingOnCanvas = m.drawingOnCanvas;
 		this.initialText = m.finalText;
 		this.finalText = m.initialText;
 		this.skewI = m.skewF;
@@ -1855,11 +1855,11 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 	t = 0; // (msec) time of last update
 	started = false; // true iff initialText was found in entireText
 	finished = false; // iff finished the metamorphosis of intialText into finalText
-	constructor(m, d) // m must be object of class MetamorphoseVVtoX
-	{ // d must be name of DrawingOnCanvas object: either romanNumeralsAdditive or romanNumeralsSubtractive
-		if (m === null || d === null)
+	constructor(m) // m must be object of class MetamorphoseVVtoX
+	{
+		if (m === null)
 			return;
-		this.drawingOnCanvas = d;
+		this.drawingOnCanvas = m.drawingOnCanvas;
 		this.initialText = m.finalText;
 		this.finalText = m.initialText;
 		this.scaleI = m.scaleF;
@@ -2178,11 +2178,11 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	verticalPosition = 0; // vertical position of all the text treated by this class
 	started = false; // true iff initialText was found in entireText
 	finished = false; // iff finished the metamorphosis of intialText into finalText
-	constructor(m, d)
-	{ // d must be name of DrawingOnCanvas object: either romanNumeralsAdditive or romanNumeralsSubtractive
-		if (m === null || d === null)
+	constructor(m)
+	{
+		if (m === null)
 			return;
-		this.drawingOnCanvas = d;
+		this.drawingOnCanvas = m.drawingOnCanvas;
 		this.initialText = m.finalText;
 		this.finalText = m.initialText;
 		this.aOutI = m.aOutI;
@@ -2377,12 +2377,12 @@ class AnimateNumeralSubstitutionToFew
 	xfSameText = 0; // final horizontal position of sameText on canvas
 	started = false; // true iff initialText was found in entireText
 	finished = false; // iff finished all the stages of this animation
-	constructor(m, d)
-	{ // d must be ref. to DrawingOnCanvas object: either romanNumeralsAdditive or romanNumeralsSubtractive
-		if (m === null || d === null)
+	constructor(m)
+	{
+		if (m === null)
 			return;
 		this.morph = m;
-		this.drawingOnCanvas = d;
+		this.drawingOnCanvas = this.morph.drawingOnCanvas;
 		this.closeTheGaps = new SlideTextHorizontally(m, this.morph.finalText);
 		this.cnv = this.drawingOnCanvas.canvas;
 		this.ctx = this.morph.ctx;
@@ -2495,12 +2495,12 @@ class AnimateNumeralInsertion
 	entireText = null; // sameText followed by initialText
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = false; // iff finished all the stages of this animation
-	constructor(m, d)
-	{ // d must be ref. to DrawingOnCanvas object: either romanNumeralsAdditive or romanNumeralsSubtractive
-		if (m === null || d === null)
+	constructor(m) // m must be ref. to object of class Fade
+	{
+		if (m === null)
 			return;
 		this.morph = m;
-		this.drawingOnCanvas = d;
+		this.drawingOnCanvas = this.morph.drawingOnCanvas;
 		this.cnv = this.drawingOnCanvas.canvas;
 		this.ctx = this.morph.ctx;
 		this.makeSpace = new SlideTextHorizontally(m, null);
@@ -2940,13 +2940,13 @@ let mXXXXXtoL = new Fade(romanNumeralsAdditive, "XXXXX", "L");
 let mLLtoC = new Fade(romanNumeralsAdditive, "LL", "C");
 let mCCCCCtoD = new Fade(romanNumeralsAdditive, "CCCCC", "D");
 let mDDtoM = new Fade(romanNumeralsAdditive, "DD", "M");
-incNumAnmtnsAddtv.append(new AnimateNumeralInsertion(mAddtvInI, romanNumeralsAdditive));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mIIIIItoV, romanNumeralsAdditive));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mVVtoX, romanNumeralsAdditive));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mXXXXXtoL, romanNumeralsAdditive));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mLLtoC, romanNumeralsAdditive));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mCCCCCtoD, romanNumeralsAdditive));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mDDtoM, romanNumeralsAdditive));
+incNumAnmtnsAddtv.append(new AnimateNumeralInsertion(mAddtvInI));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mIIIIItoV));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mVVtoX));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mXXXXXtoL));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mLLtoC));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mCCCCCtoD));
+incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mDDtoM));
 
 let mSbtrctvInI = new Fade(romanNumeralsSubtractive, null, "I");
 let mVIIIItoIX = new Fade(romanNumeralsSubtractive, "VIIII", "IX");
@@ -2961,19 +2961,19 @@ let mDCCCCtoCM = new Fade(romanNumeralsSubtractive, "DCCCC", "CM");
 let mCCCCtoCD = new Fade(romanNumeralsSubtractive, "CCCC", "CD");
 let mCDCtoD = new Fade(romanNumeralsSubtractive, "CDC", "D");
 let mCMCtoM = new Fade(romanNumeralsSubtractive, "CMC", "M");
-incNumAnmtnsSbtrctv.append(new AnimateNumeralInsertion(mSbtrctvInI, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mVIIIItoIX, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIIIItoIV, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIVItoV, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIXItoX, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mLXXXXtoXC, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXXXXtoXL, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXLXtoL, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXCXtoC, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mDCCCCtoCM, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCCCCtoCD, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCDCtoD, romanNumeralsSubtractive));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM, romanNumeralsSubtractive));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralInsertion(mSbtrctvInI));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mVIIIItoIX));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIIIItoIV));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIVItoV));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIXItoX));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mLXXXXtoXC));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXXXXtoXL));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXLXtoL));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXCXtoC));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mDCCCCtoCM));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCCCCtoCD));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCDCtoD));
+incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM));
 
 function incNumAnmtnsConstraints()
 {
@@ -3059,29 +3059,29 @@ function incrementNumber()
 
 let mAddtvOutI = new Fade(romanNumeralsAdditive, "I", null);
 const decNumAnmtnsAddtv = new AnimationSequence(romanNumeralsAdditive);
-decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mDDtoM, romanNumeralsAdditive));
-decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mCCCCCtoD, romanNumeralsAdditive));
-decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mLLtoC,romanNumeralsAdditive));
-decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mXXXXXtoL, romanNumeralsAdditive));
-decNumAnmtnsAddtv.append(new MetamorphoseXtoVV(mVVtoX, romanNumeralsAdditive));
-decNumAnmtnsAddtv.append(new MetamorphoseVtoIIIII(mIIIIItoV, romanNumeralsAdditive));
-decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mAddtvOutI, romanNumeralsAdditive));
+decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mDDtoM));
+decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mCCCCCtoD));
+decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mLLtoC));
+decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mXXXXXtoL));
+decNumAnmtnsAddtv.append(new MetamorphoseXtoVV(mVVtoX));
+decNumAnmtnsAddtv.append(new MetamorphoseVtoIIIII(mIIIIItoV));
+decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mAddtvOutI));
 
 let mSbtrctvOutI = new Fade(romanNumeralsSubtractive, "I", null);
 const decNumAnmtnsSbtrctv = new AnimationSequence(romanNumeralsSubtractive);
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mDCCCCtoCM, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCMCtoM, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCCCCtoCD, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCDCtoD, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mLXXXXtoXC, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXCXtoC, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXXXXtoXL, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXLXtoL, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mVIIIItoIX, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIXItoX, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIIIItoIV, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIVItoV, romanNumeralsSubtractive));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI, romanNumeralsSubtractive));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mDCCCCtoCM));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCMCtoM));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCCCCtoCD));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCDCtoD));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mLXXXXtoXC));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXCXtoC));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXXXXtoXL));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXLXtoL));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mVIIIItoIX));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIXItoX));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIIIItoIV));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIVItoV));
+decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI));
 
 function decNumAnmtnsConstraints()
 {
