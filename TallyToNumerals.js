@@ -205,7 +205,7 @@ function setNumber(n)
 		romanNumeralsAdditive.set(s);
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
-	writeTally(tally.canvas, inputNumber, romanNumeralsAdditive.text);
+	writeTally(tally.canvas, inputNumber, romanNumeralsAdditive.get());
 	const s = convertRomanNumeralsAdditiveToSubtractive(romanNumeralsAdditive.get());
 	romanNumeralsSubtractive.set(s);
 	connectRomanToArabic();
