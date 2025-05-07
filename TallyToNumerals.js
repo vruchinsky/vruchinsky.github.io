@@ -2059,35 +2059,38 @@ class Fade // used to fade text in, to fade text out...
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		const cvw = this.cnv.width - horizontalOffset;
 		this.verticalPosition = this.cnv.height;
-		this.xi = cvw;
-		this.xf = cvw;
+		this.xi = horizontalOffset;
+		this.xf = horizontalOffset;
 		let metrics = null;
 		if (this.initialText !== null)
 		{
 			metrics = this.ctx.measureText(this.initialText);
 			this.verticalPosition = metrics.actualBoundingBoxAscent;
 			const wInitialText = metrics.width;
-			this.xi = cvw - wInitialText;
+			this.xi += wInitialText;
 			if (this.finalText !== null)
 			{
 				metrics = this.ctx.measureText(this.finalText);
 				const wFinalText = metrics.width;
-				this.xf = cvw - 0.5 * (wInitialText + wFinalText);
-			} else
-				this.xf = cvw;
+				this.xf += 0.5 * (wInitialText + wFinalText);
+			}
 		} else if (this.finalText !== null) {
 			metrics = this.ctx.measureText(this.finalText);
 			this.verticalPosition = metrics.actualBoundingBoxAscent;
-			this.xf = cvw - metrics.width;
+			this.xf += metrics.width;
 		}
 		this.aOut = this.aOutI;
 		this.aIn = this.aInI;
 		this.vaOut = AnimationSpeedMetamorphosis*(this.aOutF - this.aOutI);
 		this.vaIn = AnimationSpeedMetamorphosis*(this.aInF - this.aInI);
+		if (this.drawingOnCanvas.flipHorizontalAxis == false)
+		{
+			this.xi = this.cnv.width - this.xi;
+			this.xf = this.cnv.width - this.xf;
+		}
 		this.xClear = fpLess(this.xi, this.xf, fpTolerance) ? this.xi : this.xf;
-		this.wClear = cvw - this.xClear;
+		this.wClear = this.cnv.width - this.xClear;
 		this.t = Date.now();
 	}
 	done()
@@ -2988,6 +2991,8 @@ incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mDCCCCtoCM));
 incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCCCCtoCD));
 incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCDCtoD));
 incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM));
+
+let mTallyInI = new Fade(tally, null, "I");
 
 function incNumAnmtnsConstraints()
 {
