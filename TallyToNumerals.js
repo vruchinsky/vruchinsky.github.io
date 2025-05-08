@@ -441,7 +441,7 @@ function stringWidthOnCanvas(ctx, s)
 
 function drawTallyMark(ctx, x, y, w)
 {
-	if (typeof w === "undefined")
+	if (typeof w === "undefined" || fpLess(w, 1, fpTolerance))
 		w = stringWidthOnCanvas(ctx, "I"); // width of the drawing
 	const oldLineWidth = ctx.lineWidth;
 	ctx.lineWidth = tallyMarkThickness;
@@ -2004,8 +2004,13 @@ class Fade // used to fade text in, to fade text out...
 	ctx = null; // drawing context of cnv
 	initialText = null; // (constant) text to fade out
 	finalText = null; // (constant) text to fade in
-	xi = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
-	xf = 0;  // final horizontal position of finalText
+	xi = 0; // horizontal position (in pixels) of the graphic to fade out, if given, otherwise of the leftmost end of initialText, if given
+	xf = 0;  // horizontal position (in pixels) of the graphic to fade in, if given, otherwise of finalText, if given
+	wi = 0; // width (in pixels) of the graphic to fade out, if given, otherwise of initialText, if given
+	wf = 0;  // width (in pixels) of the graphic to fade in, if given, otherwise of finalText, if given
+	fcnInitialDrawing = null; // ref. to function used to draw the graphic to fade out
+	fcnFinalDrawing = null; // ref. to function used to draw the graphic to fade in
+	drawGraphic = false; // true iff fcnInitialDrawing!==null or fcnFinalDrawing!==null
 	aOutI = 1.0; // constant (initial alpha of initialText)
 	aOutF = 0.0; // constant (final alpha of initialText)
 	vaOut = 0; // how fast to change aOut to aOutF (calculated from aOutF, aOutI and AnimationSpeedMetamorphosis)
@@ -2033,6 +2038,13 @@ class Fade // used to fade text in, to fade text out...
 		this.initialText = oText;
 		this.finalText = iText;
 	}
+	setDrawings(outFcn, inFcn)
+	{
+		this.fcnInitialDrawing = outFcn;
+		this.fcnFinalDrawing = inFcn;
+		this.drawGraphic = ((this.fcnInitialDrawing!==null) ||
+							(this.fcnFinalDrawing!==null));
+	}
 	reset()
 	{
 		this.finished = true;
@@ -2040,26 +2052,34 @@ class Fade // used to fade text in, to fade text out...
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		this.verticalPosition = this.cnv.height;
+		this.verticalPosition = this.drawGraphic ? verticalOffset : this.cnv.height;
 		this.xi = horizontalOffset;
 		this.xf = horizontalOffset;
 		let metrics = null;
 		if (this.initialText !== null)
 		{
 			metrics = this.ctx.measureText(this.initialText);
-			this.verticalPosition = metrics.actualBoundingBoxAscent;
-			const wInitialText = metrics.width;
-			this.xi += wInitialText;
+			this.wi = metrics.width;
+			if (this.drawGraphic == false)
+			{
+				this.xi += this.wi;
+				this.verticalPosition = metrics.actualBoundingBoxAscent;
+			}
 			if (this.finalText !== null)
 			{
 				metrics = this.ctx.measureText(this.finalText);
-				const wFinalText = metrics.width;
-				this.xf += 0.5 * (wInitialText + wFinalText);
+				this.wf = metrics.width;
+				if (this.drawGraphic == false)
+					this.xf += 0.5 * (this.wi + this.wf);
 			}
 		} else if (this.finalText !== null) {
 			metrics = this.ctx.measureText(this.finalText);
-			this.verticalPosition = metrics.actualBoundingBoxAscent;
-			this.xf += metrics.width;
+			this.wf = metrics.width;
+			if (this.drawGraphic == false)
+			{
+				this.xf += this.wf;
+				this.verticalPosition = metrics.actualBoundingBoxAscent;
+			}
 		}
 		this.aOut = this.aOutI;
 		this.aIn = this.aInI;
@@ -2117,20 +2137,32 @@ class Fade // used to fade text in, to fade text out...
 			return; // browser does not support canvas
 		this.ctx.clearRect(this.xClear, -0.5, this.wClear, this.cnv.height);
 		const oldFillStyle = this.ctx.fillStyle;
+		const oldStrokeStyle = this.ctx.strokeStyle;
 		const canvasStyle = getComputedStyle(this.cnv);
 		const foregroundColor = canvasStyle.color;
 		const fgc = extractRGBValues(foregroundColor);
 		if (this.initialText !== null)
 		{
-			this.ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
-			this.ctx.fillText(this.initialText, this.xInitialText(), this.verticalPosition);
+			const outStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aOut})`; // with alpha for initialText
+			this.ctx.fillStyle = outStyle;
+			this.ctx.strokeStyle = outStyle;
+			if (this.fcnInitialDrawing !== null)
+				this.fcnInitialDrawing(this.ctx, this.xInitialText(), this.verticalPosition, this.wi);
+			else
+				this.ctx.fillText(this.initialText, this.xInitialText(), this.verticalPosition);
 		}
 		if (this.finalText !== null)
 		{
-			this.ctx.fillStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
-			this.ctx.fillText(this.finalText, this.xFinalText(), this.verticalPosition);
+			const inStyle = `rgb(${fgc.r} ${fgc.g} ${fgc.b} / ${this.aIn})`; // with alpha for finalText
+			this.ctx.fillStyle = inStyle;
+			this.ctx.strokeStyle = inStyle;
+			if (this.fcnFinalDrawing !== null)
+				this.fcnFinalDrawing(this.ctx, this.xFinalText(), this.verticalPosition, this.wf);
+			else
+				this.ctx.fillText(this.finalText, this.xFinalText(), this.verticalPosition);
 		}
 		this.ctx.fillStyle = oldFillStyle; // restore original value
+		this.ctx.strokeStyle = oldStrokeStyle; // restore original value
 	}
 }
 
@@ -2972,6 +3004,7 @@ incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCDCtoD));
 incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM));
 
 let mTallyInI = new Fade(tally, null, "I");
+mTallyInI.setDrawings(null, drawTallyMark);
 
 function incNumAnmtnsConstraints()
 {
@@ -3038,11 +3071,21 @@ function incrementNumber()
 		eraseDrawings();
 		incNumAnmtnsAddtv.start();
 		incNumAnmtnsSbtrctv.start();
+		if (inputNumber == 0) // >>> EXPERIMENTAL <<<
+			mTallyInI.reset(); // >>> EXPERIMENTAL <<<
 	}
 	else
 	{
 		incNumAnmtnsAddtv.more();
 		incNumAnmtnsSbtrctv.more();
+		if (inputNumber == 0) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (mTallyInI.done()==false) // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				mTallyInI.proceed(); // >>> EXPERIMENTAL <<<
+				mTallyInI.draw(); // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
@@ -3080,6 +3123,9 @@ decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIXItoX));
 decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIIIItoIV));
 decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIVItoV));
 decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI));
+
+let mTallyOutI = new Fade(tally, "I", null);
+mTallyOutI.setDrawings(drawTallyMark, null);
 
 function decNumAnmtnsConstraints()
 {
@@ -3200,11 +3246,21 @@ function decrementNumber()
 		eraseDrawings();
 		decNumAnmtnsAddtv.start();
 		decNumAnmtnsSbtrctv.start();
+		if (inputNumber == 1) // >>> EXPERIMENTAL <<<
+			mTallyOutI.reset(); // >>> EXPERIMENTAL <<<
 	}
 	else
 	{
 		decNumAnmtnsAddtv.more();
 		decNumAnmtnsSbtrctv.more();
+		if (inputNumber == 1) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (mTallyOutI.done()==false) // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				mTallyOutI.proceed(); // >>> EXPERIMENTAL <<<
+				mTallyOutI.draw(); // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
 	}
 	if (decNumAnmtnsAddtv.finished() && decNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
