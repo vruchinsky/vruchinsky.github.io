@@ -380,19 +380,19 @@ function testCanvas()
 	let horizontalPosition = 1;
 	let verticalPosition = 1;
 	let sz = drawTallyMark(ctx, horizontalPosition, verticalPosition);
-	horizontalPosition = horizontalPosition + sz.w;
+	horizontalPosition += sz.w;
 	sz = drawBox5(ctx, horizontalPosition, verticalPosition);
-	horizontalPosition = horizontalPosition + sz.w;
+	horizontalPosition += sz.w;
 	sz = drawBox10(ctx, horizontalPosition, verticalPosition);
-	horizontalPosition = horizontalPosition + sz.w;
+	horizontalPosition += sz.w;
 	sz = drawBox50(ctx, horizontalPosition, verticalPosition);
-	horizontalPosition = horizontalPosition + sz.w;
+	horizontalPosition += sz.w;
 	sz = drawBox100(ctx, horizontalPosition, verticalPosition);
-	horizontalPosition = horizontalPosition + sz.w;
+	horizontalPosition += sz.w;
 	sz = drawBox500(ctx, horizontalPosition, verticalPosition);
-	horizontalPosition = horizontalPosition + sz.w;
+	horizontalPosition += sz.w;
 	sz = drawBox1000(ctx, horizontalPosition, verticalPosition, 10);
-	horizontalPosition = horizontalPosition + sz.w;
+	horizontalPosition += sz.w;
 	if (romanToArabicConnectorCanvas.getContext == null)
 		return;
 	ctx = romanToArabicConnectorCanvas.getContext("2d");
@@ -439,12 +439,15 @@ function stringWidthOnCanvas(ctx, s)
 	return metrics.width;
 }
 
-function drawTallyMark(ctx, x, y)
+function drawTallyMark(ctx, x, y, w)
 {
-	const w = stringWidthOnCanvas(ctx, "I"); // width of the drawing
+	if (typeof w === "undefined")
+		w = stringWidthOnCanvas(ctx, "I"); // width of the drawing
+	const oldLineWidth = ctx.lineWidth;
 	ctx.lineWidth = tallyMarkThickness;
-	drawVline(ctx, Math.floor(x + w/2), y, tallyMarkHeight);
 	const h = tallyMarkHeight; // height of the drawing
+	drawVline(ctx, Math.floor(x + w/2), y, h);
+	ctx.lineWidth = oldLineWidth; // restore the original value
 	return {w, h};
 }
 
@@ -477,9 +480,10 @@ function drawColumnHlines(ctx, x, y, len, n)
 	return (n*tallyMarkThickness + (n-1)*verticalSpaceBetweenTallyMarks); // column height
 }
 
-function drawBox5(ctx, x, y)
+function drawBox5(ctx, x, y, boxWidth)
 {
-	const boxWidth = Math.floor(stringWidthOnCanvas(ctx, "V"));
+	if (typeof boxWidth === "undefined")
+		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "V"));
 	const boundingRectWidth = boxWidth - 2*boundaryThickness;
 	const lineLength = boundingRectWidth - 2*boundaryPadding - 2*boundaryThickness;
 	const lineHpos = x + boundaryPadding + boundaryThickness;
@@ -497,9 +501,10 @@ function drawBox5(ctx, x, y)
 	return {w, h};
 }
 
-function drawBox10(ctx, x, y)
+function drawBox10(ctx, x, y, boxWidth)
 {
-	const boxWidth = Math.floor(stringWidthOnCanvas(ctx, "X"));
+	if (typeof boxWidth === "undefined")
+		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "X"));
 	const boundingRectWidth = boxWidth - 2*boundaryThickness;
 	const lineLength = boundingRectWidth - 2*boundaryPadding - 2*boundaryThickness;
 	const lineHpos = x + boundaryPadding + boundaryThickness;
@@ -535,9 +540,10 @@ function drawColumn50Hlines(ctx, x, y, len)
 	return {w, h};
 }
 
-function drawBox50(ctx, x, y) // column of 25 short horizontal tally marks on the left,...
+function drawBox50(ctx, x, y, boxWidth) // column of 25 short horizontal tally marks on the left,...
 {//...with extra vertical space between each group of 5 and similar column on the right, all enclosed in rectangular box
-	const boxWidth = Math.floor(stringWidthOnCanvas(ctx, "L")); // make same width as Roman numeral
+	if (typeof boxWidth === "undefined")
+		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "L")); // make same width as Roman numeral
 	const boundingRectWidth = boxWidth - 2*boundaryThickness;
 	const lineLength = boundingRectWidth/2 - boundaryPadding - boundaryThickness - 1;
 	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
@@ -565,9 +571,10 @@ function drawColumn100Hlines(ctx, x, y, len)
 	return {w, h};
 }
 
-function drawBox100(ctx, x, y) // column of 50 short horizontal tally marks on the left, with extra vertical space between...
+function drawBox100(ctx, x, y, boxWidth) // column of 50 short horizontal tally marks on the left, with extra vertical space between...
 {//...each group of 5, and extra space halfway down, and similar column on the right, all enclosed in rectangular box
-	const boxWidth = Math.floor(stringWidthOnCanvas(ctx, "C")); // make same width as Roman numeral
+	if (typeof boxWidth === "undefined")
+		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "C")); // make same width as Roman numeral
 	const boundingRectWidth = boxWidth - 2*boundaryThickness;
 	const lineLength = boundingRectWidth/2 - boundaryPadding - boundaryThickness - 1;
 	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
@@ -601,9 +608,10 @@ function drawColumns500Hlines(ctx, x, y, w)
 	return {w, h};
 }
 
-function drawBox500(ctx, x, y) // 5 double columns each of 100 short horizontal tally marks, with extra vertical...
+function drawBox500(ctx, x, y, rnWidth) // 5 double columns each of 100 short horizontal tally marks, with extra vertical...
 {//...space between each group of 5 tally marks, and extra space halfway down, all enclosed in rectangular box
-	const rnWidth = stringWidthOnCanvas(ctx, "D");
+	if (typeof rnWidth === "undefined")
+		rnWidth = stringWidthOnCanvas(ctx, "D");
 	const boxWidth = Math.floor(3.9 * rnWidth);
 	const boundingRectWidth = Math.floor(boxWidth - 2*boundaryThickness);
 	const columns500width = boundingRectWidth - 2*boundaryPadding;
@@ -700,12 +708,12 @@ function writeTally(cnv, n, rna)
 			dx = stringWidthOnCanvas(ctx, c);
 		switch (c)
 		{
-			case "I": drawTallyMark(ctx, x, y); break;
-			case "V": drawBox5(ctx, x, y); break;
-			case "X": drawBox10(ctx, x, y); break;
-			case "L": drawBox50(ctx, x, y); break;
-			case "C": drawBox100(ctx, x, y); break;
-			case "D": sz = drawBox500(ctx, x, y); dx = sz.w; break;
+			case "I": drawTallyMark(ctx, x, y, dx); break;
+			case "V": drawBox5(ctx, x, y, dx); break;
+			case "X": drawBox10(ctx, x, y, dx); break;
+			case "L": drawBox50(ctx, x, y, dx); break;
+			case "C": drawBox100(ctx, x, y, dx); break;
+			case "D": sz = drawBox500(ctx, x, y, dx); dx = sz.w; break;
 			case "M": nMs++; dx = 0; break;
 		}
 		x += dx;
