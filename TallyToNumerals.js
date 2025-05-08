@@ -1248,10 +1248,10 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			(this.rightText==="") || fpEqual(this.vxr, 0, fpTolerance);
 		this.vrPos = fpLess(0, this.vxr, fpTolerance);
 		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
-		this.xClear = fpLess(this.xLi, this.xLf, fpTolerance) ? this.xLi : this.xLf;
+		this.xClear = fpMin(this.xLi, this.xLf, fpTolerance);
 		if (this.rightText === null)
 		{
-			const xClearR = fpLess(this.xLi, this.xLf, fpTolerance) ? this.xLf : this.xLi;
+			const xClearR = fpMax(this.xLi, this.xLf, fpTolerance);
 			this.wClear = xClearR + this.wLeftText - this.xClear;
 		}
 		else
@@ -1285,9 +1285,9 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			u = this.xr  + (this.vxr)*dt;
 			if (this.vrPos)
 			{
-				this.xr = fpLessEq(u, this.xRf, fpTolerance) ? u : this.xRf; // prevent xr from surpassing xRf (i.e. moving off canvas)
+				this.xr = fpMin(u, this.xRf, fpTolerance); // prevent xr from surpassing xRf (i.e. moving off canvas)
 			} else if (this.vrNeg) {
-				this.xr = fpLess(this.xRf, u, fpTolerance) ? u : this.xRf // prevent xr from surpassing xRf
+				this.xr = fpMax(this.xRf, u, fpTolerance); // prevent xr from surpassing xRf
 			}
 		}
 		if (this.lStationary == false)
@@ -1301,7 +1301,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 				else if (fpLess(this.xl, xlLim, fpTolerance)) // prevent this.xl from being set back
 					this.xl = xlLim;
 			} else if (this.vlNeg) {
-					this.xl = fpLess(this.xLf, u, fpTolerance) ? u : this.xLf // prevent xl from surpassing xLf
+					this.xl = fpMax(this.xLf, u, fpTolerance); // prevent xl from surpassing xLf
 			}
 		}
 		this.t = t1;
@@ -1411,17 +1411,17 @@ class MetamorphoseIIIIItoV
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
 		let u = this.x1 + (this.vx1)*dt;
-		this.x1 = fpLessEq(u, this.xf, fpTolerance) ? u : this.xf; // prevent x1 from surpassing xf
+		this.x1 = fpMin(u, this.xf, fpTolerance); // prevent x1 from surpassing xf
 		//u = this.x2 + (this.vx2)*dt; // here x2 stays still
 		//this.x2 = fpLessEq(this.x1, u, fpTolerance) ? u : this.x1;
  		u = this.x3 + (this.vx3)*dt;
-		this.x3 = fpLessEq(this.xf, u, fpTolerance) ? u : this.xf; // prevent x3 from surpassing xf
+		this.x3 = fpMax(this.xf, u, fpTolerance); // prevent x3 from surpassing xf
 		u = this.x0 + (this.vx0)*dt;
-		this.x0 = fpLessEq(u, this.x1, fpTolerance) ? u : this.x1; // prevent x0 from surpassing x1
+		this.x0 = fpMin(u, this.x1, fpTolerance); // prevent x0 from surpassing x1
 		u = this.x4 + (this.vx4)*dt;
-		this.x4 = fpLessEq(this.x3, u, fpTolerance) ? u : this.x3; // prevent x4 from surpassing x3
+		this.x4 = fpMax(this.x3, u, fpTolerance); // prevent x4 from surpassing x3
 		u = this.skew + (this.vSkew)*dt;
-		this.skew = fpLessEq(u, this.skewF, fpTolerance) ? u : this.skewF; // prevent skew from surpassing skewF
+		this.skew = fpMin(u, this.skewF, fpTolerance); // prevent skew from surpassing skewF
 		this.t = t1;
 	}
 	draw()
@@ -1590,25 +1590,24 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
 		let u = this.xs + (this.vxs)*dt;
-		this.xs = fpLessEq(this.xSf, u, fpTolerance) ? u : this.xSf; // prevent xs from surpassing xSf
+		this.xs = fpMax(this.xSf, u, fpTolerance); // prevent xs from surpassing xSf
 		let xLim = fpMax(this.xs, this.x0f, fpTolerance);
 		u = this.x0 + (this.vx0)*dt;
-		this.x0 = fpLessEq(xLim, u, fpTolerance) ? u : xLim; // prevent x0 from surpassing max(xs,x0f)
+		this.x0 = fpMax(xLim, u, fpTolerance); // prevent x0 from surpassing max(xs,x0f)
 		xLim = fpMax(this.x0, this.x1f, fpTolerance);
 		u = this.x1 + (this.vx1)*dt;
-		this.x1 = fpLessEq(xLim, u, fpTolerance) ? u : xLim; // prevent x1 from surpassing max(x0, x1f)
+		this.x1 = fpMax(xLim, u, fpTolerance); // prevent x1 from surpassing max(x0, x1f)
 		xLim = fpMax(this.x1, this.x2f, fpTolerance);
 		u = this.x2 + (this.vx2)*dt;
-		this.x2 = fpLessEq(xLim, u, fpTolerance) ? u : xLim; // prevent x2 from surpassing max(x1, x2f)
+		this.x2 = fpMax(xLim, u, fpTolerance); // prevent x2 from surpassing max(x1, x2f)
 		xLim = fpMax(this.x2, this.x3f, fpTolerance);
  		u = this.x3 + (this.vx3)*dt;
-		this.x3 = fpLessEq(xLim, u, fpTolerance) ? u : xLim; // prevent x3 from surpassing max(x2, x3f)
+		this.x3 = fpMax(xLim, u, fpTolerance); // prevent x3 from surpassing max(x2, x3f)
 		u = this.x4 + (this.vx4)*dt;
-		this.x4 = fpLessEq(u, this.x4f, fpTolerance) ? u : this.x4f; // prevent x4 from surpassing x4f
+		this.x4 = fpMin(u, this.x4f, fpTolerance); // prevent x4 from surpassing x4f
 		u = this.skew + (this.vSkew)*dt;
-		const withinBounds = this.vSkewPos ? fpLessEq(u, this.skewF, fpTolerance)
-											: fpLessEq(this.skewF, u, fpTolerance);
-		this.skew = withinBounds ? u : this.skewF; // prevent skew from surpassing skewF
+		this.skew = this.vSkewPos ? fpMin(u, this.skewF, fpTolerance)
+						: fpMax(this.skewF, u, fpTolerance); // prevent skew from surpassing skewF
 		this.t = t1;
 	}
 	draw()
@@ -1754,17 +1753,17 @@ class MetamorphoseVVtoX
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
 		let u = this.x1 + (this.vx1)*dt;
-		this.x1 = fpLessEq(u, this.xf, fpTolerance) ? u : this.xf; // prevent x1 from surpassing xf
+		this.x1 = fpMin(u, this.xf, fpTolerance); // prevent x1 from surpassing xf
 		u = this.x2 + (this.vx2)*dt;
-		this.x2 = fpLessEq(this.xf, u, fpTolerance) ? u : this.xf; // prevent x2 from surpassing xf
+		this.x2 = fpMax(this.xf, u, fpTolerance); // prevent x2 from surpassing xf
  		//u = this.y1 + (this.vy1)*dt; // y1 remains the same here
-		//this.y1 = fpLessEq(this.y1f, u, fpTolerance) ? u : this.y1f; // prevent y1 from surpassing y1f
+		//this.y1 = fpMax(this.y1f, u, fpTolerance); // prevent y1 from surpassing y1f
  		u = this.y2 + (this.vy2)*dt;
-		this.y2 = fpLessEq(this.y2f, u, fpTolerance) ? u : this.y2f; // prevent y2 from surpassing y2f
+		this.y2 = fpMax(this.y2f, u, fpTolerance); // prevent y2 from surpassing y2f
 		u = this.scale + (this.vScale)*dt;
-		this.scale = fpLessEq(this.scaleF, u, fpTolerance) ? u : this.scaleF; // prevent scale from surpassing scaleF
+		this.scale = fpMax(this.scaleF, u, fpTolerance); // prevent scale from surpassing scaleF
 		u = this.angle + (this.vAngle)*dt;
-		this.angle = fpLessEq(u, this.angleF, fpTolerance) ? u : this.angleF; // prevent angle from surpassing angleF
+		this.angle = fpMin(u, this.angleF, fpTolerance); // prevent angle from surpassing angleF
 		this.t = t1;
 	}
 	draw()
@@ -1934,20 +1933,20 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 		const dt = t1 - this.t; // (msec) time since last update
 		const vAdj = fpLess(this.x1, this.x1m, fpTolerance) ? this.v1AdjSlow : this.v1AdjFast;
 		let u = this.xs + (this.vxs)*dt;
-		this.xs = fpLessEq(this.xSf, u, fpTolerance) ? u : this.xSf; // prevent xs from surpassing xSf
+		this.xs = fpMax(this.xSf, u, fpTolerance); // prevent xs from surpassing xSf
 		let xLim = fpMax(this.xs, this.x1f, fpTolerance);
 		u = this.x1 + vAdj * (this.vx1) * dt;
-		this.x1 = fpLessEq(xLim, u, fpTolerance) ? u : xLim; // prevent x1 from surpassing max(xs,x1f)
+		this.x1 = fpMax(xLim, u, fpTolerance); // prevent x1 from surpassing max(xs,x1f)
 		u = this.x2 + (this.vx2)*dt;
-		this.x2 = fpLessEq(u, this.x2f, fpTolerance) ? u : this.x2f; // prevent x2 from surpassing x2f
+		this.x2 = fpMin(u, this.x2f, fpTolerance); // prevent x2 from surpassing x2f
  		//u = this.y1 + (this.vy1)*dt; // y1 remains the same here
-		//this.y1 = fpLessEq(this.yf, u, fpTolerance) ? u : this.yf; // prevent y1 from surpassing yf
+		//this.y1 = fpMax(this.yf, u, fpTolerance); // prevent y1 from surpassing yf
  		u = this.y2 + (this.vy2)*dt;
-		this.y2 = fpLessEq(u, this.yf, fpTolerance) ? u : this.yf; // prevent y2 from surpassing yf
+		this.y2 = fpMin(u, this.yf, fpTolerance); // prevent y2 from surpassing yf
 		u = this.scale + vAdj * (this.vScale) * dt;
-		this.scale = fpLessEq(u, this.scaleF, fpTolerance) ? u : this.scaleF; // prevent scale from surpassing scaleF
+		this.scale = fpMin(u, this.scaleF, fpTolerance); // prevent scale from surpassing scaleF
 		u = this.angle + (this.vAngle)*dt;
-		this.angle = fpLessEq(this.angleF, u, fpTolerance) ? u : this.angleF; // prevent angle from surpassing angleF
+		this.angle = fpMax(this.angleF, u, fpTolerance); // prevent angle from surpassing angleF
 		this.t = t1;
 	}
 	draw()
@@ -2063,7 +2062,7 @@ class Fade // used to fade text in, to fade text out...
 			this.xi = this.cnv.width - this.xi;
 			this.xf = this.cnv.width - this.xf;
 		}
-		this.xClear = fpLess(this.xi, this.xf, fpTolerance) ? this.xi : this.xf;
+		this.xClear = fpMin(this.xi, this.xf, fpTolerance);
 		this.wClear = this.cnv.width - this.xClear;
 		this.t = Date.now();
 	}
@@ -2093,12 +2092,12 @@ class Fade // used to fade text in, to fade text out...
 		if (this.initialText !== null)
 		{
 			u = this.aOut + (this.vaOut) * dt;
-			this.aOut = fpLessEq(this.aOutF, u, fpTolerance) ? u : this.aOutF; // prevent aOut from surpassing aOutF
+			this.aOut = fpMax(this.aOutF, u, fpTolerance); // prevent aOut from surpassing aOutF
 		}
 		if (this.finalText !== null)
 		{
 			u = this.aIn + (this.vaIn)*dt;
-			this.aIn = fpLessEq(u, this.aInF, fpTolerance) ? u : this.aInF; // prevent aIn from surpassing aInF
+			this.aIn = fpMin(u, this.aInF, fpTolerance); // prevent aIn from surpassing aInF
 		}
 		this.t = t1;
 	}
@@ -2271,10 +2270,9 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
 		let u = this.xs + (this.vxs)*dt;
-		this.xs = fpLessEq(this.xSf, u, fpTolerance) ? u : this.xSf; // prevent xs from surpassing xSf
+		this.xs = fpMax(this.xSf, u, fpTolerance); // prevent xs from surpassing xSf
 		let xLim;
 		let xNext;
-		let withinBound;
 		const iLast = this.x.length - 1;
 		for (let i=0; i<this.x.length; i++)
 		{ // xLim = the closest bound for x[i], determined using xf[i] and either x[i-1] or x[i+1]
@@ -2285,19 +2283,18 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 				xNext = (i < 1) ? this.xs : this.x[i-1]; // use xs instead of x[i-1] if i==0
 				xLim = fpMax(xNext, this.xf[i], fpTolerance);
 			}
-			u = this.x[i] + (this.vx[i])*dt;
-			withinBound = this.vxPos[i] ? fpLessEq(u, xLim, fpTolerance) : fpLessEq(xLim, u, fpTolerance);
-			this.x[i] = withinBound ? u : xLim; // prevent x[i] from surpassing xLim
+			u = this.x[i] + (this.vx[i])*dt; // prevent x[i] from surpassing xLim
+			this.x[i] = this.vxPos[i] ? fpMin(u, xLim, fpTolerance) : fpMax(xLim, u, fpTolerance);
 		}
 		if (this.initialText !== null)
 		{
 			u = this.aOut + (this.vaOut) * dt;
-			this.aOut = fpLessEq(this.aOutF, u, fpTolerance) ? u : this.aOutF; // prevent aOut from surpassing aOutF
+			this.aOut = fpMax(this.aOutF, u, fpTolerance); // prevent aOut from surpassing aOutF
 		}
 		if (this.finalText !== null)
 		{
 			u = this.aIn + (this.vaIn)*dt;
-			this.aIn = fpLessEq(u, this.aInF, fpTolerance) ? u : this.aInF; // prevent aIn from surpassing aInF
+			this.aIn = fpMin(u, this.aInF, fpTolerance); // prevent aIn from surpassing aInF
 		}
 		this.t = t1;
 	}
