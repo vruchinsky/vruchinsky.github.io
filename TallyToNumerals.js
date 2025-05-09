@@ -1178,6 +1178,7 @@ function enableButtons()
 
 class SlideTextHorizontally // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
 { // b/c such a metamorphosis leaves gaps in the entire numerical expression, e.g. XXIIIII -> XX  V
+	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
 	leftText = null; // constant
@@ -1191,8 +1192,8 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	wLeftText = 0; // width (in pixels) of this.leftText
 	vxl = 0; // (px/msec) how fast to move xl towards xLf
 	vxr = 0; // (px/msec) how fast to move xr towards xRf
-	lStationary = true; // iff vxl != 0
-	rStationary = true; // iff vxr != 0
+	lStationary = true; // iff vxl == 0
+	rStationary = true; // iff vxr == 0
 	vlNeg = false; // iff vxl < 0
 	vlPos = false; // iff vxl > 0
 	vrNeg = false; // iff vxr < 0
@@ -1208,6 +1209,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		this.cnv = m.cnv;
 		this.ctx = m.ctx;
 		this.rightText = s;
+		this.drawingOnCanvas = m.drawingOnCanvas;
 	}
 	reset(lText, xLtext, xAnotherArg) // use and meaning of xAnotherArg depends whether this.rightText===null
 	{ // if this.rightText===null, then xAnotherArg is the final position of this.leftText
@@ -1217,34 +1219,45 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			return; // browser does not support canvas
 		this.finished = false;
 		this.leftText = lText;
-		this.xl = this.xLi = xLtext;
+		this.xl = this.xLi = xLtext; // xLtext is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
 		if (this.rightText === null)
 			this.xLf = xAnotherArg; // this instance is used to move only this.leftText
-		else
+		else // xAnotherArg is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
 			this.xr = this.xRi = xAnotherArg; // move both this.leftText and this.rightText
 		const cvw = this.cnv.width - horizontalOffset;
 		this.verticalPosition = this.cnv.height; // default value, in case cannot obtain valid text metrics
 		let metrics = null;
 		if (this.rightText !== null)
 		{
-			this.xRf = cvw; // default value, in case cannot obtain valid text metrics
+			this.xRf = horizontalOffset; // default value, in case cannot obtain valid text metrics
 			metrics = this.ctx.measureText(this.rightText);
-			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+			if (metrics !== null)
 			{
-				this.xRf = cvw - metrics.width;
-				this.verticalPosition = metrics.actualBoundingBoxAscent;
+				if (fpLess(0, metrics.width, fpTolerance))
+					this.xRf += metrics.width;
+				this.xRf = fpMin(this.xRf, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
+				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+					this.verticalPosition = metrics.actualBoundingBoxAscent;
 			}
 		}
 		this.wLeftText = 0; // default value, in case cannot obtain valid text metrics
 		if (this.rightText !== null)
 			this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
 		metrics = this.ctx.measureText(this.leftText);
-		if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+		if (metrics !== null)
 		{
-			this.wLeftText = metrics.width;
+			if (fpLess(0, metrics.width, fpTolerance))
+				this.wLeftText = metrics.width;
 			if (this.rightText !== null)
-				this.xLf = this.xRf - this.wLeftText;
-			this.verticalPosition = metrics.actualBoundingBoxAscent;
+				this.xLf = this.xRf + this.wLeftText;
+			if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+				this.verticalPosition = metrics.actualBoundingBoxAscent;
+		}
+		this.xLf = fpMin(this.xLf, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
+		if ((this.drawingOnCanvas.flipHorizontalAxis == false) && (this.rightText !== null))
+		{ // if this.rightText === null, then xRf is not used and xLf is already adjusted for this.drawingOnCanvas.flipHorizontalAxis
+			this.xRf = this.cnv.width - this.xRf;
+			this.xLf = this.cnv.width - this.xLf;
 		}
 		this.vxl = AnimationSpeedClosingTheGaps*(this.xLf - this.xLi);
 		this.lStationary = (this.leftText===null) ||
@@ -2466,7 +2479,7 @@ class AnimateNumeralSubstitutionToFew
 		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
 		{
 			this.xiSameText += metrics.width;
-			this.xiSameText = fpMin(this.xiSameText, this.cnv.width, fpTolerance);
+			this.xiSameText = fpMin(this.xiSameText, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
 		}
 		if (this.morph.finalText == null)
 		{
@@ -2475,7 +2488,7 @@ class AnimateNumeralSubstitutionToFew
 			if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
 			{
 				this.xfSameText += metrics.width;
-				this.xfSameText = fpMin(this.xfSameText, this.cnv.width, fpTolerance);
+				this.xfSameText = fpMin(this.xfSameText, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
 			}
 			if (this.drawingOnCanvas.flipHorizontalAxis == false)
 				this.xfSameText = this.cnv.width - this.xfSameText;
