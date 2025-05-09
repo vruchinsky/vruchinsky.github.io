@@ -1211,7 +1211,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	}
 	reset(lText, xLtext, xAnotherArg) // use and meaning of xAnotherArg depends whether this.rightText===null
 	{ // if this.rightText===null, then xAnotherArg is the final position of this.leftText
-		this.finished = true; // if this.rightText!==null, then xAnotherArg is the initial position of this.leftText
+		this.finished = true; // if this.rightText!==null, then xAnotherArg is the initial position of this.rightText
 		this.justFinished = false;
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
@@ -2455,7 +2455,6 @@ class AnimateNumeralSubstitutionToFew
 			fpLess(0, metrics.width, fpTolerance) &&
 			fpLess(metrics.width, this.xiSameText, fpTolerance))
 			this.xiSameText -= metrics.width;
-		this.sameText = this.entireText.substring(0, this.nCsame);
 		if (this.morph.finalText == null)
 		{
 			metrics = this.ctx.measureText(this.sameText);
@@ -3071,21 +3070,17 @@ function incrementNumber()
 		eraseDrawings();
 		incNumAnmtnsAddtv.start();
 		incNumAnmtnsSbtrctv.start();
-		if (inputNumber == 0) // >>> EXPERIMENTAL <<<
-			mTallyInI.reset(); // >>> EXPERIMENTAL <<<
+		mTallyInI.reset(); // >>> EXPERIMENTAL <<<
 	}
 	else
 	{
 		incNumAnmtnsAddtv.more();
 		incNumAnmtnsSbtrctv.more();
-		if (inputNumber == 0) // >>> EXPERIMENTAL <<<
-		{ // >>> EXPERIMENTAL <<<
 			if (mTallyInI.done()==false) // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
 				mTallyInI.proceed(); // >>> EXPERIMENTAL <<<
 				mTallyInI.draw(); // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
-		} // >>> EXPERIMENTAL <<<
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
@@ -3246,21 +3241,17 @@ function decrementNumber()
 		eraseDrawings();
 		decNumAnmtnsAddtv.start();
 		decNumAnmtnsSbtrctv.start();
-		if (inputNumber == 1) // >>> EXPERIMENTAL <<<
-			mTallyOutI.reset(); // >>> EXPERIMENTAL <<<
+		mTallyOutI.reset(); // >>> EXPERIMENTAL <<<
 	}
 	else
 	{
 		decNumAnmtnsAddtv.more();
 		decNumAnmtnsSbtrctv.more();
-		if (inputNumber == 1) // >>> EXPERIMENTAL <<<
-		{ // >>> EXPERIMENTAL <<<
 			if (mTallyOutI.done()==false) // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
 				mTallyOutI.proceed(); // >>> EXPERIMENTAL <<<
 				mTallyOutI.draw(); // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
-		} // >>> EXPERIMENTAL <<<
 	}
 	if (decNumAnmtnsAddtv.finished() && decNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
