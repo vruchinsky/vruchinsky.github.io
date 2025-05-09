@@ -1371,18 +1371,26 @@ class MetamorphoseIIIIItoV
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		const cvw = this.cnv.width - horizontalOffset;
 		let metrics = this.ctx.measureText(this.initialText);
 		this.verticalPosition = metrics.actualBoundingBoxAscent;
-		this.x0i = this.x0 = cvw - metrics.width;
+		this.x0i = this.x0 = horizontalOffset + metrics.width;
 		metrics = this.ctx.measureText(this.initialText.substring(1));
-		this.x1 = cvw - metrics.width;
+		this.x1 = horizontalOffset + metrics.width;
 		metrics = this.ctx.measureText(this.initialText.substring(2));
-		this.x2 = cvw - metrics.width;
+		this.x2 = horizontalOffset + metrics.width;
 		metrics = this.ctx.measureText(this.initialText.substring(3));
-		this.x3 = cvw - metrics.width;
+		this.x3 = horizontalOffset + metrics.width;
 		metrics = this.ctx.measureText(this.initialText.substring(4));
-		this.x4 = cvw - metrics.width;
+		this.x4 = horizontalOffset + metrics.width;
+		if (this.drawingOnCanvas.flipHorizontalAxis == false)
+		{
+			this.x0i = this.cnv.width - this.x0i;
+			this.x0 = this.cnv.width - this.x0;
+			this.x1 = this.cnv.width - this.x1;
+			this.x2 = this.cnv.width - this.x2;
+			this.x3 = this.cnv.width - this.x3;
+			this.x4 = this.cnv.width - this.x4;
+		}
 		this.xf = this.x2; // converge to the middle
 		this.skew = this.skewI;
 		this.vx0 = AnimationSpeedMetamorphosis*(this.xf - this.x0);
@@ -1714,13 +1722,18 @@ class MetamorphoseVVtoX
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		const cvw = this.cnv.width - horizontalOffset;
 		let metrics = this.ctx.measureText(this.initialText);
 		this.y2 = this.y1f = this.y1 = metrics.actualBoundingBoxAscent;
 		this.y2f = 0.5 * (this.y2);
-		this.x1i = this.x1 = cvw - metrics.width;
+		this.x1i = this.x1 = horizontalOffset + metrics.width;
 		metrics = this.ctx.measureText(this.initialText.substring(1));
-		this.x2 = cvw - metrics.width;
+		this.x2 = horizontalOffset + metrics.width;
+		if (this.drawingOnCanvas.flipHorizontalAxis == false)
+		{
+			this.x1i = this.cnv.width - this.x1i;
+			this.x1 = this.cnv.width - this.x1;
+			this.x2 = this.cnv.width - this.x2;
+		}
 		this.xf = 0.25 * (this.x1) + 0.75 * (this.x2); // put convergence point closer to right V in order to help avoid drawing small parts of extremities of the left V on the part of the canvas which must remain unchanged during this metamorphosis
 		metrics = this.ctx.measureText(this.initialText[0]);
 		this.halfHeightNumeral = 0.5 * (metrics.actualBoundingBoxAscent);
@@ -2448,23 +2461,29 @@ class AnimateNumeralSubstitutionToFew
 		this.started = true;
 		this.finished = false;
 		this.morph.reset();
-		this.xiSameText = this.cnv.width - horizontalOffset;
-		this.xfSameText = this.xiSameText;
+		this.xiSameText = horizontalOffset;
 		let metrics = this.ctx.measureText(this.entireText);
-		if (metrics !== null &&
-			fpLess(0, metrics.width, fpTolerance) &&
-			fpLess(metrics.width, this.xiSameText, fpTolerance))
-			this.xiSameText -= metrics.width;
+		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+		{
+			this.xiSameText += metrics.width;
+			this.xiSameText = fpMin(this.xiSameText, this.cnv.width, fpTolerance);
+		}
 		if (this.morph.finalText == null)
 		{
+			this.xfSameText = horizontalOffset;
 			metrics = this.ctx.measureText(this.sameText);
-			if (metrics !== null &&
-				fpLess(0, metrics.width, fpTolerance) &&
-				fpLess(metrics.width, this.xfSameText, fpTolerance))
-				this.xfSameText -= metrics.width;
+			if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+			{
+				this.xfSameText += metrics.width;
+				this.xfSameText = fpMin(this.xfSameText, this.cnv.width, fpTolerance);
+			}
+			if (this.drawingOnCanvas.flipHorizontalAxis == false)
+				this.xfSameText = this.cnv.width - this.xfSameText;
 		}
 		else
-			this.xfSameText = this.morph.xFinalText();
+			this.xfSameText = this.morph.xFinalText(); // this value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
+		if (this.drawingOnCanvas.flipHorizontalAxis == false)
+			this.xiSameText = this.cnv.width - this.xiSameText;
 	}
 	more()
 	{
@@ -2552,18 +2571,25 @@ class AnimateNumeralInsertion
 			return; // browser does not support canvas
 		}
 		this.started = true;
-		let xi = this.cnv.width - horizontalOffset;
-		let xf = xi;
+		let xi = horizontalOffset;
+		let xf = horizontalOffset;
 		let metrics = this.ctx.measureText(this.entireText);
-		if (metrics !== null &&
-			fpLess(0, metrics.width, fpTolerance) &&
-			fpLess(metrics.width, xi, fpTolerance))
-			xi -= metrics.width;
+		if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+		{
+			xi += metrics.width;
+			xi = fpMin(xi, this.cnv.width, fpTolerance);
+		}
 		metrics = this.ctx.measureText(this.morph.finalText);
-		if (metrics !== null &&
-			fpLess(0, metrics.width, fpTolerance) &&
-			fpLess(metrics.width, xi, fpTolerance))
-			xf = xi - metrics.width;
+		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+		{
+			xf = xi + metrics.width;
+			xf = fpMin(xf, this.cnv.width, fpTolerance);
+		}
+		if (this.drawingOnCanvas.flipHorizontalAxis == false)
+		{
+			xi = this.cnv.width - xi;
+			xf = this.cnv.width - xf;
+		}
 		this.makeSpace.reset(this.entireText, xi, xf);
 	}
 	more()
