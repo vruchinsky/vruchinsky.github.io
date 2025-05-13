@@ -84,7 +84,10 @@ class DrawingOnCanvas
 		this.displayText();
 	}
 	get() {return this.text;}
-	initializeCanvas() {initializeCanvas(this.canvas, this.flipHorizontalAxis);}
+	initializeCanvas()
+	{
+		this.ctx = initializeCanvas(this.canvas, this.flipHorizontalAxis);
+	}
 	clearCanvas() {clearCanvas(this.canvas);}
 }
 
@@ -156,7 +159,7 @@ AnimationSpeedClosingTheGapsInput.addEventListener('input', function() {
 function initializeCanvas(cv, flipHorizontalAxis)
 {
 	if (cv.getContext == null)
-		return;
+		return null;
 	if (typeof(flipHorizontalAxis) === "undefined") flipHorizontalAxis = false; // default value
 	const ctx = cv.getContext("2d");
 	const rect = cv.getBoundingClientRect();
@@ -175,6 +178,7 @@ function initializeCanvas(cv, flipHorizontalAxis)
 	ctx.translate(0.5, 0.5); // otherwise, for lineWidth=1, horizontal&vertical lines look a little thick and blurry
 	const canvasStyle = getComputedStyle(cv);
 	ctx.fillStyle = canvasStyle.color;
+	return ctx;
 }
 
 function clearCanvas(cv)
@@ -205,7 +209,8 @@ function setNumber(n)
 		romanNumeralsAdditive.set(s);
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
-	writeTally(tally.canvas, inputNumber, romanNumeralsAdditive.get());
+//	drawTally(tally, inputNumber, romanNumeralsAdditive.get());
+	drawTally(tally, horizontalOffset, verticalOffset);
 	const s = convertRomanNumeralsAdditiveToSubtractive(romanNumeralsAdditive.get());
 	romanNumeralsSubtractive.set(s);
 	connectRomanToArabic();
@@ -681,23 +686,26 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	return {w, h};
 }
 
-function writeTally(cnv, n, rna)
-{
-	if (cnv.getContext == null)
+function drawTally(drwngOnCnv, x, y)
+//function drawTally(drwngOnCnv, n, rna)
+{//inputNumber, romanNumeralsAdditive.get()
+	if (inputNumber < smallestNumberToDisplay || inputNumber === 0)
+		return;
+	if (drwngOnCnv.ctx == null)
 	{ // fallback in case browser does not support canvas
-		cnv.textContent = "|".repeat(n); // simplest: write out the tally marks
+		drwngOnCnv.canvas.textContent = "|".repeat(inputNumber); // simplest: write out the tally marks
 		return;
 	}
-	const ctx = cnv.getContext("2d");
-	const oldStrokeStyle = ctx.strokeStyle;
-	const oldLineWidth = ctx.lineWidth;
-	const canvasStyle = getComputedStyle(cnv);
+	const rna = romanNumeralsAdditive.get();
+	//const ctx = cnv.getContext("2d");
+	const oldStrokeStyle = drwngOnCnv.ctx.strokeStyle;
+	const oldLineWidth = drwngOnCnv.ctx.lineWidth;
+	const canvasStyle = getComputedStyle(drwngOnCnv.canvas);
 	const foregroundColor = canvasStyle.color;
-	let x = horizontalOffset;
-	let y = verticalOffset;
-	if (n < smallestNumberToDisplay || n===0) return;
-	ctx.strokeStyle = foregroundColor;
-	ctx.lineWidth = tallyMarkThickness;
+	//let x = horizontalOffset;
+	//let y = verticalOffset;
+	drwngOnCnv.ctx.strokeStyle = foregroundColor;
+	drwngOnCnv.ctx.lineWidth = tallyMarkThickness;
 	let dx, i, c, sz;
 	let pc = null;
 	let nMs = 0;
@@ -705,15 +713,15 @@ function writeTally(cnv, n, rna)
 	{
 		c = rna[i];
 		if (c != pc)
-			dx = stringWidthOnCanvas(ctx, c);
+			dx = stringWidthOnCanvas(drwngOnCnv.ctx, c);
 		switch (c)
 		{
-			case "I": drawTallyMark(ctx, x, y, dx); break;
-			case "V": drawBox5(ctx, x, y, dx); break;
-			case "X": drawBox10(ctx, x, y, dx); break;
-			case "L": drawBox50(ctx, x, y, dx); break;
-			case "C": drawBox100(ctx, x, y, dx); break;
-			case "D": sz = drawBox500(ctx, x, y, dx); dx = sz.w; break;
+			case "I": drawTallyMark(drwngOnCnv.ctx, x, y, dx); break;
+			case "V": drawBox5(drwngOnCnv.ctx, x, y, dx); break;
+			case "X": drawBox10(drwngOnCnv.ctx, x, y, dx); break;
+			case "L": drawBox50(drwngOnCnv.ctx, x, y, dx); break;
+			case "C": drawBox100(drwngOnCnv.ctx, x, y, dx); break;
+			case "D": sz = drawBox500(drwngOnCnv.ctx, x, y, dx); dx = sz.w; break;
 			case "M": nMs++; dx = 0; break;
 		}
 		x += dx;
@@ -722,7 +730,7 @@ function writeTally(cnv, n, rna)
 	let r = nMs % 5;
 	if (r > 0)
 	{
-		sz = drawBox1000(ctx, x, y, r);
+		sz = drawBox1000(drwngOnCnv.ctx, x, y, r);
 		box1000horizontalPosition = x;
 		x += sz.w;
 	}
@@ -730,11 +738,11 @@ function writeTally(cnv, n, rna)
 	r = nMs % 2;
 	if (r > 0)
 	{
-		sz = drawBox1000(ctx, x, y, 10);
+		sz = drawBox1000(drwngOnCnv.ctx, x, y, 10);
 		x += sz.w;
 	}
-	ctx.strokeStyle = oldStrokeStyle;
-	ctx.lineWidth = oldLineWidth;
+	drwngOnCnv.ctx.strokeStyle = oldStrokeStyle;
+	drwngOnCnv.ctx.lineWidth = oldLineWidth;
 }
 
 function replaceLastChars(s, a, b) // if string s ends with string a,
@@ -1183,6 +1191,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	ctx = null; // drawing context of cnv
 	leftText = null; // constant
 	rightText = null; // constant
+	fcnDrawing = null; // ref. to function used to draw the graphic
 	xr = 0; // updated horizontal position (in pixels) of this.rightText
 	xRi = 0; // initial horizontal position (in pixels) of this.rightText
 	xRf = 0; // final horizontal position (in pixels) of this.rightText
@@ -1211,6 +1220,10 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		this.rightText = s;
 		this.drawingOnCanvas = m.drawingOnCanvas;
 	}
+	setDrawing(f)
+	{
+		this.fcnDrawing = f;
+	}
 	reset(lText, xLtext, xAnotherArg) // use and meaning of xAnotherArg depends whether this.rightText===null
 	{ // if this.rightText===null, then xAnotherArg is the final position of this.leftText
 		this.finished = true; // if this.rightText!==null, then xAnotherArg is the initial position of this.rightText
@@ -1225,19 +1238,22 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		else // xAnotherArg is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
 			this.xr = this.xRi = xAnotherArg; // move both this.leftText and this.rightText
 		const cvw = this.cnv.width - horizontalOffset;
-		this.verticalPosition = this.cnv.height; // default value, in case cannot obtain valid text metrics
+		this.verticalPosition = (this.fcnDrawing === null) ? this.cnv.height : verticalOffset; // default value, in case cannot obtain valid text metrics
 		let metrics = null;
 		if (this.rightText !== null)
 		{
 			this.xRf = horizontalOffset; // default value, in case cannot obtain valid text metrics
-			metrics = this.ctx.measureText(this.rightText);
-			if (metrics !== null)
+			if (this.fcnDrawing === null)
 			{
-				if (fpLess(0, metrics.width, fpTolerance))
-					this.xRf += metrics.width;
-				this.xRf = fpMin(this.xRf, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
-				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
-					this.verticalPosition = metrics.actualBoundingBoxAscent;
+				metrics = this.ctx.measureText(this.rightText);
+				if (metrics !== null)
+				{
+					if (fpLess(0, metrics.width, fpTolerance))
+						this.xRf += metrics.width;
+					this.xRf = fpMin(this.xRf, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
+					if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+						this.verticalPosition = metrics.actualBoundingBoxAscent;
+				}
 			}
 		}
 		this.wLeftText = 0; // default value, in case cannot obtain valid text metrics
@@ -1248,10 +1264,13 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		{
 			if (fpLess(0, metrics.width, fpTolerance))
 				this.wLeftText = metrics.width;
-			if (this.rightText !== null)
-				this.xLf = this.xRf + this.wLeftText;
-			if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
-				this.verticalPosition = metrics.actualBoundingBoxAscent;
+			if (this.fcnDrawing === null)
+			{
+				if (this.rightText !== null)
+					this.xLf = this.xRf + this.wLeftText;
+				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+					this.verticalPosition = metrics.actualBoundingBoxAscent;
+			}
 		}
 		this.xLf = fpMin(this.xLf, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
 		if ((this.drawingOnCanvas.flipHorizontalAxis == false) && (this.rightText !== null))
@@ -1333,9 +1352,16 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			return; // browser does not support canvas
 		this.ctx.clearRect(this.xClear, -0.5, this.wClear, this.cnv.height);
 		if (this.leftText !== null)
-			this.ctx.fillText(this.leftText, this.xl, this.verticalPosition);
+		{
+			if (this.fcnDrawing !== null)
+				this.fcnDrawing(this.drawingOnCanvas, this.xl, this.verticalPosition);
+			else
+				this.ctx.fillText(this.leftText, this.xl, this.verticalPosition);
+		}
 		if (this.rightText !== null)
+		{
 			this.ctx.fillText(this.rightText, this.xr, this.verticalPosition);
+		}
 	}
 }
 
@@ -2494,7 +2520,7 @@ class AnimateNumeralSubstitutionToFew
 				this.xfSameText = this.cnv.width - this.xfSameText;
 		}
 		else
-			this.xfSameText = this.morph.xFinalText(); // this value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
+			this.xfSameText = this.morph.xFinalText(); // this returned value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 			this.xiSameText = this.cnv.width - this.xiSameText;
 	}
@@ -3043,6 +3069,8 @@ incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM));
 
 let mTallyInI = new Fade(tally, null, "I");
 mTallyInI.setDrawings(null, drawTallyMark);
+let moveTallyLeft = new SlideTextHorizontally(mTallyInI, null);
+moveTallyLeft.setDrawing(drawTally);
 
 function incNumAnmtnsConstraints()
 {
@@ -3109,17 +3137,29 @@ function incrementNumber()
 		eraseDrawings();
 		incNumAnmtnsAddtv.start();
 		incNumAnmtnsSbtrctv.start();
-		mTallyInI.reset(); // >>> EXPERIMENTAL <<<
+		moveTallyLeft.reset(romanNumeralsAdditive.get(), // >>> EXPERIMENTAL <<<
+							horizontalOffset, // >>> EXPERIMENTAL <<<
+							horizontalOffset + mTallyInI.wf); // >>> EXPERIMENTAL <<<
 	}
 	else
 	{
 		incNumAnmtnsAddtv.more();
 		incNumAnmtnsSbtrctv.more();
+		if (moveTallyLeft.done() == false) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			moveTallyLeft.proceed(); // >>> EXPERIMENTAL <<<
+			moveTallyLeft.draw(); // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
+		else // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (moveTallyLeft.recent()) // >>> EXPERIMENTAL <<<
+				mTallyInI.reset(); // >>> EXPERIMENTAL <<<
 			if (mTallyInI.done()==false) // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
 				mTallyInI.proceed(); // >>> EXPERIMENTAL <<<
 				mTallyInI.draw(); // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
