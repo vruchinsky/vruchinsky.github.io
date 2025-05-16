@@ -1308,14 +1308,20 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 			(this.rightText==="") || fpEqual(this.vxr, 0, fpTolerance);
 		this.vrPos = fpLess(0, this.vxr, fpTolerance);
 		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
-		this.xClear = fpMin(this.xLi, this.xLf, fpTolerance);
-		if (this.rightText === null)
+		if (this.fcnDrawing !== null)
 		{
-			const xClearR = fpMax(this.xLi, this.xLf, fpTolerance);
-			this.wClear = xClearR + this.wLeftText - this.xClear;
+			this.xClear = fpMax(this.drawingOnCanvas.horizontalPosition - 1, 0, fpTolerance);
+			this.wClear = fpMin(this.drawingOnCanvas.drawingWidth + 1, this.cnv.width, fpTolerance);
 		}
 		else
-			this.wClear = this.cnv.width - horizontalOffset - this.xClear;
+		{
+			this.xClear = fpMin(this.xLi, this.xLf, fpTolerance);
+			if (this.rightText === null)
+				this.wClear = this.wLeftText + 1;
+			else
+				this.wClear = this.cnv.width - horizontalOffset - this.xClear + 1;
+			this.drawingOnCanvas.horizontalPosition = this.xClear;
+		}
 		this.t = Date.now();
 	}
 	done() // true iff finished this particular stage of the animation
@@ -1370,13 +1376,20 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	{
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
+		if (this.fcnDrawing !== null)
+			this.xClear = fpMax(this.drawingOnCanvas.horizontalPosition - 1, 0, fpTolerance);
+		else
+			this.xClear = this.drawingOnCanvas.horizontalPosition;
 		this.ctx.clearRect(this.xClear, -0.5, this.wClear, this.cnv.height);
 		if (this.leftText !== null)
 		{
 			if (this.fcnDrawing !== null)
 				this.drawingOnCanvas.draw(this.fcnDrawing, this.xl, this.verticalPosition);
 			else
+			{
+				this.drawingOnCanvas.horizontalPosition = this.xl;
 				this.ctx.fillText(this.leftText, this.xl, this.verticalPosition);
+			}
 		}
 		if (this.rightText !== null)
 		{
