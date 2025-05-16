@@ -134,15 +134,15 @@
 			border-radius: 12px;
 		}
 		#labelAnimationSpeed, #labelAnimationSpeedSlow, #labelAnimationSpeedFast {top: 466px;}
-		#labelAnimationSpeed {width: 200px;}
+		#labelAnimationSpeed {width: 100px;}
 		#labelAnimationSpeed, #labelAnimationSpeedMetamorphosis,
 			#labelAnimationSpeedClosingTheGaps {left: 0px;}
-		#labelAnimationSpeedMetamorphosis, #labelAnimationSpeedClosingTheGaps {width: 115px;}
+		#labelAnimationSpeedMetamorphosis, #labelAnimationSpeedClosingTheGaps {width: 50px;}
 		#AnimationSpeedMetamorphosis, #AnimationSpeedClosingTheGaps,
-			#labelAnimationSpeedSlow {left: 110px;}
+			#labelAnimationSpeedSlow {left: 100px;}
 		#labelAnimationSpeedSlow {width: 30px;}
 		#labelAnimationSpeedFast {
-			left: 290px;
+			left: 280px;
 			width: 30px;
 		}
 		#labelAnimationSpeedMetamorphosis, #labelAnimationSpeedMetamorphosisValue {top: 488px;}
@@ -162,7 +162,7 @@
 			visibility: hidden;
 		}
 		.settings {
-			visibility: hidden;
+			visibility: hidden; /* set to visible for testing and troubleshooting */
 		}
 		.diagnostics {
 			visibility: hidden; /* set to visible for testing and troubleshooting */
@@ -189,11 +189,11 @@
 	<button id="decrementButton" onclick=decrementNumber()>-</button>
 	<button id="ShowHideSettingsButton" onclick=ShowHideSettings()>&#x2699;</button>
 	<label id="labelAnimationSpeed" class="settings">animation speed:</label>
-	<label id="labelAnimationSpeedMetamorphosis" class="settings">changing numerals</label>
+	<label id="labelAnimationSpeedMetamorphosis" class="settings">metamorphosis</label>
 	<label id="labelAnimationSpeedSlow" class="settings">slow</label>
 	<label id="labelAnimationSpeedFast" class="settings">fast</span></label>
 	<label id="labelAnimationSpeedMetamorphosisValue"  class="diagnostics" for="AnimationSpeedMetamorphosis"><span id="DisplayAnimationSpeedMetamorphosis" class="diagnostics"></span></label>
-	<label id="labelAnimationSpeedClosingTheGaps" class="settings">closing the gaps</label>
+	<label id="labelAnimationSpeedClosingTheGaps" class="settings">sliding</label>
 	<label id="labelAnimationSpeedClosingTheGapsValue" class="diagnostics" for="AnimationSpeedClosingTheGaps"><span id="DisplayAnimationSpeedClosingTheGaps" class="diagnostics"></span></label>
 	<input type="range" id="AnimationSpeedMetamorphosis" class="settings" name="AnimationSpeedMetamorphosis" min="0.0001" max="0.002" step="0.0001" value="0.001"/>
 	<input type="range" id="AnimationSpeedClosingTheGaps" class="settings" name="AnimationSpeedClosingTheGaps" min="0.0002" max="0.004" step="0.0001" value="0.004"/>
