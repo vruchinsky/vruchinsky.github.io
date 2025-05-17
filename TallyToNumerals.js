@@ -2608,6 +2608,7 @@ class AnimateNumeralInsertion
 		this.ctx = this.morph.ctx;
 		this.makeSpace = new SlideTextHorizontally(m, null);
 	}
+	setDrawing(f) {this.makeSpace.setDrawing(f);}
 	getText()
 	{
 		if (this.morph === null)
@@ -2642,18 +2643,23 @@ class AnimateNumeralInsertion
 		this.started = true;
 		let xi = horizontalOffset;
 		let xf = horizontalOffset;
-		let metrics = this.ctx.measureText(this.entireText);
-		if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+		let metrics = null;
+		if (this.morph.drawGraphic == false) // assuming this.morph is of class Fade
 		{
-			xi += metrics.width;
-			xi = fpMin(xi, this.cnv.width, fpTolerance);
+			metrics = this.ctx.measureText(this.entireText);
+			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+				xi += metrics.width;
 		}
-		metrics = this.ctx.measureText(this.morph.finalText);
-		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+		xi = fpMin(xi, this.cnv.width, fpTolerance);
+		if (this.morph.drawGraphic) // assuming this.morph is of class Fade
+			xf = xi + this.morph.wf; // assuming this.morph is of class Fade
+		else
 		{
-			xf = xi + metrics.width;
-			xf = fpMin(xf, this.cnv.width, fpTolerance);
+			metrics = this.ctx.measureText(this.morph.finalText);
+			if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+				xf = xi + metrics.width;
 		}
+		xf = fpMin(xf, this.cnv.width, fpTolerance);
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 		{
 			xi = this.cnv.width - xi;
@@ -2681,7 +2687,8 @@ class AnimateNumeralInsertion
 				this.morph.draw();
 			}
 		}
-		if (this.finished && this.drawingOnCanvas !== null)
+		if (this.finished && this.drawingOnCanvas !== null &&
+			this.morph.drawGraphic == false) // assuming this.morph is of class Fade
 			this.drawingOnCanvas.set(this.entireText + this.morph.finalText);
 		return !this.finished;
 	}
@@ -3099,8 +3106,10 @@ incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM));
 
 let mTallyInI = new Fade(tally, null, "I");
 mTallyInI.setDrawings(null, drawTallyMark);
-let moveTallyLeft = new SlideTextHorizontally(mTallyInI, null);
-moveTallyLeft.setDrawing(drawTally);
+//let moveTallyLeft = new SlideTextHorizontally(mTallyInI, null);
+//moveTallyLeft.setDrawing(drawTally);
+let insertTally = new AnimateNumeralInsertion(mTallyInI);
+insertTally.setDrawing(drawTally);
 
 function incNumAnmtnsConstraints()
 {
@@ -3167,35 +3176,19 @@ function incrementNumber()
 		eraseDrawings();
 		incNumAnmtnsAddtv.start();
 		incNumAnmtnsSbtrctv.start();
-		moveTallyLeft.reset(romanNumeralsAdditive.get(), // >>> EXPERIMENTAL <<<
-							horizontalOffset, // >>> EXPERIMENTAL <<<
-							horizontalOffset + mTallyInI.wf); // >>> EXPERIMENTAL <<<
+		insertTally.start(romanNumeralsAdditive.get()); // >>> EXPERIMENTAL <<<
 	}
 	else
 	{
 		incNumAnmtnsAddtv.more();
 		incNumAnmtnsSbtrctv.more();
-		if (moveTallyLeft.done() == false) // >>> EXPERIMENTAL <<<
-		{ // >>> EXPERIMENTAL <<<
-			moveTallyLeft.proceed(); // >>> EXPERIMENTAL <<<
-			moveTallyLeft.draw(); // >>> EXPERIMENTAL <<<
-		} // >>> EXPERIMENTAL <<<
-		else // >>> EXPERIMENTAL <<<
-		{ // >>> EXPERIMENTAL <<<
-			if (moveTallyLeft.recent()) // >>> EXPERIMENTAL <<<
-				mTallyInI.reset(); // >>> EXPERIMENTAL <<<
-			if (mTallyInI.done()==false) // >>> EXPERIMENTAL <<<
-			{ // >>> EXPERIMENTAL <<<
-				mTallyInI.proceed(); // >>> EXPERIMENTAL <<<
-				mTallyInI.draw(); // >>> EXPERIMENTAL <<<
-			} // >>> EXPERIMENTAL <<<
-			
-		} // >>> EXPERIMENTAL <<<
+		insertTally.more(); // >>> EXPERIMENTAL <<<
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
 		incNumAnmtnsAddtv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
 		incNumAnmtnsSbtrctv.reset(); //...otherwise this branch of this if-statement will never be executed
+		insertTally.reset(); // >>> EXPERIMENTAL <<<
 		inputNumber++;
 		setNumber();
 	}
