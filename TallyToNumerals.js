@@ -209,11 +209,11 @@ function clearCanvas(cv)
 function eraseDrawings()
 {
 	arabicNumeralsElement.value = "";
-	tally.clearCanvas();
+	//tally.clearCanvas();
+	//box1000horizontalPosition = 0;
 	clearCanvas(romanToTallyConnectorCanvas);
 	clearCanvas(romanToArabicConnectorCanvas);
 	clearCanvas(romanAdditiveToSubtractiveConnectorCanvas);
-	box1000horizontalPosition = 0;
 }
 
 function setNumber(n)
@@ -703,19 +703,29 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	return {w, h};
 }
 
+// the following 2 global variables are used when sliding tally rightwards
+// after one tally mark is faded out
+// but before inputNumber and romanNumeralsAdditive
+// are updated (which is done at the end of decrementNumer())
+// otherwise, if inputNumber and romanNumeralsAdditive are used directly,
+// the faded out tally mark mistakenly reappears when the tally is slid rightwards
+let inputNumberForDrawTally = null; // to be read by drawTally(), set in caller
+let romanNumeralsAdditiveForDrawTally = null; // to be read by drawTally(), set in caller
 function drawTally(drwngOnCnv, x, y)
 {
 	let h = 0;
 	let w = 0;
 	const x0 = x;
-	if (inputNumber < smallestNumberToDisplay || inputNumber === 0)
+	const inputNumerUsed = (inputNumberForDrawTally === null) ? inputNumber : inputNumberForDrawTally;
+	if (inputNumerUsed < smallestNumberToDisplay || inputNumerUsed === 0)
 		return {w, h};
 	if (drwngOnCnv.ctx == null)
 	{ // fallback in case browser does not support canvas
-		drwngOnCnv.canvas.textContent = "|".repeat(inputNumber); // simplest: write out the tally marks
+		drwngOnCnv.canvas.textContent = "|".repeat(inputNumerUsed); // simplest: write out the tally marks
 		return {w, h};
 	}
-	const rna = romanNumeralsAdditive.get();
+	const rna = (romanNumeralsAdditiveForDrawTally === null) ? 
+		romanNumeralsAdditive.get() : romanNumeralsAdditiveForDrawTally;
 	const oldStrokeStyle = drwngOnCnv.ctx.strokeStyle;
 	const oldLineWidth = drwngOnCnv.ctx.lineWidth;
 	const canvasStyle = getComputedStyle(drwngOnCnv.canvas);
@@ -1326,6 +1336,11 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		}
 		this.t = Date.now();
 	}
+	setClear(x, w)
+	{
+		this.xClear = x;
+		this.wClear = w;
+	}
 	done() // true iff finished this particular stage of the animation
 	{
 		if (this.finished) return true;
@@ -1378,10 +1393,10 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	{
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		if (this.fcnDrawing !== null) // subtract 1 from horizontalPosition otherwise rightmost edge of rightmost box is not erased when sliding
-			this.xClear = fpMax(this.drawingOnCanvas.horizontalPosition - 1, 0, fpTolerance);
-		else
-			this.xClear = this.drawingOnCanvas.horizontalPosition;
+//		if (this.fcnDrawing !== null) // subtract 1 from horizontalPosition otherwise rightmost edge of rightmost box is not erased when sliding
+//			this.xClear = fpMax(this.drawingOnCanvas.horizontalPosition - 1, 0, fpTolerance);
+//		else
+//			this.xClear = this.drawingOnCanvas.horizontalPosition;
 		this.ctx.clearRect(this.xClear, -0.5, this.wClear, this.cnv.height);
 		if (this.leftText !== null)
 		{
@@ -1392,6 +1407,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 				this.drawingOnCanvas.horizontalPosition = this.xl;
 				this.ctx.fillText(this.leftText, this.xl, this.verticalPosition);
 			}
+			this.xClear = this.xl;
 		}
 		if (this.rightText !== null)
 		{
@@ -3106,8 +3122,6 @@ incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM));
 
 let mTallyInI = new Fade(tally, null, "I");
 mTallyInI.setDrawings(null, drawTallyMark);
-//let moveTallyLeft = new SlideTextHorizontally(mTallyInI, null);
-//moveTallyLeft.setDrawing(drawTally);
 let insertTally = new AnimateNumeralInsertion(mTallyInI);
 insertTally.setDrawing(drawTally);
 
@@ -3224,6 +3238,8 @@ decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI));
 
 let mTallyOutI = new Fade(tally, "I", null);
 mTallyOutI.setDrawings(drawTallyMark, null);
+let moveTallyRight = new SlideTextHorizontally(mTallyOutI, mTallyOutI.finalText);
+moveTallyRight.setDrawing(drawTally);
 
 function decNumAnmtnsConstraints()
 {
@@ -3330,6 +3346,10 @@ function decNumAnmtnsConstraints()
 		console.log('failed in f.after(decNumAnmtnsSbtrctv, "V", "IVI")');
 }
 
+let sameText, entireText, nCsame; // >>> EXPERIMENTAL <<<
+let xiSameText, xfSameText; // >>> EXPERIMENTAL <<<
+let xClear, wClear; // >>> EXPERIMENTAL <<<
+
 function decrementNumber()
 {
 	if (decNumAnmtnsAddtv.errorOccurred() || decNumAnmtnsSbtrctv.errorOccurred())
@@ -3344,17 +3364,52 @@ function decrementNumber()
 		eraseDrawings();
 		decNumAnmtnsAddtv.start();
 		decNumAnmtnsSbtrctv.start();
-		mTallyOutI.reset(); // >>> EXPERIMENTAL <<<
+		entireText = romanNumeralsAdditive.get(); // >>> EXPERIMENTAL <<<
+		nCsame = entireText.length - mTallyOutI.initialText.length; // >>> EXPERIMENTAL <<<
+		sameText = ((nCsame > 0) && // >>> EXPERIMENTAL <<<
+			(entireText.substring(nCsame) == // >>> EXPERIMENTAL <<<
+				mTallyOutI.initialText)) ? // >>> EXPERIMENTAL <<<
+				entireText.substring(0, nCsame) : // >>> EXPERIMENTAL <<<
+				null; // >>> EXPERIMENTAL <<<
+		if (sameText !== null) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			xClear = tally.horizontalPosition;
+			wClear = tally.drawingWidth;
+			mTallyOutI.reset(); // >>> EXPERIMENTAL <<<
+			xiSameText = mTallyOutI.wi; // >>> EXPERIMENTAL <<<
+			xfSameText = horizontalOffset; // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
 	}
 	else
 	{
 		decNumAnmtnsAddtv.more();
 		decNumAnmtnsSbtrctv.more();
-			if (mTallyOutI.done()==false) // >>> EXPERIMENTAL <<<
+		if (mTallyOutI.done()==false) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			mTallyOutI.proceed(); // >>> EXPERIMENTAL <<<
+			mTallyOutI.draw(); // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
+		else if (sameText !== null) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (mTallyOutI.recent()) // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
-				mTallyOutI.proceed(); // >>> EXPERIMENTAL <<<
-				mTallyOutI.draw(); // >>> EXPERIMENTAL <<<
+				moveTallyRight.reset(sameText, // >>> EXPERIMENTAL <<<
+					xiSameText, xfSameText); // >>> EXPERIMENTAL <<<
+				moveTallyRight.setClear(xClear, wClear); // >>> EXPERIMENTAL <<<
+				inputNumberForDrawTally = inputNumber - 1; // >>> EXPERIMENTAL <<<
+				romanNumeralsAdditiveForDrawTally = sameText; // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
+			if (moveTallyRight.done() == false) // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				moveTallyRight.proceed(); // >>> EXPERIMENTAL <<<
+				moveTallyRight.draw(); // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+			else // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				inputNumberForDrawTally = null; // >>> EXPERIMENTAL <<<
+				romanNumeralsAdditiveForDrawTally = null; // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
 	}
 	if (decNumAnmtnsAddtv.finished() && decNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
