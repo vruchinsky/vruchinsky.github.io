@@ -226,6 +226,7 @@ function setNumber(n)
 		romanNumeralsAdditive.set(s);
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
+	tally.clearCanvas(); // >>> EXPERIMENTAL <<<
 	tally.draw(drawTally, horizontalOffset, verticalOffset);
 	const s = convertRomanNumeralsAdditiveToSubtractive(romanNumeralsAdditive.get());
 	romanNumeralsSubtractive.set(s);
@@ -706,6 +707,7 @@ function drawTally(drwngOnCnv, x, y)
 {
 	let h = 0;
 	let w = 0;
+	const x0 = x;
 	if (inputNumber < smallestNumberToDisplay || inputNumber === 0)
 		return {w, h};
 	if (drwngOnCnv.ctx == null)
@@ -758,7 +760,7 @@ function drawTally(drwngOnCnv, x, y)
 		sz = drawBox1000(drwngOnCnv.ctx, x, y, 10);
 		x += sz.w;
 	}
-	w = x;
+	w = x - x0;
 	drwngOnCnv.ctx.strokeStyle = oldStrokeStyle;
 	drwngOnCnv.ctx.lineWidth = oldLineWidth;
 	return {w, h};
@@ -1309,7 +1311,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		this.vrPos = fpLess(0, this.vxr, fpTolerance);
 		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
 		if (this.fcnDrawing !== null)
-		{
+		{ // subtract 1 from horizontalPosition otherwise rightmost edge of rightmost box is not erased when sliding
 			this.xClear = fpMax(this.drawingOnCanvas.horizontalPosition - 1, 0, fpTolerance);
 			this.wClear = fpMin(this.drawingOnCanvas.drawingWidth + 1, this.cnv.width, fpTolerance);
 		}
@@ -1376,7 +1378,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	{
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		if (this.fcnDrawing !== null)
+		if (this.fcnDrawing !== null) // subtract 1 from horizontalPosition otherwise rightmost edge of rightmost box is not erased when sliding
 			this.xClear = fpMax(this.drawingOnCanvas.horizontalPosition - 1, 0, fpTolerance);
 		else
 			this.xClear = this.drawingOnCanvas.horizontalPosition;
@@ -2141,6 +2143,13 @@ class Fade // used to fade text in, to fade text out...
 		this.xi = horizontalOffset;
 		this.xf = horizontalOffset;
 		let metrics = null;
+		if (this.finalText !== null)
+		{
+			metrics = this.ctx.measureText(this.finalText);
+			this.wf = metrics.width;
+			if ((this.initialText === null) && (this.drawGraphic == false))
+				this.verticalPosition = metrics.actualBoundingBoxAscent;
+		}
 		if (this.initialText !== null)
 		{
 			metrics = this.ctx.measureText(this.initialText);
@@ -2150,22 +2159,10 @@ class Fade // used to fade text in, to fade text out...
 				this.xi += this.wi;
 				this.verticalPosition = metrics.actualBoundingBoxAscent;
 			}
-			if (this.finalText !== null)
-			{
-				metrics = this.ctx.measureText(this.finalText);
-				this.wf = metrics.width;
-				if (this.drawGraphic == false)
-					this.xf += 0.5 * (this.wi + this.wf);
-			}
-		} else if (this.finalText !== null) {
-			metrics = this.ctx.measureText(this.finalText);
-			this.wf = metrics.width;
-			if (this.drawGraphic == false)
-			{
-				this.xf += this.wf;
-				this.verticalPosition = metrics.actualBoundingBoxAscent;
-			}
-		}
+			if ((this.finalText !== null) && (this.drawGraphic == false))
+				this.xf += 0.5 * (this.wi + this.wf);
+		} else if ((this.finalText !== null) && (this.drawGraphic == false))
+			this.xf += this.wf;
 		this.aOut = this.aOutI;
 		this.aIn = this.aInI;
 		this.vaOut = AnimationSpeedMetamorphosis*(this.aOutF - this.aOutI);
@@ -2176,7 +2173,7 @@ class Fade // used to fade text in, to fade text out...
 			this.xf = this.cnv.width - this.xf;
 		}
 		this.xClear = fpMin(this.xi, this.xf, fpTolerance);
-		this.wClear = this.cnv.width - this.xClear;
+		this.wClear = fpMin(fpMax(this.wi, this.wf, fpTolerance), this.cnv.width, fpTolerance);
 		this.t = Date.now();
 	}
 	done()
@@ -3192,6 +3189,7 @@ function incrementNumber()
 				mTallyInI.proceed(); // >>> EXPERIMENTAL <<<
 				mTallyInI.draw(); // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
+			
 		} // >>> EXPERIMENTAL <<<
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
