@@ -242,6 +242,7 @@ function fpLess(a, b, tol) {return (a + tol < b);}
 function fpLessEq(a, b, tol) {return !fpLess(b, a, tol);}
 function fpMax(a, b, tol) {return fpLess(a, b, tol) ? b : a;}
 function fpMin(a, b, tol) {return fpLess(a, b, tol) ? a : b;}
+function fpLimitToInterval(n, a, b, tol) {return fpMax(fpMin(n, b, tol), a, tol);} // return a if n < a, b if n > b, n if a<=n<=b
 
 function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclude) // draw rectangle with rounded corners
 { // based on https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes
@@ -1280,14 +1281,13 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 				{
 					if (fpLess(0, metrics.width, fpTolerance))
 						this.xRf += metrics.width;
-					this.xRf = fpMin(this.xRf, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
 					if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
 						this.verticalPosition = metrics.actualBoundingBoxAscent;
 				}
 			}
-		}
-		if (this.rightText !== null)
+			this.xRf = fpLimitToInterval(this.xRf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 			this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
+		}
 		this.wLeftText = 0; // default value, in case cannot obtain valid text metrics
 		if (this.fcnDrawing !== null)
 			this.wLeftText = this.drawingOnCanvas.drawingWidth;
@@ -1304,7 +1304,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 					this.verticalPosition = metrics.actualBoundingBoxAscent;
 			}
 		}
-		this.xLf = fpMin(this.xLf, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
+		this.xLf = fpLimitToInterval(this.xLf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if ((this.drawingOnCanvas.flipHorizontalAxis == false) && (this.rightText !== null))
 		{ // if this.rightText === null, then xRf is not used and xLf is already adjusted for this.drawingOnCanvas.flipHorizontalAxis
 			this.xRf = this.cnv.width - this.xRf;
@@ -1321,17 +1321,19 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 		this.vrPos = fpLess(0, this.vxr, fpTolerance);
 		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
 		if (this.fcnDrawing !== null)
-		{ // subtract 1 from horizontalPosition otherwise rightmost edge of rightmost box is not erased when sliding
-			this.xClear = fpMax(this.drawingOnCanvas.horizontalPosition - 1, 0, fpTolerance);
-			this.wClear = fpMin(this.drawingOnCanvas.drawingWidth + 1, this.cnv.width, fpTolerance);
+		{ // subtract 1 from horizontalPosition otherwise rightmost edge of rightmost box is not erased (thus leaves a streak) when sliding
+			this.xClear = fpLimitToInterval(this.drawingOnCanvas.horizontalPosition - 1, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+			this.wClear = fpLimitToInterval(this.drawingOnCanvas.drawingWidth + 1, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
 		}
 		else
 		{
 			this.xClear = fpMin(this.xLi, this.xLf, fpTolerance);
+			this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 			if (this.rightText === null)
-				this.wClear = this.wLeftText + 1;
+				this.wClear = this.wLeftText + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
 			else
 				this.wClear = this.cnv.width - horizontalOffset - this.xClear + 1;
+			this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
 			this.drawingOnCanvas.horizontalPosition = this.xClear;
 		}
 		this.t = Date.now();
@@ -1393,8 +1395,8 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	{
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-//		if (this.fcnDrawing !== null) // subtract 1 from horizontalPosition otherwise rightmost edge of rightmost box is not erased when sliding
-//			this.xClear = fpMax(this.drawingOnCanvas.horizontalPosition - 1, 0, fpTolerance);
+//		if (this.fcnDrawing !== null)
+//			this.xClear = this.drawingOnCanvas.horizontalPosition - 1; // subtract 1 from horizontalPosition otherwise rightmost edge of rightmost box is not erased when sliding
 //		else
 //			this.xClear = this.drawingOnCanvas.horizontalPosition;
 		this.ctx.clearRect(this.xClear, -0.5, this.wClear, this.cnv.height);
@@ -1407,12 +1409,15 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 				this.drawingOnCanvas.horizontalPosition = this.xl;
 				this.ctx.fillText(this.leftText, this.xl, this.verticalPosition);
 			}
-			this.xClear = this.xl;
+			this.xClear = this.xl - 1; // subtract 1 from horizontalPosition otherwise rightmost edge of rightmost box is not erased when sliding
 		}
 		if (this.rightText !== null)
 		{
 			this.ctx.fillText(this.rightText, this.xr, this.verticalPosition);
+			if (this.leftText === null)
+				this.xClear = this.xr - 1; // subtract 1 from horizontalPosition otherwise rightmost edge of rightmost box is not erased when sliding
 		}
+		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 	}
 }
 
@@ -2189,7 +2194,9 @@ class Fade // used to fade text in, to fade text out...
 			this.xf = this.cnv.width - this.xf;
 		}
 		this.xClear = fpMin(this.xi, this.xf, fpTolerance);
-		this.wClear = fpMin(fpMax(this.wi, this.wf, fpTolerance), this.cnv.width, fpTolerance);
+		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+		this.wClear = fpMax(this.wi, this.wf, fpTolerance);
+		this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
 		this.t = Date.now();
 	}
 	done()
@@ -2551,7 +2558,7 @@ class AnimateNumeralSubstitutionToFew
 		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
 		{
 			this.xiSameText += metrics.width;
-			this.xiSameText = fpMin(this.xiSameText, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
+			this.xiSameText = fpLimitToInterval(this.xiSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		}
 		if (this.morph.finalText == null)
 		{
@@ -2560,7 +2567,7 @@ class AnimateNumeralSubstitutionToFew
 			if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
 			{
 				this.xfSameText += metrics.width;
-				this.xfSameText = fpMin(this.xfSameText, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
+				this.xfSameText = fpLimitToInterval(this.xfSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
 			}
 			if (this.drawingOnCanvas.flipHorizontalAxis == false)
 				this.xfSameText = this.cnv.width - this.xfSameText;
@@ -2666,7 +2673,7 @@ class AnimateNumeralInsertion
 			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
 				xi += metrics.width;
 		}
-		xi = fpMin(xi, this.cnv.width, fpTolerance);
+		xi = fpLimitToInterval(xi, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if (this.morph.drawGraphic) // assuming this.morph is of class Fade
 			xf = xi + this.morph.wf; // assuming this.morph is of class Fade
 		else
@@ -2675,7 +2682,7 @@ class AnimateNumeralInsertion
 			if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
 				xf = xi + metrics.width;
 		}
-		xf = fpMin(xf, this.cnv.width, fpTolerance);
+		xf = fpLimitToInterval(xf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 		{
 			xi = this.cnv.width - xi;
