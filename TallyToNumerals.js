@@ -49,7 +49,8 @@ const buttonDisabledColor = "#505050";
 
 class DrawingOnCanvas
 {
-	text = "";
+	text = null;
+	numberOfTallyMarks = null;
 	canvas = null;
 	ctx = null;
 	flipHorizontalAxis = false;
@@ -209,8 +210,6 @@ function clearCanvas(cv)
 function eraseDrawings()
 {
 	arabicNumeralsElement.value = "";
-	//tally.clearCanvas();
-	//box1000horizontalPosition = 0;
 	clearCanvas(romanToTallyConnectorCanvas);
 	clearCanvas(romanToArabicConnectorCanvas);
 	clearCanvas(romanAdditiveToSubtractiveConnectorCanvas);
@@ -226,7 +225,7 @@ function setNumber(n)
 		romanNumeralsAdditive.set(s);
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
-	tally.clearCanvas(); // >>> EXPERIMENTAL <<<
+	tally.clearCanvas(); // otherwise tally mark not erased when decrementing from 1
 	tally.draw(drawTally, horizontalOffset, verticalOffset);
 	const s = convertRomanNumeralsAdditiveToSubtractive(romanNumeralsAdditive.get());
 	romanNumeralsSubtractive.set(s);
@@ -710,23 +709,21 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 // are updated (which is done at the end of decrementNumer())
 // otherwise, if inputNumber and romanNumeralsAdditive are used directly,
 // the faded out tally mark mistakenly reappears when the tally is slid rightwards
-let inputNumberForDrawTally = null; // to be read by drawTally(), set in caller
-let romanNumeralsAdditiveForDrawTally = null; // to be read by drawTally(), set in caller
 function drawTally(drwngOnCnv, x, y)
 {
 	let h = 0;
 	let w = 0;
 	const x0 = x;
-	const inputNumerUsed = (inputNumberForDrawTally === null) ? inputNumber : inputNumberForDrawTally;
-	if (inputNumerUsed < smallestNumberToDisplay || inputNumerUsed === 0)
+	const inputNumberUsed = (drwngOnCnv.numberOfTallyMarks === null) ?
+		inputNumber : drwngOnCnv.numberOfTallyMarks;
+	if (inputNumberUsed < smallestNumberToDisplay || inputNumberUsed === 0)
 		return {w, h};
 	if (drwngOnCnv.ctx == null)
 	{ // fallback in case browser does not support canvas
-		drwngOnCnv.canvas.textContent = "|".repeat(inputNumerUsed); // simplest: write out the tally marks
+		drwngOnCnv.canvas.textContent = "|".repeat(inputNumberUsed); // simplest: write out the tally marks
 		return {w, h};
 	}
-	const rna = (romanNumeralsAdditiveForDrawTally === null) ? 
-		romanNumeralsAdditive.get() : romanNumeralsAdditiveForDrawTally;
+	const rna = (drwngOnCnv.text === null) ? romanNumeralsAdditive.get() : drwngOnCnv.text;
 	const oldStrokeStyle = drwngOnCnv.ctx.strokeStyle;
 	const oldLineWidth = drwngOnCnv.ctx.lineWidth;
 	const canvasStyle = getComputedStyle(drwngOnCnv.canvas);
@@ -2719,9 +2716,17 @@ class AnimateNumeralInsertion
 				this.morph.draw();
 			}
 		}
-		if (this.finished && this.drawingOnCanvas !== null &&
-			this.morph.textOnly) // assuming this.morph is of class Fade
-			this.drawingOnCanvas.set(this.entireText + this.morph.finalText);
+		if (this.finished && this.drawingOnCanvas !== null)
+		{
+			const s = this.entireText + this.morph.finalText;
+			if (this.morph.textOnly) // assuming this.morph is of class Fade
+				this.drawingOnCanvas.set(s);
+			else
+			{ // reset (used only in drawTally() when decrementing)
+				this.drawingOnCanvas.text = null;
+				this.drawingOnCanvas.numberOfTallyMarks = null;
+			}
+		}
 		return !this.finished;
 	}
 }
@@ -3365,7 +3370,6 @@ function decNumAnmtnsConstraints()
 let sameText, entireText, nCsame; // >>> EXPERIMENTAL <<<
 let xiSameText, xfSameText; // >>> EXPERIMENTAL <<<
 let xClear, wClear; // >>> EXPERIMENTAL <<<
-
 function decrementNumber()
 {
 	if (decNumAnmtnsAddtv.errorOccurred() || decNumAnmtnsSbtrctv.errorOccurred())
@@ -3383,18 +3387,13 @@ function decrementNumber()
 		entireText = romanNumeralsAdditive.get(); // >>> EXPERIMENTAL <<<
 		nCsame = entireText.length - mTallyOutI.initialText.length; // >>> EXPERIMENTAL <<<
 		sameText = ((nCsame > 0) && // >>> EXPERIMENTAL <<<
-			(entireText.substring(nCsame) == // >>> EXPERIMENTAL <<<
-				mTallyOutI.initialText)) ? // >>> EXPERIMENTAL <<<
-				entireText.substring(0, nCsame) : // >>> EXPERIMENTAL <<<
-				null; // >>> EXPERIMENTAL <<<
-		if (sameText !== null) // >>> EXPERIMENTAL <<<
-		{ // >>> EXPERIMENTAL <<<
-			xClear = tally.horizontalPosition;
-			wClear = tally.drawingWidth;
-			mTallyOutI.reset(); // >>> EXPERIMENTAL <<<
-			xiSameText = mTallyOutI.wi; // >>> EXPERIMENTAL <<<
-			xfSameText = horizontalOffset; // >>> EXPERIMENTAL <<<
-		} // >>> EXPERIMENTAL <<<
+			(entireText.substring(nCsame) == mTallyOutI.initialText)) ? // >>> EXPERIMENTAL <<<
+			entireText.substring(0, nCsame) : null; // >>> EXPERIMENTAL <<<
+		xClear = tally.horizontalPosition; // >>> EXPERIMENTAL <<<
+		wClear = tally.drawingWidth; // >>> EXPERIMENTAL <<<
+		mTallyOutI.reset(); // >>> EXPERIMENTAL <<<
+		xiSameText = mTallyOutI.wi; // >>> EXPERIMENTAL <<<
+		xfSameText = horizontalOffset; // >>> EXPERIMENTAL <<<
 	}
 	else
 	{
@@ -3412,8 +3411,8 @@ function decrementNumber()
 				moveTallyRight.reset(sameText, // >>> EXPERIMENTAL <<<
 					xiSameText, xfSameText); // >>> EXPERIMENTAL <<<
 				moveTallyRight.setClear(xClear, wClear); // >>> EXPERIMENTAL <<<
-				inputNumberForDrawTally = inputNumber - 1; // >>> EXPERIMENTAL <<<
-				romanNumeralsAdditiveForDrawTally = sameText; // >>> EXPERIMENTAL <<<
+				tally.numberOfTallyMarks = inputNumber - 1; // >>> EXPERIMENTAL <<<
+				tally.text = sameText; // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
 			if (moveTallyRight.done() == false) // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
@@ -3422,8 +3421,6 @@ function decrementNumber()
 			} // >>> EXPERIMENTAL <<<
 			else // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
-				inputNumberForDrawTally = null; // >>> EXPERIMENTAL <<<
-				romanNumeralsAdditiveForDrawTally = null; // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
 		} // >>> EXPERIMENTAL <<<
 	}
