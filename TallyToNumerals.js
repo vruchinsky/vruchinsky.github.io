@@ -2118,7 +2118,7 @@ class Fade // used to fade text in, to fade text out...
 	wf = 0;  // width (in pixels) of the graphic to fade in, if given, otherwise of finalText, if given
 	fcnInitialDrawing = null; // ref. to function used to draw the graphic to fade out
 	fcnFinalDrawing = null; // ref. to function used to draw the graphic to fade in
-	drawGraphic = false; // true iff fcnInitialDrawing!==null or fcnFinalDrawing!==null
+	textOnly = true; // true iff fcnInitialDrawing===null and fcnFinalDrawing===null
 	aOutI = 1.0; // constant (initial alpha of initialText)
 	aOutF = 0.0; // constant (final alpha of initialText)
 	vaOut = 0; // how fast to change aOut to aOutF (calculated from aOutF, aOutI and AnimationSpeedMetamorphosis)
@@ -2150,8 +2150,26 @@ class Fade // used to fade text in, to fade text out...
 	{
 		this.fcnInitialDrawing = outFcn;
 		this.fcnFinalDrawing = inFcn;
-		this.drawGraphic = ((this.fcnInitialDrawing!==null) ||
-							(this.fcnFinalDrawing!==null));
+		this.textOnly = ((this.fcnInitialDrawing===null) &&
+							(this.fcnFinalDrawing===null));
+	}
+	computeTextWidths() // called in this.reset() and in AnimateNumeralInsertion.start() which uses this.wf
+	{ // useless to compute this in this.constructor() b/c no guarantee that the HTML canvas is properly set up before this.constructor() is called
+		let metrics = null;
+		if (this.finalText !== null)
+		{
+			metrics = this.ctx.measureText(this.finalText);
+			this.wf = metrics.width;
+			if ((this.initialText === null) && (this.fcnFinalDrawing === null))
+				this.verticalPosition = metrics.actualBoundingBoxAscent;
+		}
+		if (this.initialText !== null)
+		{
+			metrics = this.ctx.measureText(this.initialText);
+			this.wi = metrics.width;
+			if (this.fcnInitialDrawing === null)
+				this.verticalPosition = metrics.actualBoundingBoxAscent;
+		}
 	}
 	reset()
 	{
@@ -2160,29 +2178,19 @@ class Fade // used to fade text in, to fade text out...
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		this.verticalPosition = this.drawGraphic ? verticalOffset : this.cnv.height;
+		this.verticalPosition = this.textOnly ? this.cnv.height : verticalOffset;
 		this.xi = horizontalOffset;
 		this.xf = horizontalOffset;
 		let metrics = null;
-		if (this.finalText !== null)
-		{
-			metrics = this.ctx.measureText(this.finalText);
-			this.wf = metrics.width;
-			if ((this.initialText === null) && (this.drawGraphic == false))
-				this.verticalPosition = metrics.actualBoundingBoxAscent;
-		}
+		this.computeTextWidths();
+		const finalTextOnly = (this.finalText !== null) && (this.fcnFinalDrawing === null);
 		if (this.initialText !== null)
 		{
-			metrics = this.ctx.measureText(this.initialText);
-			this.wi = metrics.width;
-			if (this.drawGraphic == false)
-			{
+			if (this.fcnInitialDrawing === null)
 				this.xi += this.wi;
-				this.verticalPosition = metrics.actualBoundingBoxAscent;
-			}
-			if ((this.finalText !== null) && (this.drawGraphic == false))
+			if (finalTextOnly)
 				this.xf += 0.5 * (this.wi + this.wf);
-		} else if ((this.finalText !== null) && (this.drawGraphic == false))
+		} else if (finalTextOnly)
 			this.xf += this.wf;
 		this.aOut = this.aOutI;
 		this.aIn = this.aInI;
@@ -2664,24 +2672,25 @@ class AnimateNumeralInsertion
 			return; // browser does not support canvas
 		}
 		this.started = true;
+		this.morph.computeTextWidths(); // assuming this.morph is of class Fade, necessary to assign correct values to this.morph.wi and to this.morph.wf
 		let xi = horizontalOffset;
 		let xf = horizontalOffset;
 		let metrics = null;
-		if (this.morph.drawGraphic == false) // assuming this.morph is of class Fade
+		if (this.morph.textOnly) // assuming this.morph is of class Fade
 		{
 			metrics = this.ctx.measureText(this.entireText);
 			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
 				xi += metrics.width;
 		}
 		xi = fpLimitToInterval(xi, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		if (this.morph.drawGraphic) // assuming this.morph is of class Fade
-			xf = xi + this.morph.wf; // assuming this.morph is of class Fade
-		else
+		if (this.morph.textOnly) // assuming this.morph is of class Fade
 		{
 			metrics = this.ctx.measureText(this.morph.finalText);
 			if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
 				xf = xi + metrics.width;
 		}
+		else
+			xf = xi + this.morph.wf; // assuming this.morph is of class Fade
 		xf = fpLimitToInterval(xf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 		{
@@ -2711,7 +2720,7 @@ class AnimateNumeralInsertion
 			}
 		}
 		if (this.finished && this.drawingOnCanvas !== null &&
-			this.morph.drawGraphic == false) // assuming this.morph is of class Fade
+			this.morph.textOnly) // assuming this.morph is of class Fade
 			this.drawingOnCanvas.set(this.entireText + this.morph.finalText);
 		return !this.finished;
 	}
