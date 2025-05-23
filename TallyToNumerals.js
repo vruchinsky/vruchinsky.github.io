@@ -226,6 +226,8 @@ function setNumber(n)
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
 	tally.clearCanvas(); // otherwise tally mark not erased when decrementing from 1
+	tally.numberOfTallyMarks = inputNumber; // >>> EXPERIMENTAL <<<
+	tally.text = romanNumeralsAdditive.get(); // >>> EXPERIMENTAL <<<
 	tally.draw(drawTally, horizontalOffset, verticalOffset);
 	const s = convertRomanNumeralsAdditiveToSubtractive(romanNumeralsAdditive.get());
 	romanNumeralsSubtractive.set(s);
@@ -714,8 +716,9 @@ function drawTally(drwngOnCnv, x, y)
 	let h = 0;
 	let w = 0;
 	const x0 = x;
-	const inputNumberUsed = (drwngOnCnv.numberOfTallyMarks === null) ?
-		inputNumber : drwngOnCnv.numberOfTallyMarks;
+	const inputNumberUsed = drwngOnCnv.numberOfTallyMarks;
+	if (inputNumberUsed === null)
+		inputNumberUsed = inputNumber;
 	if (inputNumberUsed < smallestNumberToDisplay || inputNumberUsed === 0)
 		return {w, h};
 	if (drwngOnCnv.ctx == null)
@@ -723,7 +726,9 @@ function drawTally(drwngOnCnv, x, y)
 		drwngOnCnv.canvas.textContent = "|".repeat(inputNumberUsed); // simplest: write out the tally marks
 		return {w, h};
 	}
-	const rna = (drwngOnCnv.text === null) ? romanNumeralsAdditive.get() : drwngOnCnv.text;
+	const rna = drwngOnCnv.text;
+	if (rna === null)
+		rna = romanNumeralsAdditive.get();
 	const oldStrokeStyle = drwngOnCnv.ctx.strokeStyle;
 	const oldLineWidth = drwngOnCnv.ctx.lineWidth;
 	const canvasStyle = getComputedStyle(drwngOnCnv.canvas);
@@ -1220,6 +1225,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	ctx = null; // drawing context of cnv
 	leftText = null; // constant
 	rightText = null; // constant
+	textOnly = true; // true iff fcnDrawing===null
 	fcnDrawing = null; // ref. to function used to draw the graphic
 	xr = 0; // updated horizontal position (in pixels) of this.rightText
 	xRi = 0; // initial horizontal position (in pixels) of this.rightText
@@ -1252,6 +1258,7 @@ class SlideTextHorizontally // the last stage of animations of metamorphoses of 
 	setDrawing(f)
 	{
 		this.fcnDrawing = f;
+		this.textOnly = false;
 	}
 	reset(lText, xLtext, xAnotherArg) // use and meaning of xAnotherArg depends whether this.rightText===null
 	{ // if this.rightText===null, then xAnotherArg is the final position of this.leftText
@@ -1425,6 +1432,8 @@ class MetamorphoseIIIIItoV
 	ctx = null; // drawing context of cnv
 	initialText = "IIIII"; // (constant) to metamorphose into finalText
 	finalText = "V"; // constant
+	wi = 0; // width (in pixels) on canvas of initialText
+	wf = 0; // width (in pixels) on canvas of finalText
 	x0i = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
 	x0 = 0; // updated horizontal position of the leftmost I
 	x1 = 0; // updated horizontal position of the next to the leftmost I
@@ -1456,6 +1465,19 @@ class MetamorphoseIIIIItoV
 	}
 	xInitialText() {return this.x0i;}
 	xFinalText() {return this.xf;}
+	wInitialText() {return this.wi;}
+	wFinalText() {return this.wf;}
+	computeTextWidths()
+	{ // useless to compute this in this.constructor() b/c no guarantee that the HTML canvas is properly set up before this.constructor() is called
+		if (this.ctx === null)
+			return; // browser does not support canvas
+		let metrics = this.ctx.measureText(this.initialText);
+		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+			this.wi = metrics.width;
+		metrics = this.ctx.measureText(this.finalText);
+		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+			this.wf = metrics.width;
+	}
 	reset()
 	{
 		this.finished = true;
@@ -1771,6 +1793,8 @@ class MetamorphoseVVtoX
 	ctx = null; // drawing context of cnv
 	initialText = "VV"; // (constant) to metamorphose into finalText
 	finalText = "X"; // constant
+	wi = 0; // width (in pixels) on canvas of initialText
+	wf = 0; // width (in pixels) on canvas of finalText
 	halfWidthNumeral = 0; // half of the width, in pixels, of initialText[0] (used in transforming the coordinate system in this.draw())
 	halfHeightNumeral = 0; // half of the height, in pixels, of initialText[0] (used in transforming the coordinate system in this.draw())
 	x1i = 0; // initial horizontal position of the leftmost end of initialText, where to start clearing the canvas in each call to draw()
@@ -1807,6 +1831,19 @@ class MetamorphoseVVtoX
 	}
 	xInitialText() {return this.x1i;} // initial horizontal position of initialText
 	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
+	wInitialText() {return this.wi;}
+	wFinalText() {return this.wf;}
+	computeTextWidths()
+	{ // useless to compute this in this.constructor() b/c no guarantee that the HTML canvas is properly set up before this.constructor() is called
+		if (this.ctx === null)
+			return; // browser does not support canvas
+		let metrics = this.ctx.measureText(this.initialText);
+		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+			this.wi = metrics.width;
+		metrics = this.ctx.measureText(this.finalText);
+		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+			this.wf = metrics.width;
+	}
 	reset()
 	{
 		this.finished = true;
@@ -2130,8 +2167,6 @@ class Fade // used to fade text in, to fade text out...
 	verticalPosition = 0; // vertical position of all the text treated by this class
 	finished = true; // iff finished the metamorphosis of intialText into finalText
 	justFinished = false; // used to implement this.recent()
-	xInitialText() {return this.xi;} // initial horizontal position of initialText
-	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
 	constructor(d, oText, iText)
 	{ // d must be ref. to DrawingOnCanvas object: either romanNumeralsAdditive or romanNumeralsSubtractive
 		if (d === null)
@@ -2150,8 +2185,14 @@ class Fade // used to fade text in, to fade text out...
 		this.textOnly = ((this.fcnInitialDrawing===null) &&
 							(this.fcnFinalDrawing===null));
 	}
+	xInitialText() {return this.xi;} // initial horizontal position of initialText
+	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
+	wInitialText() {return this.wi;}
+	wFinalText() {return this.wf;}
 	computeTextWidths() // called in this.reset() and in AnimateNumeralInsertion.start() which uses this.wf
 	{ // useless to compute this in this.constructor() b/c no guarantee that the HTML canvas is properly set up before this.constructor() is called
+		if (this.ctx === null)
+			return; // browser does not support canvas
 		let metrics = null;
 		if (this.finalText !== null)
 		{
@@ -2496,6 +2537,8 @@ class AnimateNumeralSubstitutionToFew
 	ctx = null; // drawing context of cnv
 	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX or Fade) object
 	closeTheGaps = null; // to store SlideTextHorizontally object
+	xClear = 0; // for closeTheGaps
+	wClear = 0; // for closeTheGaps
 	sameText = null; // set to entireText.substring(0, nCsame) in this.reset()
 	nCsame = 0; // how many numerals in sameText
 	entireText = null; // sameText followed by initialText
@@ -2513,6 +2556,7 @@ class AnimateNumeralSubstitutionToFew
 		this.cnv = this.drawingOnCanvas.canvas;
 		this.ctx = this.morph.ctx;
 	}
+	setDrawing(f) {this.closeTheGaps.setDrawing(f);}
 	getText()
 	{
 		if (this.morph === null)
@@ -2557,23 +2601,30 @@ class AnimateNumeralSubstitutionToFew
 		}
 		this.started = true;
 		this.finished = false;
+		this.xClear = this.drawingOnCanvas.horizontalPosition;
+		this.wClear = this.drawingOnCanvas.drawingWidth;
 		this.morph.reset();
 		this.xiSameText = horizontalOffset;
-		let metrics = this.ctx.measureText(this.entireText);
-		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+		let metrics = null;
+		if (this.closeTheGaps.textOnly)
 		{
-			this.xiSameText += metrics.width;
-			this.xiSameText = fpLimitToInterval(this.xiSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+			metrics = this.ctx.measureText(this.entireText);
+			if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+				this.xiSameText += metrics.width;
 		}
+		else
+			this.xiSameText = this.morph.wInitialText();
+		this.xiSameText = fpLimitToInterval(this.xiSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if (this.morph.finalText == null)
 		{
 			this.xfSameText = horizontalOffset;
-			metrics = this.ctx.measureText(this.sameText);
-			if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+			if (this.closeTheGaps.textOnly)
 			{
-				this.xfSameText += metrics.width;
-				this.xfSameText = fpLimitToInterval(this.xfSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
+				metrics = this.ctx.measureText(this.sameText);
+				if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+					this.xfSameText += metrics.width;
 			}
+			this.xfSameText = fpLimitToInterval(this.xfSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
 			if (this.drawingOnCanvas.flipHorizontalAxis == false)
 				this.xfSameText = this.cnv.width - this.xfSameText;
 		}
@@ -2594,8 +2645,15 @@ class AnimateNumeralSubstitutionToFew
 		else
 		{
 			if (this.morph.recent())
-				this.closeTheGaps.reset(this.sameText,
-					this.xiSameText, this.xfSameText);
+			{
+				this.closeTheGaps.reset(this.sameText, this.xiSameText, this.xfSameText);
+				if ((this.closeTheGaps.textOnly == false) && (this.morph.finalText == null))
+				{// tally mark being removed, so set up appropriate member variables as necessary
+					this.closeTheGaps.setClear(this.xClear, this.wClear);
+					this.drawingOnCanvas.numberOfTallyMarks--; // used in drawing fcn in closeTheGaps.draw()
+					this.drawingOnCanvas.text = this.sameText; // used in drawing fcn in closeTheGaps.draw()
+				}
+			}
 			this.finished = this.closeTheGaps.done();
 			if (this.finished == false)
 			{
@@ -2603,7 +2661,7 @@ class AnimateNumeralSubstitutionToFew
 				this.closeTheGaps.draw();
 			}
 		}
-		if (this.finished && this.drawingOnCanvas !== null)
+		if (this.finished && (this.drawingOnCanvas !== null) && this.closeTheGaps.textOnly)
 		{
 			let s = null;
 			if (this.morph.finalText == null)
@@ -2669,25 +2727,18 @@ class AnimateNumeralInsertion
 			return; // browser does not support canvas
 		}
 		this.started = true;
-		this.morph.computeTextWidths(); // assuming this.morph is of class Fade, necessary to assign correct values to this.morph.wi and to this.morph.wf
+		this.morph.computeTextWidths(); // necessary to assign correct values for this.morph.wInitialText() and to this.morph.wFinalText()
 		let xi = horizontalOffset;
 		let xf = horizontalOffset;
 		let metrics = null;
-		if (this.morph.textOnly) // assuming this.morph is of class Fade
+		if (this.makeSpace.textOnly)
 		{
 			metrics = this.ctx.measureText(this.entireText);
 			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
 				xi += metrics.width;
 		}
 		xi = fpLimitToInterval(xi, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		if (this.morph.textOnly) // assuming this.morph is of class Fade
-		{
-			metrics = this.ctx.measureText(this.morph.finalText);
-			if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
-				xf = xi + metrics.width;
-		}
-		else
-			xf = xi + this.morph.wf; // assuming this.morph is of class Fade
+		xf = xi + this.morph.wFinalText();
 		xf = fpLimitToInterval(xf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 		{
@@ -2716,16 +2767,10 @@ class AnimateNumeralInsertion
 				this.morph.draw();
 			}
 		}
-		if (this.finished && this.drawingOnCanvas !== null)
+		if (this.finished && this.makeSpace.textOnly && (this.drawingOnCanvas !== null))
 		{
 			const s = this.entireText + this.morph.finalText;
-			if (this.morph.textOnly) // assuming this.morph is of class Fade
-				this.drawingOnCanvas.set(s);
-			else
-			{ // reset (used only in drawTally() when decrementing)
-				this.drawingOnCanvas.text = null;
-				this.drawingOnCanvas.numberOfTallyMarks = null;
-			}
+			this.drawingOnCanvas.set(s);
 		}
 		return !this.finished;
 	}
@@ -3211,19 +3256,19 @@ function incrementNumber()
 		eraseDrawings();
 		incNumAnmtnsAddtv.start();
 		incNumAnmtnsSbtrctv.start();
-		insertTally.start(romanNumeralsAdditive.get()); // >>> EXPERIMENTAL <<<
+		insertTally.start(romanNumeralsAdditive.get());
 	}
 	else
 	{
 		incNumAnmtnsAddtv.more();
 		incNumAnmtnsSbtrctv.more();
-		insertTally.more(); // >>> EXPERIMENTAL <<<
+		insertTally.more();
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
 		incNumAnmtnsAddtv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
 		incNumAnmtnsSbtrctv.reset(); //...otherwise this branch of this if-statement will never be executed
-		insertTally.reset(); // >>> EXPERIMENTAL <<<
+		insertTally.reset();
 		inputNumber++;
 		setNumber();
 	}
@@ -3259,8 +3304,8 @@ decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI));
 
 let mTallyOutI = new Fade(tally, "I", null);
 mTallyOutI.setDrawings(drawTallyMark, null);
-let moveTallyRight = new SlideTextHorizontally(mTallyOutI, mTallyOutI.finalText);
-moveTallyRight.setDrawing(drawTally);
+let removeTally = new AnimateNumeralSubstitutionToFew(mTallyOutI);
+removeTally.setDrawing(drawTally);
 
 function decNumAnmtnsConstraints()
 {
@@ -3367,9 +3412,6 @@ function decNumAnmtnsConstraints()
 		console.log('failed in f.after(decNumAnmtnsSbtrctv, "V", "IVI")');
 }
 
-let sameText, entireText, nCsame; // >>> EXPERIMENTAL <<<
-let xiSameText, xfSameText; // >>> EXPERIMENTAL <<<
-let xClear, wClear; // >>> EXPERIMENTAL <<<
 function decrementNumber()
 {
 	if (decNumAnmtnsAddtv.errorOccurred() || decNumAnmtnsSbtrctv.errorOccurred())
@@ -3384,50 +3426,19 @@ function decrementNumber()
 		eraseDrawings();
 		decNumAnmtnsAddtv.start();
 		decNumAnmtnsSbtrctv.start();
-		entireText = romanNumeralsAdditive.get(); // >>> EXPERIMENTAL <<<
-		nCsame = entireText.length - mTallyOutI.initialText.length; // >>> EXPERIMENTAL <<<
-		sameText = ((nCsame > 0) && // >>> EXPERIMENTAL <<<
-			(entireText.substring(nCsame) == mTallyOutI.initialText)) ? // >>> EXPERIMENTAL <<<
-			entireText.substring(0, nCsame) : null; // >>> EXPERIMENTAL <<<
-		xClear = tally.horizontalPosition; // >>> EXPERIMENTAL <<<
-		wClear = tally.drawingWidth; // >>> EXPERIMENTAL <<<
-		mTallyOutI.reset(); // >>> EXPERIMENTAL <<<
-		xiSameText = mTallyOutI.wi; // >>> EXPERIMENTAL <<<
-		xfSameText = horizontalOffset; // >>> EXPERIMENTAL <<<
+		removeTally.start(romanNumeralsAdditive.get());
 	}
 	else
 	{
 		decNumAnmtnsAddtv.more();
 		decNumAnmtnsSbtrctv.more();
-		if (mTallyOutI.done()==false) // >>> EXPERIMENTAL <<<
-		{ // >>> EXPERIMENTAL <<<
-			mTallyOutI.proceed(); // >>> EXPERIMENTAL <<<
-			mTallyOutI.draw(); // >>> EXPERIMENTAL <<<
-		} // >>> EXPERIMENTAL <<<
-		else if (sameText !== null) // >>> EXPERIMENTAL <<<
-		{ // >>> EXPERIMENTAL <<<
-			if (mTallyOutI.recent()) // >>> EXPERIMENTAL <<<
-			{ // >>> EXPERIMENTAL <<<
-				moveTallyRight.reset(sameText, // >>> EXPERIMENTAL <<<
-					xiSameText, xfSameText); // >>> EXPERIMENTAL <<<
-				moveTallyRight.setClear(xClear, wClear); // >>> EXPERIMENTAL <<<
-				tally.numberOfTallyMarks = inputNumber - 1; // >>> EXPERIMENTAL <<<
-				tally.text = sameText; // >>> EXPERIMENTAL <<<
-			} // >>> EXPERIMENTAL <<<
-			if (moveTallyRight.done() == false) // >>> EXPERIMENTAL <<<
-			{ // >>> EXPERIMENTAL <<<
-				moveTallyRight.proceed(); // >>> EXPERIMENTAL <<<
-				moveTallyRight.draw(); // >>> EXPERIMENTAL <<<
-			} // >>> EXPERIMENTAL <<<
-			else // >>> EXPERIMENTAL <<<
-			{ // >>> EXPERIMENTAL <<<
-			} // >>> EXPERIMENTAL <<<
-		} // >>> EXPERIMENTAL <<<
+		removeTally.more();
 	}
 	if (decNumAnmtnsAddtv.finished() && decNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
 		decNumAnmtnsAddtv.reset(); //...so call reset() only (immediately) after _both_ animation sequences finish,...
 		decNumAnmtnsSbtrctv.reset(); //...otherwise this branch of this if-statement will never be executed
+		removeTally.reset();
 		inputNumber--;
 		setNumber();
 	}
