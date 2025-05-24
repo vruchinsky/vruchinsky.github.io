@@ -1218,7 +1218,7 @@ function enableButtons()
 	incrementOrDecrementExecuting = false;
 }
 
-class SlideTextHorizontally // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
+class SlideGraphicHorizontally // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
 { // b/c such a metamorphosis leaves gaps in the entire numerical expression, e.g. XXIIIII -> XX  V
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
@@ -1463,10 +1463,10 @@ class MetamorphoseIIIIItoV
 		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
 			this.ctx = this.cnv.getContext("2d");
 	}
-	xInitialText() {return this.x0i;}
-	xFinalText() {return this.xf;}
-	wInitialText() {return this.wi;}
-	wFinalText() {return this.wf;}
+	xInitial() {return this.x0i;}
+	xFinal() {return this.xf;}
+	wInitial() {return this.wi;}
+	wFinal() {return this.wf;}
 	computeTextWidths()
 	{ // useless to compute this in this.constructor() b/c no guarantee that the HTML canvas is properly set up before this.constructor() is called
 		if (this.ctx === null)
@@ -1559,7 +1559,7 @@ class MetamorphoseIIIIItoV
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		const w = this.cnv.width - this.x0i;
-		this.ctx.clearRect(this.xInitialText(), -0.5, w, this.cnv.height);
+		this.ctx.clearRect(this.xInitial(), -0.5, w, this.cnv.height);
 		this.ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,verticalPosition), before doing the same for the next position
 		this.ctx.transform(1, 0, this.skew, 1, this.x0, this.verticalPosition); // translate the axes to (x0,verticalPosition) and skew leftwards
 		this.ctx.fillText(this.initialText[0], 0, 0);
@@ -1829,10 +1829,10 @@ class MetamorphoseVVtoX
 		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
 			this.ctx = this.cnv.getContext("2d");
 	}
-	xInitialText() {return this.x1i;} // initial horizontal position of initialText
-	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
-	wInitialText() {return this.wi;}
-	wFinalText() {return this.wf;}
+	xInitial() {return this.x1i;} // initial horizontal position of initialText
+	xFinal() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
+	wInitial() {return this.wi;}
+	wFinal() {return this.wf;}
 	computeTextWidths()
 	{ // useless to compute this in this.constructor() b/c no guarantee that the HTML canvas is properly set up before this.constructor() is called
 		if (this.ctx === null)
@@ -1920,8 +1920,8 @@ class MetamorphoseVVtoX
 	{
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		const cvw = this.cnv.width - this.xInitialText();
-		this.ctx.clearRect(this.xInitialText(), -0.5, cvw, this.cnv.height);
+		const cvw = this.cnv.width - this.xInitial();
+		this.ctx.clearRect(this.xInitial(), -0.5, cvw, this.cnv.height);
 		this.ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
 		this.ctx.translate(this.x1 + this.halfWidthNumeral,
 					this.y1 - (this.scale) * (this.halfHeightNumeral));
@@ -2185,11 +2185,11 @@ class Fade // used to fade text in, to fade text out...
 		this.textOnly = ((this.fcnInitialDrawing===null) &&
 							(this.fcnFinalDrawing===null));
 	}
-	xInitialText() {return this.xi;} // initial horizontal position of initialText
-	xFinalText() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
-	wInitialText() {return this.wi;}
-	wFinalText() {return this.wf;}
-	computeTextWidths() // called in this.reset() and in AnimateNumeralInsertion.start() which uses this.wf
+	xInitial() {return this.xi;} // initial horizontal position of initialText
+	xFinal() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
+	wInitial() {return this.wi;}
+	wFinal() {return this.wf;}
+	computeTextWidths() // called in this.reset() and in AnimateTallyMarkInsertion.start() which calls wFinal() method of this class
 	{ // useless to compute this in this.constructor() b/c no guarantee that the HTML canvas is properly set up before this.constructor() is called
 		if (this.ctx === null)
 			return; // browser does not support canvas
@@ -2298,9 +2298,9 @@ class Fade // used to fade text in, to fade text out...
 			this.ctx.fillStyle = outStyle;
 			this.ctx.strokeStyle = outStyle;
 			if (this.fcnInitialDrawing !== null)
-				this.drawingOnCanvas.draw(this.fcnInitialDrawing, this.xInitialText(), this.verticalPosition, this.wi);
+				this.drawingOnCanvas.draw(this.fcnInitialDrawing, this.xInitial(), this.verticalPosition, this.wi);
 			else
-				this.ctx.fillText(this.initialText, this.xInitialText(), this.verticalPosition);
+				this.ctx.fillText(this.initialText, this.xInitial(), this.verticalPosition);
 		}
 		if (this.finalText !== null)
 		{
@@ -2308,9 +2308,9 @@ class Fade // used to fade text in, to fade text out...
 			this.ctx.fillStyle = inStyle;
 			this.ctx.strokeStyle = inStyle;
 			if (this.fcnFinalDrawing !== null)
-				this.drawingOnCanvas.draw(this.fcnFinalDrawing, this.xFinalText(), this.verticalPosition, this.wf);
+				this.drawingOnCanvas.draw(this.fcnFinalDrawing, this.xFinal(), this.verticalPosition, this.wf);
 			else
-				this.ctx.fillText(this.finalText, this.xFinalText(), this.verticalPosition);
+				this.ctx.fillText(this.finalText, this.xFinal(), this.verticalPosition);
 		}
 		this.ctx.fillStyle = oldFillStyle; // restore original value
 		this.ctx.strokeStyle = oldStrokeStyle; // restore original value
@@ -2536,7 +2536,7 @@ class AnimateNumeralSubstitutionToFew
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
 	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX or Fade) object
-	closeTheGaps = null; // to store SlideTextHorizontally object
+	closeTheGaps = null; // to store SlideGraphicHorizontally object
 	xClear = 0; // for closeTheGaps
 	wClear = 0; // for closeTheGaps
 	sameText = null; // set to entireText.substring(0, nCsame) in this.reset()
@@ -2552,7 +2552,7 @@ class AnimateNumeralSubstitutionToFew
 			return;
 		this.morph = m;
 		this.drawingOnCanvas = this.morph.drawingOnCanvas;
-		this.closeTheGaps = new SlideTextHorizontally(m, this.morph.finalText);
+		this.closeTheGaps = new SlideGraphicHorizontally(m, this.morph.finalText);
 		this.cnv = this.drawingOnCanvas.canvas;
 		this.ctx = this.morph.ctx;
 	}
@@ -2613,7 +2613,7 @@ class AnimateNumeralSubstitutionToFew
 				this.xiSameText += metrics.width;
 		}
 		else
-			this.xiSameText = this.morph.wInitialText();
+			this.xiSameText = this.morph.wInitial();
 		this.xiSameText = fpLimitToInterval(this.xiSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if (this.morph.finalText == null)
 		{
@@ -2629,7 +2629,7 @@ class AnimateNumeralSubstitutionToFew
 				this.xfSameText = this.cnv.width - this.xfSameText;
 		}
 		else
-			this.xfSameText = this.morph.xFinalText(); // this returned value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
+			this.xfSameText = this.morph.xFinal(); // this returned value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 			this.xiSameText = this.cnv.width - this.xiSameText;
 	}
@@ -2674,13 +2674,13 @@ class AnimateNumeralSubstitutionToFew
 	}
 }
 
-class AnimateNumeralInsertion
+class AnimateTallyMarkInsertion
 {
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // the drawing context of cnv
 	morph = null; // to store Fade object (for fading-in)
-	makeSpace = null; // to store SlideTextHorizontally object
+	makeSpace = null; // to store SlideGraphicHorizontally object
 	entireText = null; // sameText followed by initialText
 	started = false; // true iff initialText was found in romanNumeralsAdditive
 	finished = false; // iff finished all the stages of this animation
@@ -2692,7 +2692,7 @@ class AnimateNumeralInsertion
 		this.drawingOnCanvas = this.morph.drawingOnCanvas;
 		this.cnv = this.drawingOnCanvas.canvas;
 		this.ctx = this.morph.ctx;
-		this.makeSpace = new SlideTextHorizontally(m, null);
+		this.makeSpace = new SlideGraphicHorizontally(m, null);
 	}
 	setDrawing(f) {this.makeSpace.setDrawing(f);}
 	getText()
@@ -2727,7 +2727,7 @@ class AnimateNumeralInsertion
 			return; // browser does not support canvas
 		}
 		this.started = true;
-		this.morph.computeTextWidths(); // necessary to assign correct values for this.morph.wInitialText() and to this.morph.wFinalText()
+		this.morph.computeTextWidths(); // necessary to assign correct values for this.morph.wInitial() and to this.morph.wFinal()
 		let xi = horizontalOffset;
 		let xf = horizontalOffset;
 		let metrics = null;
@@ -2738,7 +2738,7 @@ class AnimateNumeralInsertion
 				xi += metrics.width;
 		}
 		xi = fpLimitToInterval(xi, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		xf = xi + this.morph.wFinalText();
+		xf = xi + this.morph.wFinal();
 		xf = fpLimitToInterval(xf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 		{
@@ -2778,7 +2778,7 @@ class AnimateNumeralInsertion
 
 class AnimationFragment
 { // the reference to a specific animation object and references to preconditions for the execution of this animation object
-	anmtn = null; // ref. to the animation object of class AnimateNumeralInsertion or AnimateNumeralSubstitutionToFew
+	anmtn = null; // ref. to the animation object of class AnimateTallyMarkInsertion or AnimateNumeralSubstitutionToFew
 	strtd = false; // becomes true when start to execute this.anmtn, reset to false when finished
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains the appropriate romanNumerals (text) member
 	prcndtns = []; // ref-s to AnimationSequence objects which contains AnimationFragment objects which must finish executing before this.anmtn starts to execute
@@ -2922,7 +2922,7 @@ class AnimationFragment
 				this.errOcrd = true;
 				return false; // b/c the precondition recorded here is invalid due to a corruption of its supporting data
 			}
-			a = f.anmtn; // animation object (of class AnimateNumeralInsertion or AnimateNumeralSubstitutionToFew) referenced in f
+			a = f.anmtn; // animation object (of class AnimateTallyMarkInsertion or AnimateNumeralSubstitutionToFew) referenced in f
 			if (a === null)
 			{
 				console.log(this.constructor.name + ".preconditionsMet() error: this.prcndtns[" + j.toString() + "].seq.anmtns[" + i.toString() + "].anmtn===null");
@@ -3151,7 +3151,7 @@ let mXXXXXtoL = new Fade(romanNumeralsAdditive, "XXXXX", "L");
 let mLLtoC = new Fade(romanNumeralsAdditive, "LL", "C");
 let mCCCCCtoD = new Fade(romanNumeralsAdditive, "CCCCC", "D");
 let mDDtoM = new Fade(romanNumeralsAdditive, "DD", "M");
-incNumAnmtnsAddtv.append(new AnimateNumeralInsertion(mAddtvInI));
+incNumAnmtnsAddtv.append(new AnimateTallyMarkInsertion(mAddtvInI));
 incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mIIIIItoV));
 incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mVVtoX));
 incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mXXXXXtoL));
@@ -3172,7 +3172,7 @@ let mDCCCCtoCM = new Fade(romanNumeralsSubtractive, "DCCCC", "CM");
 let mCCCCtoCD = new Fade(romanNumeralsSubtractive, "CCCC", "CD");
 let mCDCtoD = new Fade(romanNumeralsSubtractive, "CDC", "D");
 let mCMCtoM = new Fade(romanNumeralsSubtractive, "CMC", "M");
-incNumAnmtnsSbtrctv.append(new AnimateNumeralInsertion(mSbtrctvInI));
+incNumAnmtnsSbtrctv.append(new AnimateTallyMarkInsertion(mSbtrctvInI));
 incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mVIIIItoIX));
 incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIIIItoIV));
 incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIVItoV));
@@ -3188,7 +3188,7 @@ incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM));
 
 let mTallyInI = new Fade(tally, null, "I");
 mTallyInI.setDrawings(null, drawTallyMark);
-let insertTally = new AnimateNumeralInsertion(mTallyInI);
+let insertTally = new AnimateTallyMarkInsertion(mTallyInI);
 insertTally.setDrawing(drawTally);
 
 function incNumAnmtnsConstraints()
