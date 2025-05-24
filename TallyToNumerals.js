@@ -2317,7 +2317,7 @@ class Fade // used to fade text in, to fade text out...
 	}
 }
 
-class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) into finalText...
+class AnimateSymbolSubstitutionToMany // cross-fade initialText (1 numeral) into finalText...
 {//...(more than 1 numeral) while moving the numerals of finalText apart (starting from overlapping each other and ending at their usual spacing)
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
@@ -2530,7 +2530,7 @@ class AnimateNumeralSubstitutionToMany // cross-fade initialText (1 numeral) int
 	}
 }
 
-class AnimateNumeralSubstitutionToFew
+class AnimateSymbolSubstitutionToFew
 {
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
@@ -2778,7 +2778,7 @@ class AnimateTallyMarkInsertion
 
 class AnimationFragment
 { // the reference to a specific animation object and references to preconditions for the execution of this animation object
-	anmtn = null; // ref. to the animation object of class AnimateTallyMarkInsertion or AnimateNumeralSubstitutionToFew
+	anmtn = null; // ref. to the animation object of class AnimateTallyMarkInsertion or AnimateSymbolSubstitutionToFew
 	strtd = false; // becomes true when start to execute this.anmtn, reset to false when finished
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains the appropriate romanNumerals (text) member
 	prcndtns = []; // ref-s to AnimationSequence objects which contains AnimationFragment objects which must finish executing before this.anmtn starts to execute
@@ -2922,7 +2922,7 @@ class AnimationFragment
 				this.errOcrd = true;
 				return false; // b/c the precondition recorded here is invalid due to a corruption of its supporting data
 			}
-			a = f.anmtn; // animation object (of class AnimateTallyMarkInsertion or AnimateNumeralSubstitutionToFew) referenced in f
+			a = f.anmtn; // animation object (of class AnimateTallyMarkInsertion or AnimateSymbolSubstitutionToFew) referenced in f
 			if (a === null)
 			{
 				console.log(this.constructor.name + ".preconditionsMet() error: this.prcndtns[" + j.toString() + "].seq.anmtns[" + i.toString() + "].anmtn===null");
@@ -3152,12 +3152,12 @@ let mLLtoC = new Fade(romanNumeralsAdditive, "LL", "C");
 let mCCCCCtoD = new Fade(romanNumeralsAdditive, "CCCCC", "D");
 let mDDtoM = new Fade(romanNumeralsAdditive, "DD", "M");
 incNumAnmtnsAddtv.append(new AnimateTallyMarkInsertion(mAddtvInI));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mIIIIItoV));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mVVtoX));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mXXXXXtoL));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mLLtoC));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mCCCCCtoD));
-incNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mDDtoM));
+incNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToFew(mIIIIItoV));
+incNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToFew(mVVtoX));
+incNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToFew(mXXXXXtoL));
+incNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToFew(mLLtoC));
+incNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToFew(mCCCCCtoD));
+incNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToFew(mDDtoM));
 
 let mSbtrctvInI = new Fade(romanNumeralsSubtractive, null, "I");
 let mVIIIItoIX = new Fade(romanNumeralsSubtractive, "VIIII", "IX");
@@ -3173,18 +3173,18 @@ let mCCCCtoCD = new Fade(romanNumeralsSubtractive, "CCCC", "CD");
 let mCDCtoD = new Fade(romanNumeralsSubtractive, "CDC", "D");
 let mCMCtoM = new Fade(romanNumeralsSubtractive, "CMC", "M");
 incNumAnmtnsSbtrctv.append(new AnimateTallyMarkInsertion(mSbtrctvInI));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mVIIIItoIX));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIIIItoIV));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIVItoV));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mIXItoX));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mLXXXXtoXC));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXXXXtoXL));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXLXtoL));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mXCXtoC));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mDCCCCtoCM));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCCCCtoCD));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCDCtoD));
-incNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mCMCtoM));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mVIIIItoIX));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mIIIItoIV));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mIVItoV));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mIXItoX));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mLXXXXtoXC));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mXXXXtoXL));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mXLXtoL));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mXCXtoC));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mDCCCCtoCM));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mCCCCtoCD));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mCDCtoD));
+incNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mCMCtoM));
 
 let mTallyInI = new Fade(tally, null, "I");
 mTallyInI.setDrawings(null, drawTallyMark);
@@ -3278,33 +3278,33 @@ function incrementNumber()
 
 let mAddtvOutI = new Fade(romanNumeralsAdditive, "I", null);
 const decNumAnmtnsAddtv = new AnimationSequence(romanNumeralsAdditive);
-decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mDDtoM));
-decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mCCCCCtoD));
-decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mLLtoC));
-decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToMany(mXXXXXtoL));
+decNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToMany(mDDtoM));
+decNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToMany(mCCCCCtoD));
+decNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToMany(mLLtoC));
+decNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToMany(mXXXXXtoL));
 decNumAnmtnsAddtv.append(new MetamorphoseXtoVV(mVVtoX));
 decNumAnmtnsAddtv.append(new MetamorphoseVtoIIIII(mIIIIItoV));
-decNumAnmtnsAddtv.append(new AnimateNumeralSubstitutionToFew(mAddtvOutI));
+decNumAnmtnsAddtv.append(new AnimateSymbolSubstitutionToFew(mAddtvOutI));
 
 let mSbtrctvOutI = new Fade(romanNumeralsSubtractive, "I", null);
 const decNumAnmtnsSbtrctv = new AnimationSequence(romanNumeralsSubtractive);
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mDCCCCtoCM));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCMCtoM));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCCCCtoCD));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mCDCtoD));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mLXXXXtoXC));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXCXtoC));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXXXXtoXL));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mXLXtoL));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mVIIIItoIX));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIXItoX));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIIIItoIV));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToMany(mIVItoV));
-decNumAnmtnsSbtrctv.append(new AnimateNumeralSubstitutionToFew(mSbtrctvOutI));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mDCCCCtoCM));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mCMCtoM));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mCCCCtoCD));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mCDCtoD));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mLXXXXtoXC));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mXCXtoC));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mXXXXtoXL));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mXLXtoL));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mVIIIItoIX));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mIXItoX));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mIIIItoIV));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToMany(mIVItoV));
+decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mSbtrctvOutI));
 
 let mTallyOutI = new Fade(tally, "I", null);
 mTallyOutI.setDrawings(drawTallyMark, null);
-let removeTally = new AnimateNumeralSubstitutionToFew(mTallyOutI);
+let removeTally = new AnimateSymbolSubstitutionToFew(mTallyOutI);
 removeTally.setDrawing(drawTally);
 
 function decNumAnmtnsConstraints()
