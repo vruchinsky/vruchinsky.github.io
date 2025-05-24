@@ -30,9 +30,10 @@ const verticalSpaceBetween5s = 6;
 const verticalSpaceBetween50s = 6;
 const horizontalOffset = 2;
 const verticalOffset = 2;
+const boundaryMargin = 2;
 const boundaryThickness = 1;
-const boundaryPadding = 2;
-const hSpaceBetween5s = 2;
+const boundaryPadding = 1;
+const hSpaceBetween5s = 1;
 const hSpaceBetween100s = 3.6;
 const hSpaceBetween500s = 8;
 const horizontalOffsetBetween1000s = 1;
@@ -250,21 +251,33 @@ function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclu
 	let occlude = typeof widthOcclude !== "undefined" && typeof heightOcclude !== "undefined";
 	widthOcclude = typeof widthOcclude !== "undefined" ? widthOcclude : 0; // measuring from the corner closest to (0,0)
 	heightOcclude = typeof heightOcclude !== "undefined" ? heightOcclude : 0; // measuring from the corner closest to (0,0)
-	if (widthOcclude < 1 || heightOcclude < 1) occlude = false;
-	ctx.beginPath();
-	if (fpLess(height, 2*radius, fpTolerance)) radius = height/2; // avoid arcs protruding outside
-	if (fpLess(width, 2*radius, fpTolerance)) radius = width/2; // avoid arcs protruding outside
+	if (widthOcclude < 1 || heightOcclude < 1)
+		occlude = false;
+	if (fpLess(width, 2*radius, fpTolerance))
+		radius = width/2; // avoid arcs protruding outside
+	if (fpLess(height, 2*radius, fpTolerance))
+		radius = height/2; // avoid arcs protruding outside
+	if (fpLess(width, ctx.lineWidth, fpTolerance))
+		return; // rectangle too thin to be drawn
+	if (fpLess(height, ctx.lineWidth, fpTolerance))
+		return; // rectangle too thin to be drawn
+	let dx = width - ctx.lineWidth; // the horizontal distance between the opposite sides is smaller than the rectangle width by the line thickness
+	let dy = height - ctx.lineWidth; // the vertical distance between the opposite sides is smaller than the rectangle height by the line thickness
 	const x0 = x + radius;
-	const x1 = x + width - radius;
+	const x1 = x + dx - radius;
 	const y0 = y + radius;
-	const y1 = y + height - radius;
-	const heightVisible = height - heightOcclude;
-	const widthVisible = width - widthOcclude;
+	const y1 = y + dy - radius;
+	const heightVisible = dy - heightOcclude;
+	const widthVisible = dx - widthOcclude;
 	const ys = occlude ? (fpLessEq(radius, heightVisible, fpTolerance) ? y+heightOcclude : y1): y0;
+	ctx.beginPath();
 	ctx.moveTo(x, y0);
-	if (fpLess(y0, ys, fpTolerance)) ctx.moveTo(x, ys);
-	if (fpLess(ys, y1, fpTolerance)) ctx.lineTo(x, y1); // 1st line
-	else ctx.moveTo(x, y1);
+	if (fpLess(y0, ys, fpTolerance))
+		ctx.moveTo(x, ys);
+	if (fpLess(ys, y1, fpTolerance))
+		ctx.lineTo(x, y1); // 1st line
+	else
+		ctx.moveTo(x, y1);
 	if (fpLess(0, radius, fpTolerance) && fpLess(0, heightVisible, fpTolerance))
 	{ // 1st rounded corner
 		let startAngle = Math.PI;
@@ -277,17 +290,20 @@ function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclu
 			else startAngle = Math.asin(s);
 		}
 		ctx.arc(x0, y1, radius, startAngle, 0.5*Math.PI, true);
-	} else ctx.moveTo(x0, y + height);
+	} else
+		ctx.moveTo(x0, y + dy);
 	if (occlude == false || fpLess(0, heightVisible, fpTolerance))
-		ctx.lineTo(x1, y + height); // 2nd line
-	else ctx.moveTo(x1, y + height);
+		ctx.lineTo(x1, y + dy); // 2nd line
+	else
+		ctx.moveTo(x1, y + dy);
 	if (fpLess(0, radius, fpTolerance) && fpLess(0, widthVisible, fpTolerance) && fpLess(0, heightVisible, fpTolerance))
 		ctx.arc(x1, y1, radius, 0.5*Math.PI, 0, true); // 2nd rounded corner
 	else
-		ctx.moveTo(x + width, y1);
+		ctx.moveTo(x + dx, y1);
 	if (occlude == false || fpLess(0, widthVisible, fpTolerance))
-		ctx.lineTo(x + width, y0); // 3rd line
-	else ctx.moveTo(x + width, y0);
+		ctx.lineTo(x + dx, y0); // 3rd line
+	else
+		ctx.moveTo(x + dx, y0);
 	if (fpLess(0, radius, fpTolerance) && fpLess(0, widthVisible, fpTolerance))
 	{ // 3rd rounded corner
 		let endAngle = 1.5*Math.PI;
@@ -297,36 +313,48 @@ function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclu
 			const s = Math.sqrt(1 - c*c);
 			if (fpLess(heightOcclude, radius*(1-s), fpTolerance))
 				endAngle = Math.asin((radius - heightOcclude) / radius);
-			else endAngle = Math.acos(c);
+			else
+				endAngle = Math.acos(c);
 			endAngle = 2*Math.PI - endAngle;
 		}
 		ctx.arc(x1, y0, radius, 0, endAngle, true);
-	} else ctx.moveTo(x1, y);
+	} else
+		ctx.moveTo(x1, y);
 	const xf = occlude ? (fpLessEq(radius, widthVisible, fpTolerance) ? x+widthOcclude : x1): x0;
-	if (fpLess(xf, x1, fpTolerance)) ctx.lineTo(xf, y); // 4th line
-	else ctx.moveTo(xf, y);
-	if (fpLess(x0, xf, fpTolerance)) ctx.moveTo(x0, y);
+	if (fpLess(xf, x1, fpTolerance))
+		ctx.lineTo(xf, y); // 4th line
+	else
+		ctx.moveTo(xf, y);
+	if (fpLess(x0, xf, fpTolerance))
+		ctx.moveTo(x0, y);
 	if (occlude == false && fpLess(0, radius, fpTolerance))
 		ctx.arc(x0, y0, radius, 1.5*Math.PI, Math.PI, true); // 4th rounded corner
-	else ctx.moveTo(x, y0);
+	else
+		ctx.moveTo(x, y0);
 	ctx.stroke();
 }
 
 function drawVline(ctx, x, y, l)
 {
+	if (fpLess(l, ctx.lineWidth, fpTolerance))
+		return; // line too short to be drawn
+	const dy = l - ctx.lineWidth; // the distance between the two endpoints is smaller than the line length by the line thickness
 	x = Math.floor(x);
 	ctx.beginPath();
 	ctx.moveTo(x, y);
-	ctx.lineTo(x, y + l);
+	ctx.lineTo(x, y + dy);
 	ctx.stroke();
 }
 
 function drawHline(ctx, x, y, l)
 {
+	if (fpLess(l, ctx.lineWidth, fpTolerance))
+		return; // line too short to be drawn
+	const dx = l - ctx.lineWidth; // the distance between the two endpoints is smaller than the line length by the line thickness
 	y = Math.floor(y);
 	ctx.beginPath();
 	ctx.moveTo(x, y);
-	ctx.lineTo(x + l, y);
+	ctx.lineTo(x + dx, y);
 	ctx.stroke();
 }
 
@@ -466,7 +494,7 @@ function stringWidthOnCanvas(ctx, s)
 function drawTallyMark(d, x, y, w)
 {
 	if (typeof w === "undefined" || fpLess(w, 1, fpTolerance))
-		w = stringWidthOnCanvas(d.ctx, "I"); // width of the drawing
+		w = Math.floor(stringWidthOnCanvas(d.ctx, "I")); // width of the drawing
 	const oldLineWidth = d.ctx.lineWidth;
 	d.ctx.lineWidth = tallyMarkThickness;
 	const h = tallyMarkHeight; // height of the drawing
@@ -499,21 +527,22 @@ function drawColumnHlines(ctx, x, y, len, n)
 	for (let i=0; i<n; i++)
 	{
 		drawHline(ctx, x, y, len);
-		y = y + verticalSpaceBetweenTallyMarks + tallyMarkThickness;
+		y += verticalSpaceBetweenTallyMarks;
+		y += tallyMarkThickness;
 	}
 	return (n*tallyMarkThickness + (n-1)*verticalSpaceBetweenTallyMarks); // column height
 }
 
 function drawBox5(ctx, x, y, boxWidth)
-{
+{ // no need for vertical margin b/c boxes stacked horizontally
 	if (typeof boxWidth === "undefined")
 		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "V"));
-	const boundingRectWidth = boxWidth - 2*boundaryThickness;
-	const lineLength = boundingRectWidth - 2*boundaryPadding - 2*boundaryThickness;
-	const lineHpos = x + boundaryPadding + boundaryThickness;
-	const lineVpos = y + boundaryPadding + boundaryThickness;
+	const boundingRectWidth = boxWidth - boundaryMargin;
+	const lineLength = boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding;
+	const lineHpos = x + boundaryThickness + boundaryPadding;
+	const lineVpos = y + boundaryThickness + boundaryPadding;
 	const columnHeight = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
-	const boundingRectHeight = columnHeight + 2*boundaryPadding + boundaryThickness;
+	const boundingRectHeight = columnHeight + 2*boundaryPadding + 2*boundaryThickness;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
@@ -529,14 +558,14 @@ function drawBox10(ctx, x, y, boxWidth)
 {
 	if (typeof boxWidth === "undefined")
 		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "X"));
-	const boundingRectWidth = boxWidth - 2*boundaryThickness;
+	const boundingRectWidth = boxWidth - boundaryMargin;
 	const lineLength = boundingRectWidth - 2*boundaryPadding - 2*boundaryThickness;
 	const lineHpos = x + boundaryPadding + boundaryThickness;
 	let lineVpos = y + boundaryPadding + boundaryThickness;
 	const columnHeight1 = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // column of five horizontal,
 	lineVpos = lineVpos + columnHeight1 + verticalSpaceBetween5s; // then space underneath,
 	const columnHeight2 = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // then another column of five horizontal
-	const boundingRectHeight = columnHeight1 + columnHeight2 + verticalSpaceBetween5s + 2*boundaryPadding + boundaryThickness;
+	const boundingRectHeight = columnHeight1 + columnHeight2 + verticalSpaceBetween5s + 2*boundaryPadding + 2*boundaryThickness;
 	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
 	const oldlw = ctx.lineWidth;
 	ctx.lineWidth = boundaryThickness;
@@ -568,8 +597,8 @@ function drawBox50(ctx, x, y, boxWidth) // column of 25 short horizontal tally m
 {//...with extra vertical space between each group of 5 and similar column on the right, all enclosed in rectangular box
 	if (typeof boxWidth === "undefined")
 		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "L")); // make same width as Roman numeral
-	const boundingRectWidth = boxWidth - 2*boundaryThickness;
-	const lineLength = boundingRectWidth/2 - boundaryPadding - boundaryThickness - 1;
+	const boundingRectWidth = boxWidth - boundaryMargin;
+	const lineLength = boundingRectWidth/2 - boundaryPadding - boundaryThickness;
 	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
 	const columnSize = drawColumn50Hlines(ctx, lineHpos, lineVpos, lineLength);
@@ -599,7 +628,7 @@ function drawBox100(ctx, x, y, boxWidth) // column of 50 short horizontal tally 
 {//...each group of 5, and extra space halfway down, and similar column on the right, all enclosed in rectangular box
 	if (typeof boxWidth === "undefined")
 		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "C")); // make same width as Roman numeral
-	const boundingRectWidth = boxWidth - 2*boundaryThickness;
+	const boundingRectWidth = boxWidth - boundaryMargin;
 	const lineLength = boundingRectWidth/2 - boundaryPadding - boundaryThickness - 1;
 	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
@@ -637,7 +666,7 @@ function drawBox500(ctx, x, y, rnWidth) // 5 double columns each of 100 short ho
 	if (typeof rnWidth === "undefined")
 		rnWidth = stringWidthOnCanvas(ctx, "D");
 	const boxWidth = Math.floor(3.9 * rnWidth);
-	const boundingRectWidth = Math.floor(boxWidth - 2*boundaryThickness);
+	const boundingRectWidth = Math.floor(boxWidth - boundaryMargin);
 	const columns500width = boundingRectWidth - 2*boundaryPadding;
 	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
@@ -664,7 +693,7 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	if (n < 1) return {w, h};
 	const rnWidth = stringWidthOnCanvas(ctx, "M");
 	const boxWidth = Math.floor(7.6 * rnWidth); // for 1 rectangular box of 1000 tally marks
-	const boundingRectWidth = Math.floor(boxWidth - 2*boundaryThickness);
+	const boundingRectWidth = Math.floor(boxWidth - boundaryMargin);
 	const columns1000width = boundingRectWidth - 2*boundaryPadding;
 	const columns500width = Math.floor((columns1000width - hSpaceBetween500s) / 2);
 	let lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
@@ -743,7 +772,7 @@ function drawTally(drwngOnCnv, x, y)
 	{
 		c = rna[i];
 		if (c != pc)
-			dx = stringWidthOnCanvas(drwngOnCnv.ctx, c);
+			dx = Math.floor(stringWidthOnCanvas(drwngOnCnv.ctx, c));
 		switch (c)
 		{
 			case "I": sz = drawTallyMark(drwngOnCnv, x, y, dx); break;
