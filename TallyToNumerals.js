@@ -50,6 +50,12 @@ const buttonDisabledColor = "#505050";
 
 class DrawingOnCanvas
 {
+// this.text and this.numberOfTallyMarks are used in function drawTally()
+// when sliding tally rightwards after one tally mark is faded out
+// but before inputNumber and romanNumeralsAdditive
+// are updated (which is done at the end of decrementNumer())
+// otherwise, if inputNumber and romanNumeralsAdditive are used directly,
+// the faded out tally mark mistakenly reappears when the tally is slid rightwards
 	text = null;
 	numberOfTallyMarks = null;
 	canvas = null;
@@ -734,17 +740,25 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 	return {w, h};
 }
 
-// the following 2 global variables are used when sliding tally rightwards
-// after one tally mark is faded out
-// but before inputNumber and romanNumeralsAdditive
-// are updated (which is done at the end of decrementNumer())
-// otherwise, if inputNumber and romanNumeralsAdditive are used directly,
-// the faded out tally mark mistakenly reappears when the tally is slid rightwards
-function drawTally(drwngOnCnv, x, y)
+// For that part of romanNumeralsAdditive.text, which contains only
+// Roman numerals I, V, X, L, C, align the corresponding tally boxes
+// each with its corresponding numeral by calling TextMetrics() on the
+// substring which contains all the numerals, for which boxes already
+// are drawn in this call to drawTally(), and then by rounding down
+// (Math.floor()) the returned width (in pixels) of the substring,
+// as opposed to adding up the rounded down width (in pixels) of each
+// of these boxes.
+// The latter (inferior) method allows the rounding errors to accumulate
+// causing each box's position to be a little off (towards the right)
+// relative to the position of its corresponding Roman numeral and
+// this deviation increases slowly but steadily towards the left
+// -- from smaller numerals (on the right) to larger numerals (on the left)
+// -- because the rounded down number is never larger, but often smaller,
+// than the original.
+function drawTally(drwngOnCnv, x0, y)
 {
 	let h = 0;
 	let w = 0;
-	const x0 = x;
 	const inputNumberUsed = drwngOnCnv.numberOfTallyMarks;
 	if (inputNumberUsed === null)
 		inputNumberUsed = inputNumber;
@@ -764,15 +778,23 @@ function drawTally(drwngOnCnv, x, y)
 	const foregroundColor = canvasStyle.color;
 	drwngOnCnv.ctx.strokeStyle = foregroundColor;
 	drwngOnCnv.ctx.lineWidth = tallyMarkThickness;
-	let dx, i, c
+	let dx, i, c, x;
 	let sz = {w, h};
 	let pc = null;
-	let nMs = 0;
-	for (i=rna.length-1; i>=0; i--)
+	let nDs = 0; // used to calculate the horizontal position x of each component of this drawing
+	let nMs = 0; // used to calculate the horizontal position x of each component of this drawing
+	let wBox500 = 0; // used to calculate the horizontal position x of each component of this drawing
+	let wBox1K = 0; // used to calculate the horizontal position x of each component of this drawing
+	let wBox10K = 0; // used to calculate the horizontal position x of each component of this drawing
+	let j = rna.length - 1; // used to calculate the horizontal position x of each component of this drawing
+	for (i = rna.length - 1; i >= 0; i--)
 	{
 		c = rna[i];
 		if (c != pc)
 			dx = Math.floor(stringWidthOnCanvas(drwngOnCnv.ctx, c));
+		if (nDs < 1 && nMs < 1)
+			j = i;
+		x = Math.floor(x0 + stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j + 1)) + (nDs * wBox500));
 		switch (c)
 		{
 			case "I": sz = drawTallyMark(drwngOnCnv, x, y, dx); break;
@@ -780,29 +802,33 @@ function drawTally(drwngOnCnv, x, y)
 			case "X": sz = drawBox10(drwngOnCnv.ctx, x, y, dx); break;
 			case "L": sz = drawBox50(drwngOnCnv.ctx, x, y, dx); break;
 			case "C": sz = drawBox100(drwngOnCnv.ctx, x, y, dx); break;
-			case "D": sz = drawBox500(drwngOnCnv.ctx, x, y, dx); dx = sz.w; break;
+			case "D": sz = drawBox500(drwngOnCnv.ctx, x, y, dx); nDs++; /* dx = */ wBox500 = sz.w; break;
 			case "M": nMs++; dx = 0; break;
 		}
 		if (h < sz.h)
 			h = sz.h;
-		x += dx;
 		pc = c;
 	}
 	let r = nMs % 5;
 	if (r > 0)
 	{
+		x = Math.floor(x0 + stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j + 1))
+			+ (nDs * wBox500));
 		sz = drawBox1000(drwngOnCnv.ctx, x, y, r);
 		box1000horizontalPosition = x;
-		x += sz.w;
+		wBox1K = sz.w;
 	}
 	nMs = Math.floor(nMs / 5);
 	r = nMs % 2;
 	if (r > 0)
 	{
+		x = Math.floor(x0 + stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j + 1))
+			+ (nDs * wBox500) + wBox1K);
 		sz = drawBox1000(drwngOnCnv.ctx, x, y, 10);
-		x += sz.w;
+		wBox10K = sz.w;
 	}
-	w = x - x0;
+	w = Math.floor(x0 + stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j + 1))
+		+ (nDs * wBox500) + wBox1K + wBox10K);
 	drwngOnCnv.ctx.strokeStyle = oldStrokeStyle;
 	drwngOnCnv.ctx.lineWidth = oldLineWidth;
 	return {w, h};
