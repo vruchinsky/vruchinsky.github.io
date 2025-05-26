@@ -233,8 +233,8 @@ function setNumber(n)
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
 	tally.clearCanvas(); // otherwise tally mark not erased when decrementing from 1
-	tally.numberOfTallyMarks = inputNumber; // >>> EXPERIMENTAL <<<
-	tally.text = romanNumeralsAdditive.get(); // >>> EXPERIMENTAL <<<
+	tally.numberOfTallyMarks = inputNumber; // used in drawTally()
+	tally.text = romanNumeralsAdditive.get(); // used in drawTally()
 	tally.draw(drawTally, horizontalOffset, verticalOffset);
 	const s = convertRomanNumeralsAdditiveToSubtractive(romanNumeralsAdditive.get());
 	romanNumeralsSubtractive.set(s);
@@ -839,7 +839,9 @@ function drawTally(drwngOnCnv, x0, y)
 		sz = drawBox1000(drwngOnCnv.ctx, x, y, 10);
 		wBox10K = sz.w;
 	}
-	w = Math.floor(x0 + stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j + 1))
+	if (nDs > 0 || nMs > 0)
+		j++;
+	w = Math.floor(stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j))
 		+ (nDs * wBox500) + wBox1K + wBox10K);
 	drwngOnCnv.ctx.strokeStyle = oldStrokeStyle;
 	drwngOnCnv.ctx.lineWidth = oldLineWidth;
