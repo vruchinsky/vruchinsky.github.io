@@ -2310,7 +2310,7 @@ class Fade // used to fade text in, to fade text out...
 		}
 		this.xClear = fpMin(this.xi, this.xf, fpTolerance);
 		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		this.wClear = fpMax(this.wi, this.wf, fpTolerance);
+		this.wClear = fpMax(this.wi, this.wf, fpTolerance) - 1; // subtracting 1 remedies the erroneous erasure of the rightmost boundary of the rightmost box of tally marks (5, 10, 50, ...) when fading in the additional tally mark (as part of incrementing the number) immediately after sliding all the boxes leftwards to leave space for the tally mark to be faded in
 		this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
 		this.t = Date.now();
 	}
@@ -2805,9 +2805,17 @@ class AnimateTallyMarkInsertion
 			metrics = this.ctx.measureText(this.entireText);
 			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
 				xi += metrics.width;
+			metrics = this.ctx.measureText(this.entireText + this.morph.finalText); // measure the entire string, as opposed to adding up lengths of measured substrings, in order to minimize small errors
+			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+				xf += metrics.width;
+		}
+		else
+		{
+			metrics = this.ctx.measureText(this.morph.finalText); // use the measurement not yet rounded in order to minimize small errors
+			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
+				xf += metrics.width;
 		}
 		xi = fpLimitToInterval(xi, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		xf = xi + this.morph.wFinal();
 		xf = fpLimitToInterval(xf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 		{
