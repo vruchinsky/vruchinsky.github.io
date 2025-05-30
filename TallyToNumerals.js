@@ -60,6 +60,7 @@ class DrawingOnCanvas
 	numberOfTallyMarks = null;
 	canvas = null;
 	ctx = null;
+	calculateOnly = false;
 	flipHorizontalAxis = false;
 	verticalPosition = 0;
 	horizontalPosition = 0;
@@ -439,17 +440,17 @@ function testCanvas()
 	let verticalPosition = 1;
 	let sz = drawTallyMark(tally, horizontalPosition, verticalPosition);
 	horizontalPosition += sz.w;
-	sz = drawBox5(ctx, horizontalPosition, verticalPosition);
+	sz = drawBox5(tally, horizontalPosition, verticalPosition);
 	horizontalPosition += sz.w;
-	sz = drawBox10(ctx, horizontalPosition, verticalPosition);
+	sz = drawBox10(tally, horizontalPosition, verticalPosition);
 	horizontalPosition += sz.w;
-	sz = drawBox50(ctx, horizontalPosition, verticalPosition);
+	sz = drawBox50(tally, horizontalPosition, verticalPosition);
 	horizontalPosition += sz.w;
-	sz = drawBox100(ctx, horizontalPosition, verticalPosition);
+	sz = drawBox100(tally, horizontalPosition, verticalPosition);
 	horizontalPosition += sz.w;
-	sz = drawBox500(ctx, horizontalPosition, verticalPosition);
+	sz = drawBox500(tally, horizontalPosition, verticalPosition);
 	horizontalPosition += sz.w;
-	sz = drawBox1000(ctx, horizontalPosition, verticalPosition, 10);
+	sz = drawBox1000(tally, horizontalPosition, verticalPosition, 10);
 	horizontalPosition += sz.w;
 	if (romanToArabicConnectorCanvas.getContext == null)
 		return;
@@ -504,7 +505,8 @@ function drawTallyMark(d, x, y, w)
 	const oldLineWidth = d.ctx.lineWidth;
 	d.ctx.lineWidth = tallyMarkThickness;
 	const h = tallyMarkHeight; // height of the drawing
-	drawVline(d.ctx, Math.floor(x + w/2), y, h);
+	if (d.calculateOnly == false)
+		drawVline(d.ctx, Math.floor(x + w/2), y, h);
 	d.ctx.lineWidth = oldLineWidth; // restore the original value
 	return {w, h};
 }
@@ -528,74 +530,80 @@ function setIntermediateColor(ctx, foregroundWeight)
 	return foregroundColor;
 }
 
-function drawColumnHlines(ctx, x, y, len, n)
+function drawColumnHlines(d, x, y, len, n) // d is ref. to object of class DrawingOnCanvas (tally)
 {
 	const y0 = y; // save the initial vertical position to use it at the end to calculate the height of this drawing
-	const dy = ctx.lineWidth + verticalSpaceBetweenTallyMarks;
-	drawHline(ctx, x, y, len);
+	const dy = d.ctx.lineWidth + verticalSpaceBetweenTallyMarks;
+	if (d.calculateOnly == false)
+		drawHline(d.ctx, x, y, len);
 	for (let i=1; i<n; i++)
 	{
 		y += dy;
-		drawHline(ctx, x, y, len);
+		if (d.calculateOnly == false)
+			drawHline(d.ctx, x, y, len);
 	}
-	return (y - y0 + ctx.lineWidth); // column height
+	return (y - y0 + d.ctx.lineWidth); // column height
 }
 
-function drawBox5(ctx, x, y, boxWidth)
+function drawBox5(d, x, y, boxWidth) // d is ref. to object of class DrawingOnCanvas (tally)
 { // no need for vertical margin b/c boxes stacked horizontally
 	if (typeof boxWidth === "undefined")
-		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "V"));
+		boxWidth = Math.floor(stringWidthOnCanvas(d.ctx, "V"));
 	const boundingRectWidth = boxWidth - boundaryMargin;
 	const lineLength = boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding;
 	const lineHpos = x + boundaryThickness + boundaryPadding;
 	const lineVpos = y + boundaryThickness + boundaryPadding;
-	const oldlw = ctx.lineWidth;
-	ctx.lineWidth = tallyMarkThickness;
-	const columnHeight = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5);
+	const oldlw = d.ctx.lineWidth;
+	d.ctx.lineWidth = tallyMarkThickness;
+	const columnHeight = drawColumnHlines(d, lineHpos, lineVpos, lineLength, 5);
 	const boundingRectHeight = columnHeight + 2*boundaryPadding + 2*boundaryThickness;
-	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
-	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
-	ctx.lineWidth = oldlw; // restore lineWidth
-	ctx.strokeStyle = foregroundColor; // restore foreground color
+	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
+	d.ctx.lineWidth = boundaryThickness;
+	if (d.calculateOnly == false)
+		roundedRect(d.ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
+	d.ctx.lineWidth = oldlw; // restore lineWidth
+	d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
-	return {w, h};
+	const iw = lineLength;  // width of the column of lines
+	const ih = columnHeight; // height of the column of lines
+	return {w, h, iw, ih};
 }
 
-function drawBox10(ctx, x, y, boxWidth)
+function drawBox10(d, x, y, boxWidth) // d is ref. to object of class DrawingOnCanvas (tally)
 {
 	if (typeof boxWidth === "undefined")
-		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "X"));
+		boxWidth = Math.floor(stringWidthOnCanvas(d.ctx, "X"));
 	const boundingRectWidth = boxWidth - boundaryMargin;
 	const lineLength = boundingRectWidth - 2*boundaryPadding - 2*boundaryThickness;
 	const lineHpos = x + boundaryPadding + boundaryThickness;
 	let lineVpos = y + boundaryPadding + boundaryThickness;
-	const oldlw = ctx.lineWidth;
-	ctx.lineWidth = tallyMarkThickness;
-	const columnHeight1 = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // column of five horizontal,
+	const oldlw = d.ctx.lineWidth;
+	d.ctx.lineWidth = tallyMarkThickness;
+	const columnHeight1 = drawColumnHlines(d, lineHpos, lineVpos, lineLength, 5); // column of five horizontal,
 	lineVpos = lineVpos + columnHeight1 + verticalSpaceBetween5s; // then space underneath,
-	const columnHeight2 = drawColumnHlines(ctx, lineHpos, lineVpos, lineLength, 5); // then another column of five horizontal
+	const columnHeight2 = drawColumnHlines(d, lineHpos, lineVpos, lineLength, 5); // then another column of five horizontal
 	const boundingRectHeight = columnHeight1 + columnHeight2 + verticalSpaceBetween5s + 2*boundaryPadding + 2*boundaryThickness;
-	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
-	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
-	ctx.lineWidth = oldlw; // restore lineWidth
-	ctx.strokeStyle = foregroundColor; // restore foreground color
+	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
+	d.ctx.lineWidth = boundaryThickness;
+	if (d.calculateOnly == false)
+		roundedRect(d.ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
+	d.ctx.lineWidth = oldlw; // restore lineWidth
+	d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
 	return {w, h};
 }
 
-function drawColumn50Hlines(ctx, x, y, len)
+function drawColumn50Hlines(d, x, y, len) // d is ref. to object of class DrawingOnCanvas (tally)
 { // used in drawBox50(), drawBox100() and drawColumn100Hlines()
 	const y0 = y; // save the initial vertical position to use it at the end to calculate the height of this drawing
 	const xr = x + len + hSpaceBetween5s; // offset the 2nd column horizontally
 	let dHeight;
 	for (let i=0; i<5; i++)
 	{
-		dHeight = drawColumnHlines(ctx, x, y, len, 5); // 1st column of five horizontal,
-		drawColumnHlines(ctx, xr, y + verticalOffsetBetween5s, len, 5); // 2nd column (offset horizontally&vertically),
+		dHeight = drawColumnHlines(d, x, y, len, 5); // 1st column of five horizontal,
+		drawColumnHlines(d, xr, y + verticalOffsetBetween5s, len, 5); // 2nd column (offset horizontally&vertically),
 		y += dHeight;
 		y += verticalSpaceBetween5s; // regular vertical spacing (for visual clarity)
 	}
@@ -604,124 +612,129 @@ function drawColumn50Hlines(ctx, x, y, len)
 	return {w, h};
 }
 
-function drawBox50(ctx, x, y, boxWidth) // column of 25 short horizontal tally marks on the left,...
+function drawBox50(d, x, y, boxWidth) // column of 25 short horizontal tally marks on the left,...
 {//...with extra vertical space between each group of 5 and similar column on the right, all enclosed in rectangular box
-	if (typeof boxWidth === "undefined")
-		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "L")); // make same width as Roman numeral
+	if (typeof boxWidth === "undefined") // d is ref. to object of class DrawingOnCanvas (tally)
+		boxWidth = Math.floor(stringWidthOnCanvas(d.ctx, "L")); // make same width as Roman numeral
 	const boundingRectWidth = boxWidth - boundaryMargin;
 	const lineLength = Math.floor((boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding - hSpaceBetween5s)/2);
 	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
-	const oldlw = ctx.lineWidth;
-	ctx.lineWidth = tallyMarkThickness;
-	const columnSize = drawColumn50Hlines(ctx, lineHpos, lineVpos, lineLength);
+	const oldlw = d.ctx.lineWidth;
+	d.ctx.lineWidth = tallyMarkThickness;
+	const columnSize = drawColumn50Hlines(d, lineHpos, lineVpos, lineLength);
 	const boundingRectHeight = columnSize.h + 2*boundaryPadding + 2*boundaryThickness;
-	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
-	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
-	ctx.lineWidth = oldlw; // restore lineWidth
-	ctx.strokeStyle = foregroundColor; // restore foreground color
+	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
+	d.ctx.lineWidth = boundaryThickness;
+	if (d.calculateOnly == false)
+		roundedRect(d.ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
+	d.ctx.lineWidth = oldlw; // restore lineWidth
+	d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
 	return {w, h};
 }
 
-function drawColumn100Hlines(ctx, x, y, len)
+function drawColumn100Hlines(d, x, y, len) // d is ref. to object of class DrawingOnCanvas (tally)
 { // used in drawBox100() and drawColumns500Hlines()
-	const columnSize1 = drawColumn50Hlines(ctx, x, y, len); // column of 50 horizontal tally marks,
+	const columnSize1 = drawColumn50Hlines(d, x, y, len); // column of 50 horizontal tally marks,
 	y += columnSize1.h;
 	y += verticalSpaceBetween50s; // extra space halfway down,
-	const columnSize2 = drawColumn50Hlines(ctx, x, y, len); // another column of 50 horizontal tally marks underneath
+	const columnSize2 = drawColumn50Hlines(d, x, y, len); // another column of 50 horizontal tally marks underneath
 	const w = columnSize1.w; // width of the drawing
 	const h = columnSize1.h + columnSize2.h + verticalSpaceBetween50s; // height of the drawing	
 	return {w, h};
 }
 
-function drawBox100(ctx, x, y, boxWidth) // column of 50 short horizontal tally marks on the left, with extra vertical space between...
+function drawBox100(d, x, y, boxWidth) // column of 50 short horizontal tally marks on the left, with extra vertical space between...
 {//...each group of 5, and extra space halfway down, and similar column on the right, all enclosed in rectangular box
-	if (typeof boxWidth === "undefined")
-		boxWidth = Math.floor(stringWidthOnCanvas(ctx, "C")); // make same width as Roman numeral
+	if (typeof boxWidth === "undefined") // d is ref. to object of class DrawingOnCanvas (tally)
+		boxWidth = Math.floor(stringWidthOnCanvas(d.ctx, "C")); // make same width as Roman numeral
 	const boundingRectWidth = boxWidth - boundaryMargin;
 	const lineLength = Math.floor((boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding - hSpaceBetween5s)/2);
 	//const lineLength = boundingRectWidth/2 - boundaryPadding - boundaryThickness - 1;
 	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
-	const columnSize = drawColumn100Hlines(ctx, lineHpos, lineVpos, lineLength);
+	const columnSize = drawColumn100Hlines(d, lineHpos, lineVpos, lineLength);
 	const boundingRectHeight = columnSize.h + 2*boundaryPadding + 2*boundaryThickness;
-	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
-	const oldlw = ctx.lineWidth;
-	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
-	ctx.lineWidth = oldlw; // restore lineWidth
-	ctx.strokeStyle = foregroundColor; // restore foreground color
+	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
+	const oldlw = d.ctx.lineWidth;
+	d.ctx.lineWidth = boundaryThickness;
+	if (d.calculateOnly == false)
+		roundedRect(d.ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
+	d.ctx.lineWidth = oldlw; // restore lineWidth
+	d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
 	return {w, h};
 }
 
-function drawColumns500Hlines(ctx, x, y, w)
+function drawColumns500Hlines(d, x, y, w) // d is ref. to object of class DrawingOnCanvas (tally)
 {// used in drawBox1000() and drawBox500()
 	const nDblCols = 5;
 	const dblColWidth = (w - (nDblCols-1)*hSpaceBetween100s)/nDblCols;
 	const lineLength = Math.floor((dblColWidth - hSpaceBetween5s)/2);
 	const dx = dblColWidth + hSpaceBetween100s;
-	const columnSize = drawColumn100Hlines(ctx, Math.floor(x), y, lineLength);
+	const columnSize = drawColumn100Hlines(d, Math.floor(x), y, lineLength);
 	for (let i=1; i<nDblCols; i++)
 	{
 		x += dx; // move horizontal position
-		drawColumn100Hlines(ctx, Math.floor(x), y, lineLength);
+		drawColumn100Hlines(d, Math.floor(x), y, lineLength);
 	}
 	const h = columnSize.h; // height of the drawing
 	return {w, h};
 }
 
-function drawBox500(ctx, x, y, rnWidth) // 5 double columns each of 100 short horizontal tally marks, with extra vertical...
+function drawBox500(d, x, y, rnWidth) // 5 double columns each of 100 short horizontal tally marks, with extra vertical...
 {//...space between each group of 5 tally marks, and extra space halfway down, all enclosed in rectangular box
-	if (typeof rnWidth === "undefined")
-		rnWidth = stringWidthOnCanvas(ctx, "D");
+	if (typeof rnWidth === "undefined") // d is ref. to object of class DrawingOnCanvas (tally)
+		rnWidth = stringWidthOnCanvas(d.ctx, "D");
 	const boxWidth = Math.floor(4.2 * rnWidth);
 	const boundingRectWidth = Math.floor(boxWidth - boundaryMargin);
 	const columns500width = boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding;
 	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
-	const oldlw = ctx.lineWidth;
-	ctx.lineWidth = tallyMarkThickness;
-	const columnSize = drawColumns500Hlines(ctx, lineHpos, lineVpos, columns500width);
+	const oldlw = d.ctx.lineWidth;
+	d.ctx.lineWidth = tallyMarkThickness;
+	const columnSize = drawColumns500Hlines(d, lineHpos, lineVpos, columns500width);
 	const boundingRectHeight = columnSize.h + 2*boundaryPadding + 2*boundaryThickness; // same as for 100
-	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
-	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
-	ctx.lineWidth = oldlw; // restore lineWidth
-	ctx.strokeStyle = foregroundColor; // restore foreground color
+	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
+	d.ctx.lineWidth = boundaryThickness;
+	if (d.calculateOnly == false)
+		roundedRect(d.ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
+	d.ctx.lineWidth = oldlw; // restore lineWidth
+	d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
 	return {w, h};
 }
 
-function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizontal tally marks, with extra vertical...
+// d is ref. to object of class DrawingOnCanvas (tally)
+function drawBox1000(d, x, y, n) // 10 double columns each of 100 short horizontal tally marks, with extra vertical...
 {//...space between each group of 5 tally marks, and extra space halfway down, all enclosed in rectangular box
 // display n 1000s of tally marks. If n>1, draw 1 box of 1000 and (n-1) partial rectangles...
 //...to look like they occlude each other partially being stacked under each other with a small offset
-	let w = 0;  // width of the drawing
+	let w = 0; // width of the drawing
 	let h = 0; // height of the drawing
 	n = typeof n !== "undefined" ? n : 1; // default value
 	if (n < 1) return {w, h};
-	const rnWidth = stringWidthOnCanvas(ctx, "M");
+	const rnWidth = stringWidthOnCanvas(d.ctx, "M");
 	const boxWidth = Math.floor(8.1 * rnWidth); // for 1 rectangular box of 1000 tally marks
 	const boundingRectWidth = Math.floor(boxWidth - boundaryMargin);
 	const columns1000width = boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding;
 	const columns500width = Math.floor((columns1000width - hSpaceBetween500s) / 2);
 	let lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
-	const oldlw = ctx.lineWidth;
-	ctx.lineWidth = tallyMarkThickness;
-	const columnSize1 = drawColumns500Hlines(ctx, lineHpos, lineVpos, columns500width);
+	const oldlw = d.ctx.lineWidth;
+	d.ctx.lineWidth = tallyMarkThickness;
+	const columnSize1 = drawColumns500Hlines(d, lineHpos, lineVpos, columns500width);
 	lineHpos = lineHpos + columns500width + hSpaceBetween500s;
-	drawColumns500Hlines(ctx, lineHpos, lineVpos, columns500width);
+	drawColumns500Hlines(d, lineHpos, lineVpos, columns500width);
 	const boundingRectHeight = columnSize1.h + 2*boundaryPadding + 2*boundaryThickness; // for 1 rectangular box of 1000 tally marks, same as for 100
-	const foregroundColor = setIntermediateColor(ctx, foregroundWeightBoxBoundary);
-	ctx.lineWidth = boundaryThickness;
-	roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
+	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
+	d.ctx.lineWidth = boundaryThickness;
+	if (d.calculateOnly == false)
+		roundedRect(d.ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
 	// draw additional rectangular boxes looking like they are stacked under the one already drawn but a little offset
 	const hShift = boundaryPadding + boundaryThickness;
 	const vShift = boundaryPadding + boundaryThickness;
@@ -742,11 +755,12 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 			x += hShift;
 			y += vShift;
 		}
-		setIntermediateColor(ctx, (j%2==0) ? foregroundWeightBoxBoundary : foregroundWeightBoxBoundary2);
-		roundedRect(ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius, widthOcclude, heightOcclude);
-		ctx.strokeStyle = foregroundColor; // restore foreground color
+		setIntermediateColor(d.ctx, (j%2==0) ? foregroundWeightBoxBoundary : foregroundWeightBoxBoundary2);
+		if (d.calculateOnly == false)
+			roundedRect(d.ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius, widthOcclude, heightOcclude);
+		d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	}
-	ctx.lineWidth = oldlw; // restore lineWidth
+	d.ctx.lineWidth = oldlw; // restore lineWidth
 	w = boxWidth + n*hShift;  // width of the drawing
 	h = boundingRectHeight + n*vShift; // height of the drawing
 	return {w, h};
@@ -767,7 +781,7 @@ function drawBox1000(ctx, x, y, n) // 10 double columns each of 100 short horizo
 // -- from smaller numerals (on the right) to larger numerals (on the left)
 // -- because the rounded down number is never larger, but often smaller,
 // than the original.
-function drawTally(drwngOnCnv, x0, y)
+function drawTally(drwngOnCnv, x0, y) // drwngOnCnv is ref. to object of class DrawingOnCanvas (tally)
 {
 	let h = 0;
 	let w = 0;
@@ -778,8 +792,9 @@ function drawTally(drwngOnCnv, x0, y)
 		return {w, h};
 	if (drwngOnCnv.ctx == null)
 	{ // fallback in case browser does not support canvas
-		drwngOnCnv.canvas.textContent = "|".repeat(inputNumberUsed); // simplest: write out the tally marks
-		return {w, h};
+		if (drwngOnCnv.calculateOnly == false)
+			drwngOnCnv.canvas.textContent = "|".repeat(inputNumberUsed); // simplest: write out the tally marks
+		return {w, h}; // !!! calculation of w and h NOT programmed yet for this case !!!
 	}
 	const rna = drwngOnCnv.text;
 	if (rna === null)
@@ -810,11 +825,11 @@ function drawTally(drwngOnCnv, x0, y)
 		switch (c)
 		{
 			case "I": sz = drawTallyMark(drwngOnCnv, x, y, dx); break;
-			case "V": sz = drawBox5(drwngOnCnv.ctx, x, y, dx); break;
-			case "X": sz = drawBox10(drwngOnCnv.ctx, x, y, dx); break;
-			case "L": sz = drawBox50(drwngOnCnv.ctx, x, y, dx); break;
-			case "C": sz = drawBox100(drwngOnCnv.ctx, x, y, dx); break;
-			case "D": sz = drawBox500(drwngOnCnv.ctx, x, y, dx); nDs++; /* dx = */ wBox500 = sz.w; break;
+			case "V": sz = drawBox5(drwngOnCnv, x, y, dx); break;
+			case "X": sz = drawBox10(drwngOnCnv, x, y, dx); break;
+			case "L": sz = drawBox50(drwngOnCnv, x, y, dx); break;
+			case "C": sz = drawBox100(drwngOnCnv, x, y, dx); break;
+			case "D": sz = drawBox500(drwngOnCnv, x, y, dx); nDs++; /* dx = */ wBox500 = sz.w; break;
 			case "M": nMs++; dx = 0; break;
 		}
 		if (h < sz.h)
@@ -826,7 +841,7 @@ function drawTally(drwngOnCnv, x0, y)
 	{
 		x = Math.floor(x0 + stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j + 1))
 			+ (nDs * wBox500));
-		sz = drawBox1000(drwngOnCnv.ctx, x, y, r);
+		sz = drawBox1000(drwngOnCnv, x, y, r);
 		box1000horizontalPosition = x;
 		wBox1K = sz.w;
 	}
@@ -836,7 +851,7 @@ function drawTally(drwngOnCnv, x0, y)
 	{
 		x = Math.floor(x0 + stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j + 1))
 			+ (nDs * wBox500) + wBox1K);
-		sz = drawBox1000(drwngOnCnv.ctx, x, y, 10);
+		sz = drawBox1000(drwngOnCnv, x, y, 10);
 		wBox10K = sz.w;
 	}
 	if (nDs > 0 || nMs > 0)
@@ -1501,6 +1516,8 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	ctx = null; // drawing context of cnv
 	initialText = "IIIII"; // (constant) to help identify this class in other code
 	finalText = "V"; // (constant) to help identify this class in other code
+	fcnInitialDrawing = null; // ref. to function used to draw the graphic corresponding to initialText
+	fcnFinalDrawing = null; // ref. to function used to draw the graphic corresponding to finalText
 	wi = 0; // width (in pixels) on canvas of the initial drawing
 	wf = 0; // width (in pixels) on canvas of the final drawing
 	hi = 0; // height (in pixels) on canvas of initialText
@@ -1519,6 +1536,105 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	angleF = Math.PI; // (constant) orientation of the final drawing
 	vAngle = 0; // how fast to move angle towards angleF (calculated from angleF, angleI and AnimationSpeedMetamorphosis)
 	angle = 0; // (of the left V) current value (starts = angleI and decreases to angleF)
+	t = 0; // (msec) time of last update
+	verticalPosition = 0; // vertical position of all the text treated by this class
+	finished = true; // iff finished the metamorphosis of intialText into finalText
+	justFinished = false; // used to implement this.recent()
+	constructor(d, fdi, fdf) // d must be ref. to DrawingOnCanvas object: tally
+	{// fdi and fdf must be ref-s to functions (drawTally() and drawBox5()) to draw on the canvas
+		if (d === null)
+			return;
+		this.drawingOnCanvas = d;
+		this.fcnInitialDrawing = fdi;
+		this.fcnFinalDrawing = fdf;
+		this.cnv = this.drawingOnCanvas.canvas;
+		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
+			this.ctx = this.cnv.getContext("2d");
+	}
+	start()
+	{
+		this.finished = true;
+		this.justFinished = false;
+		if (this.cnv === null || this.ctx === null)
+			return; // browser does not support canvas
+		this.finished = false;
+		this.verticalPosition = verticalOffset;
+		this.xi = horizontalOffset;
+		this.yi = verticalOffset;
+		if (this.drawingOnCanvas.flipHorizontalAxis == false)
+			this.xi = this.cnv.width - this.xi;
+		const oldText = this.drawingOnCanvas.text;
+		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = true;
+		this.drawingOnCanvas.text = this.initialText;
+		this.drawingOnCanvas.numberOfTallyMarks = 5;
+		let sz = this.fcnInitialDrawing(this.drawingOnCanvas,
+			horizontalOffset, verticalOffset);
+		this.wi = sz.w;
+		this.hi = sz.h;
+		this.drawingOnCanvas.text = this.finalText;
+		sz = this.fcnFinalDrawing(this.drawingOnCanvas,
+			horizontalOffset, verticalOffset);
+		this.wf = sz.ih; // width of shrunk IIIII = height of column of 5 horizontal lines
+		this.hf = sz.iw; // height of shrunk IIIII = width of column of 5 horizontal lines
+		this.drawingOnCanvas.text = oldText;
+		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = false;
+		if (fpLess(0, this.wi, fpTolerance))
+			this.scaleXf = this.wf / this.wi;
+		if (fpLess(0, this.hi, fpTolerance))
+			this.scaleYf = this.hf / this.hi;
+		this.scaleX = this.scaleXi;
+		this.vScaleX = AnimationSpeedMetamorphosis*(this.scaleXf - this.scaleXi);
+		this.scaleY = this.scaleYi;
+		this.vScaleY = AnimationSpeedMetamorphosis*(this.scaleYf - this.scaleYi);
+		this.t = Date.now();
+	}
+	done()
+	{
+		if (this.finished)
+			return true;
+		this.finished =
+			(fpEqual(this.scaleX, this.scaleXf, fpTolerance) &&
+			fpEqual(this.scaleY, this.scaleYf, fpTolerance));
+		if (this.finished)
+			this.justFinished = true;
+		return this.finished;
+	}
+	recent() // returns true iff the most recent call to this.done() has returned true but...
+	{ //...the call to this.done immediately prior to the most recent call to this.done()...
+		if (this.justFinished==false) return false; //...has returned false
+		this.justFinished = false;
+		return true;
+	}
+	proceed()
+	{
+		if (this.finished)
+			return;
+		const t1 = Date.now(); // (msec)
+		const dt = t1 - this.t; // (msec) time since last update
+		let u = this.scaleX + (this.vScaleX)*dt;
+		this.scaleX = fpMax(u, this.scaleXf, fpTolerance); // prevent this.scaleX from surpassing scaleXf
+		u = this.scaleY + (this.vScaleY)*dt;
+		this.scaleY = fpMax(u, this.scaleYf, fpTolerance); // prevent this.scaleY from surpassing scaleYf
+		this.t = t1;
+	}
+
+	draw()
+	{
+		if (this.cnv === null || this.ctx === null)
+			return; // browser does not support canvas
+		const cvw = this.cnv.width - this.xInitial();
+		this.ctx.clearRect(this.xi, -0.5, this.wi, this.hi);
+		this.ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
+		//this.ctx.translate(this.xi + (this.scaleX * this.wi), this.yi + (this.scaleY * this.hi));
+		//this.ctx.rotate(-this.angle);
+		this.ctx.scale(this.scaleX, this.scaleY);
+		//this.ctx.translate(- (this.scaleX * this.wi), - (this.scaleY * this.hi));
+		if (this.fcnInitialDrawing !== null)
+			this.drawingOnCanvas.draw(this.fcnInitialDrawing, this.xi, this.yi, this.wi);
+		this.ctx.restore();
+	}
 }
 
 class MetamorphoseIIIIItoV // the 1st stage of animations of metamorphosis of IIIII->V
@@ -1613,7 +1729,8 @@ class MetamorphoseIIIIItoV // the 1st stage of animations of metamorphosis of II
 	}
 	done()
 	{
-		if (this.finished) return true;
+		if (this.finished)
+			return true;
 		this.finished =
 			(fpEqual(this.skew, this.skewF, fpTolerance) &&
 			fpEqual(this.x0, this.xf, fpTolerance) &&
@@ -1633,7 +1750,8 @@ class MetamorphoseIIIIItoV // the 1st stage of animations of metamorphosis of II
 	}
 	proceed()
 	{
-		if (this.finished) return;
+		if (this.finished)
+			return;
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
 		let u = this.x1 + (this.vx1)*dt;
@@ -2242,12 +2360,12 @@ class Fade // used to fade graphics in, to fade graphics out...
 	ctx = null; // drawing context of cnv
 	initialText = null; // (constant) text to fade out
 	finalText = null; // (constant) text to fade in
+	fcnInitialDrawing = null; // ref. to function used to draw the graphic to fade out
+	fcnFinalDrawing = null; // ref. to function used to draw the graphic to fade in
 	xi = 0; // horizontal position (in pixels) of the graphic to fade out, if given, otherwise of the leftmost end of initialText, if given
 	xf = 0;  // horizontal position (in pixels) of the graphic to fade in, if given, otherwise of finalText, if given
 	wi = 0; // width (in pixels) of the graphic to fade out, if given, otherwise of initialText, if given
 	wf = 0;  // width (in pixels) of the graphic to fade in, if given, otherwise of finalText, if given
-	fcnInitialDrawing = null; // ref. to function used to draw the graphic to fade out
-	fcnFinalDrawing = null; // ref. to function used to draw the graphic to fade in
 	textOnly = true; // true iff fcnInitialDrawing===null and fcnFinalDrawing===null
 	aOutI = 1.0; // constant (initial alpha of initialText)
 	aOutF = 0.0; // constant (final alpha of initialText)
