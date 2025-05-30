@@ -232,7 +232,7 @@ function setNumber(n)
 		romanNumeralsAdditive.set(s);
 	}
 	arabicNumeralsElement.value = inputNumber.toString();
-	tally.clearCanvas(); // otherwise tally mark not erased when decrementing from 1
+	tally.clearCanvas(); // otherwise tally box not erased when decrementing >>> TEMPORARY <<<
 	tally.numberOfTallyMarks = inputNumber; // used in drawTally()
 	tally.text = romanNumeralsAdditive.get(); // used in drawTally()
 	tally.draw(drawTally, horizontalOffset, verticalOffset);
@@ -1494,8 +1494,35 @@ class SlideGraphicHorizontally // the last stage of animations of metamorphoses 
 	}
 }
 
-class MetamorphoseIIIIItoV
-{ // the first stage of animations of metamorphosis of IIIII->V
+class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||||| -> [box of 5]
+{// (the 2nd stage is sliding all the drawings to the right in order to have no empty spaces on the right or in the middle)
+	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
+	initialText = "IIIII"; // (constant) to help identify this class in other code
+	finalText = "V"; // (constant) to help identify this class in other code
+	wi = 0; // width (in pixels) on canvas of the initial drawing
+	wf = 0; // width (in pixels) on canvas of the final drawing
+	hi = 0; // height (in pixels) on canvas of initialText
+	hf = 0; // height (in pixels) on canvas of finalText
+	xi = 0; // initial horizontal position of the rightmost end of initial drawing, where to start clearing the canvas in each call to draw()
+	yi = 0; // initial vertical position of the rightmost end of initial drawing, where to start clearing the canvas in each call to draw()
+	scaleXi = 1.0; // (constant) horizontal scale of the initial drawing
+	scaleXf = 0; // scale of the final drawing = (final width) / (initial width)
+	vScaleX = 0; // how fast to move scaleX towards scaleXf (calculated from scaleXf, scaleXi and AnimationSpeedMetamorphosis)
+	scaleX = 0; // current value (starts = scaleXi and decreases to scaleXf)
+	scaleYi = 1.0; // (constant) vertical scale of the initial drawing
+	scaleYf = 0; // scale of the final drawing = (final height) / (initial height)
+	vScaleY = 0; // how fast to move scaleX towards scaleXf (calculated from scaleXf, scaleXi and AnimationSpeedMetamorphosis)
+	scaleY = 0; // current value (starts = scaleYi and decreases to scaleYf)
+	angleI = 0; // (constant) orientation of the initial drawing
+	angleF = Math.PI; // (constant) orientation of the final drawing
+	vAngle = 0; // how fast to move angle towards angleF (calculated from angleF, angleI and AnimationSpeedMetamorphosis)
+	angle = 0; // (of the left V) current value (starts = angleI and decreases to angleF)
+}
+
+class MetamorphoseIIIIItoV // the 1st stage of animations of metamorphosis of IIIII->V
+{// (the 2nd stage is sliding all the drawings to the right in order to have no empty spaces on the right or in the middle)
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
@@ -2208,8 +2235,8 @@ class MetamorphoseXtoVV // animation of metamorphosis of X->VV
 	}
 }
 
-class Fade // used to fade text in, to fade text out...
-{//...and to cross-fade one text into another
+class Fade // used to fade graphics in, to fade graphics out...
+{//...and to cross-fade one graphic into another
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
@@ -2308,9 +2335,13 @@ class Fade // used to fade text in, to fade text out...
 			this.xi = this.cnv.width - this.xi;
 			this.xf = this.cnv.width - this.xf;
 		}
-		this.xClear = fpMin(this.xi, this.xf, fpTolerance);
+		this.xClear = fpMin(this.xi, this.xf, fpTolerance) - 1; // subtracting 1 remedies the erroneous erasure of the rightmost boundary of the rightmost box of tally marks (5, 10, 50, ...) when fading in the additional tally mark (as part of incrementing the number) immediately after sliding all the boxes leftwards to leave space for the tally mark to be faded in
 		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		this.wClear = fpMax(this.wi, this.wf, fpTolerance) - 1; // subtracting 1 remedies the erroneous erasure of the rightmost boundary of the rightmost box of tally marks (5, 10, 50, ...) when fading in the additional tally mark (as part of incrementing the number) immediately after sliding all the boxes leftwards to leave space for the tally mark to be faded in
+		this.wClear = fpMax(this.wi, this.wf, fpTolerance);
+		if (this.textOnly)
+			this.wClear++; // the hack to remedy the failure to erase the rightmost pixel(s) of the rightmost numerals when cross-fading XXXXX->L or LL->C etc.
+		else
+			this.wClear--; // the hack to remedy erroneous erasure of the rightmost edge of the rightmost box of tally marks when fading in the additional tally mark if incrementing the number from 5, 10 or 1000 (occurred in Firefox but not in Chrome nor in MS Edge nor in Opera)
 		this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
 		this.t = Date.now();
 	}
