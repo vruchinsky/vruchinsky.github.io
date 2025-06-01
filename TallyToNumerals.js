@@ -1533,11 +1533,15 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	vScaleY = 0; // how fast to move scaleX towards scaleXf (calculated from scaleXf, scaleXi and AnimationSpeedMetamorphosis)
 	scaleY = 0; // current value (starts = scaleYi and decreases to scaleYf)
 	angleI = 0; // (constant) orientation of the initial drawing
-	angleF = Math.PI; // (constant) orientation of the final drawing
+	angleF = 0.5*Math.PI; // (constant) orientation of the final drawing
 	vAngle = 0; // how fast to move angle towards angleF (calculated from angleF, angleI and AnimationSpeedMetamorphosis)
 	angle = 0; // (of the left V) current value (starts = angleI and decreases to angleF)
+	xClear = 0; // horizontal position of area to be cleared in each call to this.draw()
+	yClear = 0; // vertical position of area to be cleared in each call to this.draw()
+	wClear = 0; // horizontal extent of area to be cleared in each call to this.draw()
+	hClear = 0; // vertical extent of area to be cleared in each call to this.draw()
 	t = 0; // (msec) time of last update
-	verticalPosition = 0; // vertical position of all the text treated by this class
+	//verticalPosition = 0; // vertical position of all the text treated by this class // same as this.yi, so not needed?
 	finished = true; // iff finished the metamorphosis of intialText into finalText
 	justFinished = false; // used to implement this.recent()
 	constructor(d, fdi, fdf) // d must be ref. to DrawingOnCanvas object: tally
@@ -1558,7 +1562,7 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		this.verticalPosition = verticalOffset;
+		//this.verticalPosition = verticalOffset;
 		this.xi = horizontalOffset;
 		this.yi = verticalOffset;
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
@@ -1588,6 +1592,12 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		this.vScaleX = AnimationSpeedMetamorphosis*(this.scaleXf - this.scaleXi);
 		this.scaleY = this.scaleYi;
 		this.vScaleY = AnimationSpeedMetamorphosis*(this.scaleYf - this.scaleYi);
+		this.angle = this.angleI;
+		this.vAngle = AnimationSpeedMetamorphosis*(this.angleF - this.angleI);
+		this.xClear = this.xi - 1; // subtracting 1 remedies (hack) failure to erase the rightmost tally mark on each redrawing towards the end of this animation, thus leaving the rightmost tallymark larger than the rest
+		this.yClear = this.yi - 1; // subtracting 1 remedies (hack) failure to erase the upper ends of tally marks on each redrawing which leaves a streak
+		this.wClear = this.wi;
+		this.hClear = this.hi + 1; // adding 1 remedies (hack) failure to erase the lower ends of tally marks on each redrawing which leaves a streak
 		this.t = Date.now();
 	}
 	done()
@@ -1595,7 +1605,8 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		if (this.finished)
 			return true;
 		this.finished =
-			(fpEqual(this.scaleX, this.scaleXf, fpTolerance) &&
+			(fpEqual(this.angle, this.angleF, fpTolerance) &&
+			fpEqual(this.scaleX, this.scaleXf, fpTolerance) &&
 			fpEqual(this.scaleY, this.scaleYf, fpTolerance));
 		if (this.finished)
 			this.justFinished = true;
@@ -1614,9 +1625,11 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
 		let u = this.scaleX + (this.vScaleX)*dt;
-		this.scaleX = fpMax(u, this.scaleXf, fpTolerance); // prevent this.scaleX from surpassing scaleXf
+		this.scaleX = fpMax(u, this.scaleXf, fpTolerance); // prevent scaleX from surpassing scaleXf
 		u = this.scaleY + (this.vScaleY)*dt;
-		this.scaleY = fpMax(u, this.scaleYf, fpTolerance); // prevent this.scaleY from surpassing scaleYf
+		this.scaleY = fpMax(u, this.scaleYf, fpTolerance); // prevent scaleY from surpassing scaleYf
+		u = this.angle + (this.vAngle)*dt;
+		this.angle = fpMin(u, this.angleF, fpTolerance); // prevent angle from surpassing angleF
 		this.t = t1;
 	}
 
@@ -1624,15 +1637,21 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	{
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		const cvw = this.cnv.width - this.xInitial();
-		this.ctx.clearRect(this.xi, -0.5, this.wi, this.hi);
+		//const cvw = this.cnv.width - this.xInitial();
+		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
 		this.ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
-		//this.ctx.translate(this.xi + (this.scaleX * this.wi), this.yi + (this.scaleY * this.hi));
-		//this.ctx.rotate(-this.angle);
+		this.ctx.translate(this.xi + (0.5 * this.wi), this.yi + (0.5 * this.hi));
+		this.ctx.rotate(-this.angle);
 		this.ctx.scale(this.scaleX, this.scaleY);
-		//this.ctx.translate(- (this.scaleX * this.wi), - (this.scaleY * this.hi));
+		this.ctx.translate(-(0.5 * this.wi), -(0.5 * this.hi));
+		const oldText = this.drawingOnCanvas.text;
+		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+		this.drawingOnCanvas.text = this.initialText;
+		this.drawingOnCanvas.numberOfTallyMarks = 5;
 		if (this.fcnInitialDrawing !== null)
-			this.drawingOnCanvas.draw(this.fcnInitialDrawing, this.xi, this.yi, this.wi);
+			this.drawingOnCanvas.draw(this.fcnInitialDrawing, 0, 0);
+		this.drawingOnCanvas.text = oldText;
+		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
 		this.ctx.restore();
 	}
 }
@@ -3416,6 +3435,7 @@ let mTallyInI = new Fade(tally, null, "I");
 mTallyInI.setDrawings(null, drawTallyMark);
 let insertTally = new AnimateTallyMarkInsertion(mTallyInI);
 insertTally.setDrawing(drawTally);
+let mShrinkAndRotateIIIII = new ShrinkAndRotateIIIII(tally, drawTally, drawBox5);
 
 function incNumAnmtnsConstraints()
 {
@@ -3468,6 +3488,8 @@ function incNumAnmtnsConstraints()
 		console.log('failed in f.after(incNumAnmtnsAddtv, "DD", "M")');
 }
 
+let incrementTallyAnimationState = 0; // >>> EXPERIMENTAL <<<
+
 function incrementNumber()
 {
 	if (incNumAnmtnsAddtv.errorOccurred() || incNumAnmtnsSbtrctv.errorOccurred())
@@ -3488,13 +3510,32 @@ function incrementNumber()
 	{
 		incNumAnmtnsAddtv.more();
 		incNumAnmtnsSbtrctv.more();
-		insertTally.more();
+		if (insertTally.more() == false)
+		{
+			if (romanNumeralsAdditive.get() == "IIIII") // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				if (incrementTallyAnimationState == 0) // >>> EXPERIMENTAL <<<
+				{ // >>> EXPERIMENTAL <<<
+					mShrinkAndRotateIIIII.start(); // >>> EXPERIMENTAL <<<
+					incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
+				} // >>> EXPERIMENTAL <<<
+				else if (incrementTallyAnimationState == 1) // >>> EXPERIMENTAL <<<
+				{ // >>> EXPERIMENTAL <<<
+					if (mShrinkAndRotateIIIII.done() == false) // >>> EXPERIMENTAL <<<
+					{ // >>> EXPERIMENTAL <<<
+						mShrinkAndRotateIIIII.proceed(); // >>> EXPERIMENTAL <<<
+						mShrinkAndRotateIIIII.draw(); // >>> EXPERIMENTAL <<<
+					} // >>> EXPERIMENTAL <<<
+				} // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		}
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
 		incNumAnmtnsAddtv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
 		incNumAnmtnsSbtrctv.reset(); //...otherwise this branch of this if-statement will never be executed
 		insertTally.reset();
+		incrementTallyAnimationState = 0; // >>> EXPERIMENTAL <<<
 		inputNumber++;
 		setNumber();
 	}
