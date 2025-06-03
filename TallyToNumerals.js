@@ -168,19 +168,23 @@ function setSettingsVisibility(v)
 	showHideSettingsButton.setAttribute("title", v ? "click to hide settings" : "click to show settings");
 }
 
-let AnimationSpeedMetamorphosis = parseFloat(AnimationSpeedMetamorphosisInput.value);
-AnimationSpeedMetamorphosisDisplay.textContent = AnimationSpeedMetamorphosis.toString();
-let AnimationSpeedClosingTheGaps = parseFloat(AnimationSpeedClosingTheGapsInput.value);
-AnimationSpeedClosingTheGapsDisplay.textContent = AnimationSpeedClosingTheGaps.toString();
-
-AnimationSpeedMetamorphosisInput.addEventListener('input', function() {
-    AnimationSpeedMetamorphosis = parseFloat(AnimationSpeedMetamorphosisInput.value);
-    AnimationSpeedMetamorphosisDisplay.textContent = AnimationSpeedMetamorphosis.toString();
-});
-AnimationSpeedClosingTheGapsInput.addEventListener('input', function() {
+let AnimationSpeedMetamorphosis = 0;
+function updateAnimationSpeedMetamorphosis()
+{
+	AnimationSpeedMetamorphosis = parseFloat(AnimationSpeedMetamorphosisInput.value);
+	AnimationSpeedMetamorphosisDisplay.textContent = AnimationSpeedMetamorphosis.toString();
+}
+let AnimationSpeedClosingTheGaps = 0;
+function updateAnimationSpeedClosingTheGaps()
+{
     AnimationSpeedClosingTheGaps = parseFloat(AnimationSpeedClosingTheGapsInput.value);
     AnimationSpeedClosingTheGapsDisplay.textContent = AnimationSpeedClosingTheGaps.toString();
-});
+}
+
+updateAnimationSpeedMetamorphosis();
+updateAnimationSpeedClosingTheGaps();
+AnimationSpeedMetamorphosisInput.addEventListener('input', updateAnimationSpeedMetamorphosis);
+AnimationSpeedClosingTheGapsInput.addEventListener('input', updateAnimationSpeedClosingTheGaps);
 
 function initializeCanvas(cv, flipHorizontalAxis)
 {
@@ -1585,19 +1589,19 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
 		this.drawingOnCanvas.calculateOnly = false;
 		if (fpLess(0, this.wi, fpTolerance))
-			this.scaleXf = this.wf / this.wi;
+			this.scaleXf = 1.23*(this.wf / this.wi); // the increase factor, determined by trial and error, is a hack to remedy excessive shrinking of the drawing
 		if (fpLess(0, this.hi, fpTolerance))
-			this.scaleYf = this.hf / this.hi;
+			this.scaleYf = 1.1*(this.hf / this.hi); // the increase factor, determined by trial and error, is a hack to remedy excessive shrinking of the drawing
 		this.scaleX = this.scaleXi;
-		this.vScaleX = AnimationSpeedMetamorphosis*(this.scaleXf - this.scaleXi);
+		this.vScaleX = 1.5*AnimationSpeedMetamorphosis*(this.scaleXf - this.scaleXi); // speed up the shrinking in order to avoid drawing parts of the five tally marks outside the part of the canvas which initially displays them
 		this.scaleY = this.scaleYi;
-		this.vScaleY = AnimationSpeedMetamorphosis*(this.scaleYf - this.scaleYi);
+		this.vScaleY = 1.5*AnimationSpeedMetamorphosis*(this.scaleYf - this.scaleYi); // speed up the shrinking in order to avoid drawing parts of the five tally marks outside the part of the canvas which initially displays them
 		this.angle = this.angleI;
 		this.vAngle = AnimationSpeedMetamorphosis*(this.angleF - this.angleI);
 		this.xClear = this.xi - 1; // subtracting 1 remedies (hack) failure to erase the rightmost tally mark on each redrawing towards the end of this animation, thus leaving the rightmost tallymark larger than the rest
-		this.yClear = this.yi - 1; // subtracting 1 remedies (hack) failure to erase the upper ends of tally marks on each redrawing which leaves a streak
+		this.yClear = this.yi - 2; // subtracting 2 remedies (hack) failure to erase the upper ends of tally marks on each redrawing which leaves a streak
 		this.wClear = this.wi;
-		this.hClear = this.hi + 1; // adding 1 remedies (hack) failure to erase the lower ends of tally marks on each redrawing which leaves a streak
+		this.hClear = this.wi; // using wi instead of hi is a hack which remedies the failure to erase the lower ends of tally marks on each redrawing which leaves a streak
 		this.t = Date.now();
 	}
 	done()
@@ -3489,6 +3493,7 @@ function incNumAnmtnsConstraints()
 }
 
 let incrementTallyAnimationState = 0; // >>> EXPERIMENTAL <<<
+let romanNumeralsAdditiveString = null; // >>> EXPERIMENTAL <<<
 
 function incrementNumber()
 {
@@ -3512,7 +3517,10 @@ function incrementNumber()
 		incNumAnmtnsSbtrctv.more();
 		if (insertTally.more() == false)
 		{
-			if (romanNumeralsAdditive.get() == "IIIII") // >>> EXPERIMENTAL <<<
+			romanNumeralsAdditiveString = romanNumeralsAdditive.get(); // >>> EXPERIMENTAL <<<
+			if (romanNumeralsAdditiveString.length >= 5) // >>> EXPERIMENTAL <<<
+				romanNumeralsAdditiveString = romanNumeralsAdditiveString.substring(romanNumeralsAdditiveString.length - 5); // >>> EXPERIMENTAL <<<
+			if (romanNumeralsAdditiveString == "IIIII") // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
 				if (incrementTallyAnimationState == 0) // >>> EXPERIMENTAL <<<
 				{ // >>> EXPERIMENTAL <<<
@@ -3521,7 +3529,26 @@ function incrementNumber()
 				} // >>> EXPERIMENTAL <<<
 				else if (incrementTallyAnimationState == 1) // >>> EXPERIMENTAL <<<
 				{ // >>> EXPERIMENTAL <<<
-					if (mShrinkAndRotateIIIII.done() == false) // >>> EXPERIMENTAL <<<
+					if (mShrinkAndRotateIIIII.done()) // >>> EXPERIMENTAL <<<
+					{ // >>> EXPERIMENTAL <<<
+						drawBox5(tally, horizontalOffset+18, verticalOffset+3); // >>> EXPERIMENTAL <<<
+						drawBox5(tally, horizontalOffset+4, verticalOffset+24); // >>> EXPERIMENTAL <<<
+						tally.ctx.save(); // >>> EXPERIMENTAL <<<
+		tally.ctx.translate(horizontalOffset - 28 + (0.5 * 78), verticalOffset + (0.5 * 25)); // >>> EXPERIMENTAL <<<
+		tally.ctx.rotate(-0.5*Math.PI); // >>> EXPERIMENTAL <<<
+		tally.ctx.scale(1.23*(17/78), 1.1*(10/25)); // >>> EXPERIMENTAL <<<
+		tally.ctx.translate(-(0.5 * 78), -(0.5 * 25)); // >>> EXPERIMENTAL <<<
+		const oldText = tally.text; // >>> EXPERIMENTAL <<<
+		const oldNumberOfTallyMarks = tally.numberOfTallyMarks; // >>> EXPERIMENTAL <<<
+		tally.text = mShrinkAndRotateIIIII.initialText; // >>> EXPERIMENTAL <<<
+		tally.numberOfTallyMarks = 5; // >>> EXPERIMENTAL <<<
+		tally.draw(drawTally, 0, 0); // >>> EXPERIMENTAL <<<
+		tally.text = oldText; // >>> EXPERIMENTAL <<<
+		tally.numberOfTallyMarks = oldNumberOfTallyMarks; // >>> EXPERIMENTAL <<<
+						tally.ctx.restore(); // >>> EXPERIMENTAL <<<
+						incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
+					} // >>> EXPERIMENTAL <<<
+					else // >>> EXPERIMENTAL <<<
 					{ // >>> EXPERIMENTAL <<<
 						mShrinkAndRotateIIIII.proceed(); // >>> EXPERIMENTAL <<<
 						mShrinkAndRotateIIIII.draw(); // >>> EXPERIMENTAL <<<
