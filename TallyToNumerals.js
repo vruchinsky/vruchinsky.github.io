@@ -1313,8 +1313,9 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 	ctx = null; // drawing context of cnv
 	leftText = null; // constant
 	rightText = null; // constant
-	textOnly = true; // true iff fcnDrawing===null
-	fcnDrawing = null; // ref. to function used to draw the graphic
+	textOnly = true; // true iff fcnLeftDrawing===null
+	fcnLeftDrawing = null; // ref. to function used to draw the left graphic
+	fcnRightDrawing = null; // ref. to function used to draw the right graphic
 	xr = 0; // updated horizontal position (in pixels) of right graphic
 	xRi = 0; // initial horizontal position (in pixels) of right graphic
 	xRf = 0; // final horizontal position (in pixels) of right graphic
@@ -1347,12 +1348,85 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 		this.rightText = s;
 		this.drawingOnCanvas = m.drawingOnCanvas;
 	}
-	setDrawing(f)
+	setDrawing(lf, rf)
 	{
-		this.fcnDrawing = f;
+		this.fcnLeftDrawing = lf;
+		if (typeof rf !== 'undefined')
+			this.fcnRightDrawing = rf;
 		this.textOnly = false;
 	}
-	start(lText, xLtext, xAnotherArg) // use and meaning of xAnotherArg depends whether this.rightText===null
+	restart(lText, lData)
+	{
+		this.finished = true;
+		this.justFinished = false;
+		if (this.cnv === null || this.ctx === null)
+			return; // browser does not support canvas
+		this.finished = false;
+		this.leftText = lText;
+		this.xl = this.xLi = lData.xi; // xi is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
+//		if (this.rightText === null)
+			this.xLf = lData.xf; // this instance is used to move only this.leftText
+//		else // xAnotherArg is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
+//			this.xr = this.xRi = xAnotherArg; // move both this.leftText and this.rightText
+		this.verticalPosition = lData.y;
+/*		let metrics = null;
+ 		if (this.rightText !== null)
+		{
+			this.xRf = horizontalOffset; // default value, in case cannot obtain valid text metrics
+			if (this.textOnly)
+			{
+				metrics = this.ctx.measureText(this.rightText);
+				if (metrics !== null)
+				{
+					if (fpLess(0, metrics.width, fpTolerance))
+						this.xRf += metrics.width;
+					if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+						this.verticalPosition = metrics.actualBoundingBoxAscent;
+				}
+			}
+			this.xRf = fpLimitToInterval(this.xRf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+			this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
+		} */
+		this.wLeftText = lData.w;
+/* 		if (this.textOnly)
+		{
+			if (this.rightText !== null)
+				this.xLf = this.xRf + this.wLeftText;
+		} */
+/* 		if ((this.drawingOnCanvas.flipHorizontalAxis == false) && (this.rightText !== null))
+		{ // if this.rightText === null, then xRf is not used and xLf is already adjusted for this.drawingOnCanvas.flipHorizontalAxis
+			this.xRf = this.cnv.width - this.xRf;
+			this.xLf = this.cnv.width - this.xLf;
+		} */
+		this.vxl = AnimationSpeedClosingTheGaps * (this.xLf - this.xLi);
+		this.lStationary = (this.leftText===null) ||
+			(this.leftText==="") || fpEqual(this.vxl, 0, fpTolerance);
+		this.vlPos = fpLess(0, this.vxl, fpTolerance);
+		this.vlNeg = fpLess(this.vxl, 0, fpTolerance);
+		this.vxr = (this.rightText===null) ? 0 : (AnimationSpeedClosingTheGaps * (this.xRf - this.xRi));
+		this.rStationary = (this.rightText===null) ||
+			(this.rightText==="") || fpEqual(this.vxr, 0, fpTolerance);
+		this.vrPos = fpLess(0, this.vxr, fpTolerance);
+		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
+		if (this.textOnly)
+		{
+			this.xClear = fpMin(this.xLi, this.xLf, fpTolerance);
+			this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+			if (this.rightText === null)
+				this.wClear = this.wLeftText + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
+			else
+				this.wClear = this.cnv.width - this.xClear;
+			this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
+			this.drawingOnCanvas.horizontalPosition = this.xClear;
+		}
+		else
+		{ // subtracting 1 remedies failure to erase (while sliding) rightmost edge of rightmost box (which leaves a streak)
+			this.xClear = fpLimitToInterval(this.drawingOnCanvas.horizontalPosition - 1, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+			this.wClear = fpLimitToInterval(this.drawingOnCanvas.drawingWidth + 1, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
+		}
+		this.t = Date.now();
+	}
+	start(lText, xLtext, xAnotherArg) // the use and the meaning of xAnotherArg depend on whether this.rightText===null
 	{ // if this.rightText===null, then xAnotherArg is the final position of this.leftText
 		this.finished = true; // if this.rightText!==null, then xAnotherArg is the initial position of this.rightText
 		this.justFinished = false;
@@ -1365,12 +1439,12 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 			this.xLf = xAnotherArg; // this instance is used to move only this.leftText
 		else // xAnotherArg is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
 			this.xr = this.xRi = xAnotherArg; // move both this.leftText and this.rightText
-		this.verticalPosition = (this.fcnDrawing === null) ? this.cnv.height : verticalOffset; // default value, in case cannot obtain valid text metrics
+		this.verticalPosition = this.textOnly ? this.cnv.height : verticalOffset; // default value, in case cannot obtain valid text metrics
 		let metrics = null;
 		if (this.rightText !== null)
 		{
 			this.xRf = horizontalOffset; // default value, in case cannot obtain valid text metrics
-			if (this.fcnDrawing === null)
+			if (this.textOnly)
 			{
 				metrics = this.ctx.measureText(this.rightText);
 				if (metrics !== null)
@@ -1385,9 +1459,7 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 			this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
 		}
 		this.wLeftText = 0; // default value, in case cannot obtain valid text metrics
-		if (this.fcnDrawing !== null)
-			this.wLeftText = this.drawingOnCanvas.drawingWidth;
-		else
+		if (this.textOnly)
 		{
 			metrics = this.ctx.measureText(this.leftText);
 			if (metrics !== null)
@@ -1400,6 +1472,8 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 					this.verticalPosition = metrics.actualBoundingBoxAscent;
 			}
 		}
+		else
+			this.wLeftText = this.drawingOnCanvas.drawingWidth;
 		this.xLf = fpLimitToInterval(this.xLf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if ((this.drawingOnCanvas.flipHorizontalAxis == false) && (this.rightText !== null))
 		{ // if this.rightText === null, then xRf is not used and xLf is already adjusted for this.drawingOnCanvas.flipHorizontalAxis
@@ -1416,21 +1490,21 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 			(this.rightText==="") || fpEqual(this.vxr, 0, fpTolerance);
 		this.vrPos = fpLess(0, this.vxr, fpTolerance);
 		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
-		if (this.fcnDrawing !== null)
-		{ // subtracting 1 remedies failure to erase (while sliding) rightmost edge of rightmost box (which leaves a streak)
-			this.xClear = fpLimitToInterval(this.drawingOnCanvas.horizontalPosition - 1, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-			this.wClear = fpLimitToInterval(this.drawingOnCanvas.drawingWidth + 1, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
-		}
-		else
+		if (this.textOnly)
 		{
 			this.xClear = fpMin(this.xLi, this.xLf, fpTolerance);
 			this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 			if (this.rightText === null)
 				this.wClear = this.wLeftText + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
 			else
-				this.wClear = this.cnv.width - horizontalOffset - this.xClear + 1;
+				this.wClear = this.cnv.width - this.xClear;
 			this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
 			this.drawingOnCanvas.horizontalPosition = this.xClear;
+		}
+		else
+		{ // subtracting 1 remedies failure to erase (while sliding) rightmost edge of rightmost box (which leaves a streak)
+			this.xClear = fpLimitToInterval(this.drawingOnCanvas.horizontalPosition - 1, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+			this.wClear = fpLimitToInterval(this.drawingOnCanvas.drawingWidth + 1, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
 		}
 		this.t = Date.now();
 	}
@@ -1494,8 +1568,8 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 		this.ctx.clearRect(this.xClear, -0.5, this.wClear, this.cnv.height);
 		if (this.leftText !== null)
 		{
-			if (this.fcnDrawing !== null)
-				this.drawingOnCanvas.draw(this.fcnDrawing, this.xl, this.verticalPosition);
+			if (this.fcnLeftDrawing !== null)
+				this.drawingOnCanvas.draw(this.fcnLeftDrawing, this.xl, this.verticalPosition);
 			else
 			{
 				this.drawingOnCanvas.horizontalPosition = this.xl;
@@ -1505,7 +1579,10 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 		}
 		if (this.rightText !== null)
 		{
-			this.ctx.fillText(this.rightText, this.xr, this.verticalPosition);
+			if (this.fcnRightDrawing !== null)
+				this.drawingOnCanvas.draw(this.fcnRightDrawing, this.xr, this.verticalPosition);
+			else
+				this.ctx.fillText(this.rightText, this.xr, this.verticalPosition);
 			if (this.leftText === null)
 				this.xClear = this.xr - 1; // subtracting 1 remedies failure to erase rightmost edge while sliding
 		}
@@ -1657,9 +1734,8 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	{
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		//const cvw = this.cnv.width - this.xInitial();
 		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
-		this.ctx.save(); // to reverse, using restore(), the following transformations after drawing at (x1,y1), before doing the same for (x2,y2)
+		this.ctx.save(); // to reverse, using restore(), the following transformations after drawing the graphic
 		this.ctx.translate(this.xc, this.yc);
 		this.ctx.rotate(-this.angle);
 		this.ctx.scale(this.scaleX, this.scaleY);
@@ -2987,12 +3063,19 @@ class AnimateTallyMarkInsertion
 		this.morph.computeTextWidths(); // necessary to assign correct values for this.morph.wInitial() and to this.morph.wFinal()
 		let xi = horizontalOffset;
 		let xf = horizontalOffset;
+		let w = 0;
+		let y = this.textOnly ? this.cnv.height : verticalOffset; // default value, in case cannot obtain valid text metrics
 		let metrics = null;
 		if (this.makeSpace.textOnly)
 		{
 			metrics = this.ctx.measureText(this.entireText);
 			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
-				xi += metrics.width;
+			{
+				w = metrics.width;
+				xi += w;
+				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+					y = metrics.actualBoundingBoxAscent;
+			}
 			metrics = this.ctx.measureText(this.entireText + this.morph.finalText); // measure the entire string, as opposed to adding up lengths of measured substrings, in order to minimize small errors
 			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
 				xf += metrics.width;
@@ -3002,6 +3085,7 @@ class AnimateTallyMarkInsertion
 			metrics = this.ctx.measureText(this.morph.finalText); // use the measurement not yet rounded in order to minimize small errors
 			if (metrics !== null && fpLess(0, metrics.width, fpTolerance))
 				xf += metrics.width;
+			w = this.drawingOnCanvas.drawingWidth;
 		}
 		xi = fpLimitToInterval(xi, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		xf = fpLimitToInterval(xf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
@@ -3010,7 +3094,7 @@ class AnimateTallyMarkInsertion
 			xi = this.cnv.width - xi;
 			xf = this.cnv.width - xf;
 		}
-		this.makeSpace.start(this.entireText, xi, xf);
+		this.makeSpace.restart(this.entireText, {xi, xf, w, y});
 	}
 	more()
 	{
