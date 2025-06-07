@@ -1775,10 +1775,15 @@ class MetamorphoseIIIIItoV // the 1st stage of animations of metamorphosis of II
 		if (this.ctx === null)
 			return; // browser does not support canvas
 		let metrics = this.ctx.measureText(this.initialText);
-		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
-			this.wi = metrics.width;
+		if (metrics !== null)
+		{
+			if (fpLess(0, metrics.width, fpTolerance))
+				this.wi = metrics.width;
+			if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+				this.verticalPosition = metrics.actualBoundingBoxAscent;
+		}
 		metrics = this.ctx.measureText(this.finalText);
-		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+		if ((metrics !== null) && fpLess(0, metrics.width, fpTolerance))
 			this.wf = metrics.width;
 	}
 	reset()
@@ -1788,17 +1793,20 @@ class MetamorphoseIIIIItoV // the 1st stage of animations of metamorphosis of II
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		let metrics = this.ctx.measureText(this.initialText);
-		this.verticalPosition = metrics.actualBoundingBoxAscent;
-		this.x0i = this.x0 = horizontalOffset + metrics.width;
-		metrics = this.ctx.measureText(this.initialText.substring(1));
-		this.x1 = horizontalOffset + metrics.width;
+		this.computeTextWidths();
+		this.x0i = this.x0 = horizontalOffset + this.wi;
+		let metrics = this.ctx.measureText(this.initialText.substring(1));
+		if ((metrics !== null) && fpLess(0, metrics.width, fpTolerance))
+			this.x1 = horizontalOffset + metrics.width;
 		metrics = this.ctx.measureText(this.initialText.substring(2));
-		this.x2 = horizontalOffset + metrics.width;
+		if ((metrics !== null) && fpLess(0, metrics.width, fpTolerance))
+			this.x2 = horizontalOffset + metrics.width;
 		metrics = this.ctx.measureText(this.initialText.substring(3));
-		this.x3 = horizontalOffset + metrics.width;
+		if ((metrics !== null) && fpLess(0, metrics.width, fpTolerance))
+			this.x3 = horizontalOffset + metrics.width;
 		metrics = this.ctx.measureText(this.initialText.substring(4));
-		this.x4 = horizontalOffset + metrics.width;
+		if ((metrics !== null) && fpLess(0, metrics.width, fpTolerance))
+			this.x4 = horizontalOffset + metrics.width;
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 		{
 			this.x0i = this.cnv.width - this.x0i;
@@ -2143,10 +2151,18 @@ class MetamorphoseVVtoX
 		if (this.ctx === null)
 			return; // browser does not support canvas
 		let metrics = this.ctx.measureText(this.initialText);
-		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
-			this.wi = metrics.width;
+		if (metrics !== null)
+		{
+			if (fpLess(0, metrics.width, fpTolerance))
+				this.wi = metrics.width;
+			if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+			{
+				this.y2 = this.y1f = this.y1 = metrics.actualBoundingBoxAscent;
+				this.y2f = 0.5 * (this.y2);
+			}
+		}
 		metrics = this.ctx.measureText(this.finalText);
-		if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
+		if ((metrics !== null) && fpLess(0, metrics.width, fpTolerance))
 			this.wf = metrics.width;
 	}
 	reset()
@@ -2156,12 +2172,11 @@ class MetamorphoseVVtoX
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		let metrics = this.ctx.measureText(this.initialText);
-		this.y2 = this.y1f = this.y1 = metrics.actualBoundingBoxAscent;
-		this.y2f = 0.5 * (this.y2);
-		this.x1i = this.x1 = horizontalOffset + metrics.width;
-		metrics = this.ctx.measureText(this.initialText.substring(1));
-		this.x2 = horizontalOffset + metrics.width;
+		this.computeTextWidths();
+		this.x1i = this.x1 = horizontalOffset + this.wi;
+		let metrics = this.ctx.measureText(this.initialText.substring(1));
+		if ((metrics !== null) && fpLess(0, metrics.width, fpTolerance))
+			this.x2 = horizontalOffset + metrics.width;
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 		{
 			this.x1i = this.cnv.width - this.x1i;
@@ -2170,8 +2185,13 @@ class MetamorphoseVVtoX
 		}
 		this.xf = 0.25 * (this.x1) + 0.75 * (this.x2); // put convergence point closer to right V in order to help avoid drawing small parts of extremities of the left V on the part of the canvas which must remain unchanged during this metamorphosis
 		metrics = this.ctx.measureText(this.initialText[0]);
-		this.halfHeightNumeral = 0.5 * (metrics.actualBoundingBoxAscent);
-		this.halfWidthNumeral = 0.5 * (metrics.width);
+		if (metrics !== null)
+		{
+			if (fpLess(0, metrics.width, fpTolerance))
+				this.halfWidthNumeral = 0.5 * (metrics.width);
+			if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+				this.halfHeightNumeral = 0.5 * (metrics.actualBoundingBoxAscent);
+		}
 		this.scale = this.scaleI;
 		this.angle = this.angleI;
 		this.vx1 = 2*AnimationSpeedMetamorphosis*(this.xf - this.x1); // speed up the movement of the left V to its destination in order to help avoid drawing small parts of extremities of the left V outside the part of the canvas which initially displays initialText
@@ -2967,7 +2987,7 @@ class AnimateSymbolSubstitutionToFew
 		{
 			this.wSameText = this.drawingOnCanvas.drawingWidth;
 			this.xiSameText += this.morph.wInitial();
-			this.xfSameText += this.wSameText;
+			this.xfSameText += this.morph.wFinal();
 			if (this.morph.finalText != null)
 			{
 				this.xiNewText = this.morph.xFinal(); // this returned value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
