@@ -1325,7 +1325,7 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 	xLi = 0; // initial horizontal position (in pixels) of left graphic
 	xLf = 0; // final horizontal position (in pixels) of left graphic
 	xl = 0; // updated horizontal position (in pixels) of left graphic
-	wLeftText = 0; // width (in pixels) of this.leftText
+	wl = 0; // width (in pixels) of this.leftText
 	vxl = 0; // (px/msec) how fast to move xl towards xLf
 	vxr = 0; // (px/msec) how fast to move xr towards xRf
 	vyr = 0; // (px/msec) how fast to move yr towards yRf
@@ -1348,14 +1348,14 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 		this.rightText = s;
 		this.drawingOnCanvas = m.drawingOnCanvas;
 	}
-	setDrawing(lf, rf)
+	setDrawings(lf, rf)
 	{
 		this.fcnLeftDrawing = lf;
 		if (typeof rf !== 'undefined')
 			this.fcnRightDrawing = rf;
 		this.textOnly = false;
 	}
-	restart(lText, lData)
+	restart(lText, lData, rData)
 	{
 		this.finished = true;
 		this.justFinished = false;
@@ -1364,40 +1364,16 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 		this.finished = false;
 		this.leftText = lText;
 		this.xl = this.xLi = lData.xi; // xi is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
-//		if (this.rightText === null)
-			this.xLf = lData.xf; // this instance is used to move only this.leftText
-//		else // xAnotherArg is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
-//			this.xr = this.xRi = xAnotherArg; // move both this.leftText and this.rightText
+		this.xLf = lData.xf; // this instance is used to move only this.leftText
 		this.verticalPosition = lData.y;
-/*		let metrics = null;
- 		if (this.rightText !== null)
-		{
-			this.xRf = horizontalOffset; // default value, in case cannot obtain valid text metrics
-			if (this.textOnly)
-			{
-				metrics = this.ctx.measureText(this.rightText);
-				if (metrics !== null)
-				{
-					if (fpLess(0, metrics.width, fpTolerance))
-						this.xRf += metrics.width;
-					if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
-						this.verticalPosition = metrics.actualBoundingBoxAscent;
-				}
-			}
-			this.xRf = fpLimitToInterval(this.xRf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-			this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
-		} */
-		this.wLeftText = lData.w;
-/* 		if (this.textOnly)
-		{
-			if (this.rightText !== null)
-				this.xLf = this.xRf + this.wLeftText;
-		} */
-/* 		if ((this.drawingOnCanvas.flipHorizontalAxis == false) && (this.rightText !== null))
-		{ // if this.rightText === null, then xRf is not used and xLf is already adjusted for this.drawingOnCanvas.flipHorizontalAxis
-			this.xRf = this.cnv.width - this.xRf;
-			this.xLf = this.cnv.width - this.xLf;
-		} */
+		this.wl = lData.w;
+		if (rData != null)
+		{ // move both this.leftText and this.rightText
+			this.xr = this.xRi = rData.xi;
+			this.xRf = rData.xf;
+			this.yr = this.yRi = rData.y;
+			this.yRf = rData.y;
+		}
 		this.vxl = AnimationSpeedClosingTheGaps * (this.xLf - this.xLi);
 		this.lStationary = (this.leftText===null) ||
 			(this.leftText==="") || fpEqual(this.vxl, 0, fpTolerance);
@@ -1413,7 +1389,7 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 			this.xClear = fpMin(this.xLi, this.xLf, fpTolerance);
 			this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 			if (this.rightText === null)
-				this.wClear = this.wLeftText + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
+				this.wClear = this.wl + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
 			else
 				this.wClear = this.cnv.width - this.xClear;
 			this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
@@ -1458,22 +1434,22 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 			this.xRf = fpLimitToInterval(this.xRf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 			this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
 		}
-		this.wLeftText = 0; // default value, in case cannot obtain valid text metrics
+		this.wl = 0; // default value, in case cannot obtain valid text metrics
 		if (this.textOnly)
 		{
 			metrics = this.ctx.measureText(this.leftText);
 			if (metrics !== null)
 			{
 				if (fpLess(0, metrics.width, fpTolerance))
-					this.wLeftText = metrics.width;
+					this.wl = metrics.width;
 				if (this.rightText !== null)
-					this.xLf = this.xRf + this.wLeftText;
+					this.xLf = this.xRf + this.wl;
 				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
 					this.verticalPosition = metrics.actualBoundingBoxAscent;
 			}
 		}
 		else
-			this.wLeftText = this.drawingOnCanvas.drawingWidth;
+			this.wl = this.drawingOnCanvas.drawingWidth;
 		this.xLf = fpLimitToInterval(this.xLf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		if ((this.drawingOnCanvas.flipHorizontalAxis == false) && (this.rightText !== null))
 		{ // if this.rightText === null, then xRf is not used and xLf is already adjusted for this.drawingOnCanvas.flipHorizontalAxis
@@ -1495,7 +1471,7 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 			this.xClear = fpMin(this.xLi, this.xLf, fpTolerance);
 			this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 			if (this.rightText === null)
-				this.wClear = this.wLeftText + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
+				this.wClear = this.wl + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
 			else
 				this.wClear = this.cnv.width - this.xClear;
 			this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
@@ -1550,8 +1526,8 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 			u = this.xl + (this.vxl)*dt;
 			if (this.vlPos)
 			{
-				const xlLim = (this.xr > this.wLeftText) ? this.xr - this.wLeftText : this.xLf;
-				if (fpLessEq(u, xlLim, fpTolerance)) // prevent xl+wLeftText from surpassing xr (i.e. this.leftText running onto this.rightText)
+				const xlLim = (this.xr > this.wl) ? this.xr - this.wl : this.xLf;
+				if (fpLessEq(u, xlLim, fpTolerance)) // prevent xl+wl from surpassing xr (i.e. this.leftText running onto this.rightText)
 					this.xl = u;
 				else if (fpLess(this.xl, xlLim, fpTolerance)) // prevent this.xl from being set back
 					this.xl = xlLim;
@@ -2870,13 +2846,19 @@ class AnimateSymbolSubstitutionToFew
 	ctx = null; // drawing context of cnv
 	morph = null; // to store MetamorphoseIIIIItoV (or MetamorphoseVVtoX or Fade) object
 	closeTheGaps = null; // to store SlideGraphics object
+	entireText = null; // this.sameText followed by this.morph.initialText
+	sameText = null; // set to this.entireText.substring(0, nCsame) in this.reset()
+	nCsame = 0; // how many numerals in sameText
+	xiSameText = 0; // initial horizontal position (in pixels) of sameText on canvas
+	xfSameText = 0; // final horizontal position (in pixels) of sameText on canvas
+	wSameText = 0; // width (in pixels) of sameText on canvas
+	ySameText = 0; // vertical position (in pixels) of sameText on canvas
+	xiNewText = 0; // initial horizontal position (in pixels) of this.morph.finalText on canvas
+	xfNewText = 0; // final horizontal position (in pixels) of this.morph.finalText on canvas
+	wNewText = 0; // width (in pixels) of this.morph.finalText on canvas
+	yNewText = 0; // vertical position (in pixels) of this.morph.finalText on canvas
 	xClear = 0; // for closeTheGaps
 	wClear = 0; // for closeTheGaps
-	sameText = null; // set to entireText.substring(0, nCsame) in this.reset()
-	nCsame = 0; // how many numerals in sameText
-	entireText = null; // sameText followed by initialText
-	xiSameText = 0; // initial horizontal position of sameText on canvas
-	xfSameText = 0; // final horizontal position of sameText on canvas
 	started = false; // true iff initialText was found in entireText
 	finished = false; // iff finished all the stages of this animation
 	constructor(m)
@@ -2889,7 +2871,7 @@ class AnimateSymbolSubstitutionToFew
 		this.cnv = this.drawingOnCanvas.canvas;
 		this.ctx = this.morph.ctx;
 	}
-	setDrawing(f) {this.closeTheGaps.setDrawing(f);}
+	setDrawings(l, r) {this.closeTheGaps.setDrawings(l, r);}
 	getText()
 	{
 		if (this.morph === null)
@@ -2937,34 +2919,74 @@ class AnimateSymbolSubstitutionToFew
 		this.xClear = this.drawingOnCanvas.horizontalPosition;
 		this.wClear = this.drawingOnCanvas.drawingWidth;
 		this.morph.reset();
+		this.ySameText = this.closeTheGaps.textOnly ? this.cnv.height : verticalOffset; // default value, in case cannot obtain valid text metrics
 		this.xiSameText = horizontalOffset;
+		this.xfSameText = horizontalOffset;
+		if (this.morph.finalText != null)
+		{
+			this.xiNewText = horizontalOffset;
+			this.xfNewText = horizontalOffset;
+		}
 		let metrics = null;
 		if (this.closeTheGaps.textOnly)
 		{
 			metrics = this.ctx.measureText(this.entireText);
-			if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
-				this.xiSameText += metrics.width;
-		}
-		else
-			this.xiSameText = this.morph.wInitial();
-		this.xiSameText = fpLimitToInterval(this.xiSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		if (this.morph.finalText == null)
-		{
-			this.xfSameText = horizontalOffset;
-			if (this.closeTheGaps.textOnly)
+			if (metrics !== null)
 			{
-				metrics = this.ctx.measureText(this.sameText);
-				if (metrics !== null &&	fpLess(0, metrics.width, fpTolerance))
-					this.xfSameText += metrics.width;
+				if (fpLess(0, metrics.width, fpTolerance))
+					this.xiSameText += metrics.width;
+				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+					this.ySameText = metrics.actualBoundingBoxAscent;
 			}
-			this.xfSameText = fpLimitToInterval(this.xfSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
-			if (this.drawingOnCanvas.flipHorizontalAxis == false)
-				this.xfSameText = this.cnv.width - this.xfSameText;
+			metrics = this.ctx.measureText(this.sameText);
+			if (metrics !== null)
+			{
+				if (fpLess(0, metrics.width, fpTolerance))
+					this.wSameText = metrics.width;
+				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+					this.ySameText = metrics.actualBoundingBoxAscent;
+			}
+			if (this.morph.finalText == null)
+				this.xfSameText += this.wSameText;
+			else
+			{
+				metrics = this.ctx.measureText(this.sameText + this.morph.finalText);
+				if (metrics !== null)
+				{
+					if (fpLess(0, metrics.width, fpTolerance))
+						this.xfSameText += metrics.width;
+					if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+						this.ySameText = metrics.actualBoundingBoxAscent;
+				}
+				this.xiNewText = this.morph.xFinal(); // this returned value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
+				this.wNewText = this.morph.wFinal();
+				this.xfNewText += this.wNewText;
+			}
 		}
 		else
-			this.xfSameText = this.morph.xFinal(); // this returned value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
+		{
+			this.wSameText = this.drawingOnCanvas.drawingWidth;
+			this.xiSameText += this.morph.wInitial();
+			this.xfSameText += this.wSameText;
+			if (this.morph.finalText != null)
+			{
+				this.xiNewText = this.morph.xFinal(); // this returned value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
+				this.wNewText = this.morph.wFinal();
+				this.xfNewText += this.wNewText;
+			}
+		}
+		this.xiSameText = fpLimitToInterval(this.xiSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+		this.xfSameText = fpLimitToInterval(this.xfSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
+		this.yNewText = this.ySameText; // TO BE REVISED SOON
+
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 			this.xiSameText = this.cnv.width - this.xiSameText;
+		if (this.drawingOnCanvas.flipHorizontalAxis == false)
+			this.xfSameText = this.cnv.width - this.xfSameText;
+//		if ((this.closeTheGaps.textOnly == false) && (this.drawingOnCanvas.flipHorizontalAxis == false))
+//			this.xiNewText = this.cnv.width - this.xiNewText;
+		if (this.drawingOnCanvas.flipHorizontalAxis == false)
+			this.xfNewText = this.cnv.width - this.xfNewText;
 	}
 	more()
 	{
@@ -2979,7 +3001,21 @@ class AnimateSymbolSubstitutionToFew
 		{
 			if (this.morph.recent())
 			{
-				this.closeTheGaps.start(this.sameText, this.xiSameText, this.xfSameText);
+				let xi = this.xiSameText;
+				let xf = this.xfSameText;
+				let w = this.wSameText;
+				let y = this.ySameText;
+				let lData = {xi, xf, w, y};
+				let rData = null;
+				if (this.morph.finalText != null)
+				{
+					xi = this.xiNewText;
+					xf = this.xfNewText;
+					w = this.wNewText;
+					y = this.yNewText;
+					rData = {xi, xf, w, y};
+				}
+				this.closeTheGaps.restart(this.sameText, lData, rData);
 				if ((this.closeTheGaps.textOnly == false) && (this.morph.finalText == null))
 				{// tally mark being removed, so set up appropriate member variables as necessary
 					this.closeTheGaps.setClear(this.xClear, this.wClear);
@@ -3027,7 +3063,7 @@ class AnimateTallyMarkInsertion
 		this.ctx = this.morph.ctx;
 		this.makeSpace = new SlideGraphics(m, null);
 	}
-	setDrawing(f) {this.makeSpace.setDrawing(f);}
+	setDrawing(f) {this.makeSpace.setDrawings(f, null);}
 	getText()
 	{
 		if (this.morph === null)
@@ -3094,7 +3130,7 @@ class AnimateTallyMarkInsertion
 			xi = this.cnv.width - xi;
 			xf = this.cnv.width - xf;
 		}
-		this.makeSpace.restart(this.entireText, {xi, xf, w, y});
+		this.makeSpace.restart(this.entireText, {xi, xf, w, y}, null);
 	}
 	more()
 	{
@@ -3685,7 +3721,7 @@ decNumAnmtnsSbtrctv.append(new AnimateSymbolSubstitutionToFew(mSbtrctvOutI));
 let mTallyOutI = new Fade(tally, "I", null);
 mTallyOutI.setDrawings(drawTallyMark, null);
 let removeTally = new AnimateSymbolSubstitutionToFew(mTallyOutI);
-removeTally.setDrawing(drawTally);
+removeTally.setDrawings(drawTally, null);
 
 function decNumAnmtnsConstraints()
 {
