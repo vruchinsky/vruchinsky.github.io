@@ -1341,18 +1341,14 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 	wr = 0; // width (in pixels) of this.rightText
 	xRi = 0; // initial horizontal position (in pixels) of right graphic
 	xRf = 0; // final horizontal position (in pixels) of right graphic
-	yr = 0; // updated vertical position (in pixels) of right graphic
-	yRi = 0; // initial vertical position (in pixels) of right graphic
-	yRf = 0; // final vertical position (in pixels) of right graphic
 	xLi = 0; // initial horizontal position (in pixels) of left graphic
 	xLf = 0; // final horizontal position (in pixels) of left graphic
 	xl = 0; // updated horizontal position (in pixels) of left graphic
 	wl = 0; // width (in pixels) of this.leftText
 	vxl = 0; // (px/msec) how fast to move xl towards xLf
 	vxr = 0; // (px/msec) how fast to move xr towards xRf
-	vyr = 0; // (px/msec) how fast to move yr towards yRf
 	lStationary = true; // iff vxl == 0
-	rStationary = true; // iff vxr == 0 && vyr == 0
+	rStationary = true; // iff vxr == 0
 	vlNeg = false; // iff vxl < 0
 	vlPos = false; // iff vxl > 0
 	vrNeg = false; // iff vxr < 0
@@ -1379,7 +1375,7 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 			this.fcnRightDrawing = rf;
 		this.textOnly = false;
 	}
-	restart(lText, lData, rData)
+	start(lText, lData, rData)
 	{
 		this.finished = true;
 		this.justFinished = false;
@@ -1395,8 +1391,6 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 		{ // move both this.leftText and this.rightText
 			this.xr = this.xRi = rData.xi;
 			this.xRf = rData.xf;
-			this.yr = this.yRi = rData.y;
-			this.yRf = rData.y;
 			this.wr = rData.w;
 		}
 		this.vxl = AnimationSpeedClosingTheGaps * (this.xLf - this.xLi);
@@ -1409,107 +1403,16 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 			(this.rightText==="") || fpEqual(this.vxr, 0, fpTolerance);
 		this.vrPos = fpLess(0, this.vxr, fpTolerance);
 		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
-//		if (this.textOnly)
-//		{
-			this.xlClear = lData.xi; // fpMin(this.xLi, this.xLf, fpTolerance);
-			this.xlClear = fpLimitToInterval(this.xlClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-			this.wlClear = this.wl + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
-			this.wlClear = fpLimitToInterval(this.wlClear, 0, this.cnv.width - this.xlClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
-			if (rData != null)
-			{
-				this.xrClear = rData.xi; //fpMin(this.xRi, this.xRf, fpTolerance);
-				this.xrClear = fpLimitToInterval(this.xrClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-				this.wrClear = this.wr + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
-				this.wrClear = fpLimitToInterval(this.wrClear, 0, this.cnv.width - this.xrClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
-			}
-			//this.drawingOnCanvas.horizontalPosition = this.xClear;
-//		}
-//		else
-//		{ // subtracting 1 remedies failure to erase (while sliding) rightmost edge of rightmost box (which leaves a streak)
-//			this.xClear = fpLimitToInterval(this.drawingOnCanvas.horizontalPosition - 1, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-//			this.wClear = fpLimitToInterval(this.drawingOnCanvas.drawingWidth + 1, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
-//		}
-		this.t = Date.now();
-	}
-	start(lText, xLtext, xAnotherArg) // the use and the meaning of xAnotherArg depend on whether this.rightText===null
-	{ // if this.rightText===null, then xAnotherArg is the final position of this.leftText
-		this.finished = true; // if this.rightText!==null, then xAnotherArg is the initial position of this.rightText
-		this.justFinished = false;
-		if (this.cnv === null || this.ctx === null)
-			return; // browser does not support canvas
-		this.finished = false;
-		this.leftText = lText;
-		this.xl = this.xLi = xLtext; // xLtext is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
-		if (this.rightText === null)
-			this.xLf = xAnotherArg; // this instance is used to move only this.leftText
-		else // xAnotherArg is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
-			this.xr = this.xRi = xAnotherArg; // move both this.leftText and this.rightText
-		this.verticalPosition = this.textOnly ? this.cnv.height : verticalOffset; // default value, in case cannot obtain valid text metrics
-		let metrics = null;
-		if (this.rightText !== null)
+		this.xlClear = lData.xi; // fpMin(this.xLi, this.xLf, fpTolerance);
+		this.xlClear = fpLimitToInterval(this.xlClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+		this.wlClear = this.wl + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
+		this.wlClear = fpLimitToInterval(this.wlClear, 0, this.cnv.width - this.xlClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
+		if (rData != null)
 		{
-			this.xRf = horizontalOffset; // default value, in case cannot obtain valid text metrics
-			if (this.textOnly)
-			{
-				metrics = this.ctx.measureText(this.rightText);
-				if (metrics !== null)
-				{
-					if (fpLess(0, metrics.width, fpTolerance))
-						this.xRf += metrics.width;
-					if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
-						this.verticalPosition = metrics.actualBoundingBoxAscent;
-				}
-			}
-			this.xRf = fpLimitToInterval(this.xRf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-			this.xLf = this.xRf; // default value, in case cannot obtain valid text metrics
-		}
-		this.wl = 0; // default value, in case cannot obtain valid text metrics
-		if (this.textOnly)
-		{
-			metrics = this.ctx.measureText(this.leftText);
-			if (metrics !== null)
-			{
-				if (fpLess(0, metrics.width, fpTolerance))
-					this.wl = metrics.width;
-				if (this.rightText !== null)
-					this.xLf = this.xRf + this.wl;
-				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
-					this.verticalPosition = metrics.actualBoundingBoxAscent;
-			}
-		}
-		else
-			this.wl = this.drawingOnCanvas.drawingWidth;
-		this.xLf = fpLimitToInterval(this.xLf, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		if ((this.drawingOnCanvas.flipHorizontalAxis == false) && (this.rightText !== null))
-		{ // if this.rightText === null, then xRf is not used and xLf is already adjusted for this.drawingOnCanvas.flipHorizontalAxis
-			this.xRf = this.cnv.width - this.xRf;
-			this.xLf = this.cnv.width - this.xLf;
-		}
-		this.vxl = AnimationSpeedClosingTheGaps * (this.xLf - this.xLi);
-		this.lStationary = (this.leftText===null) ||
-			(this.leftText==="") || fpEqual(this.vxl, 0, fpTolerance);
-		this.vlPos = fpLess(0, this.vxl, fpTolerance);
-		this.vlNeg = fpLess(this.vxl, 0, fpTolerance);
-		this.vxr = (this.rightText===null) ? 0 : (AnimationSpeedClosingTheGaps * (this.xRf - this.xRi));
-		this.rStationary = (this.rightText===null) ||
-			(this.rightText==="") || fpEqual(this.vxr, 0, fpTolerance);
-		this.vrPos = fpLess(0, this.vxr, fpTolerance);
-		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
-		if (this.textOnly)
-		{
-			this.xClear = fpMin(this.xLi, this.xLf, fpTolerance);
-			this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-			if (this.rightText === null)
-				this.wClear = this.wl + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
-			else
-				this.wClear = this.cnv.width - this.xClear;
-			this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
-			this.drawingOnCanvas.horizontalPosition = this.xClear;
-		}
-		else
-		{ // subtracting 1 remedies failure to erase (while sliding) rightmost edge of rightmost box (which leaves a streak)
-			this.xClear = fpLimitToInterval(this.drawingOnCanvas.horizontalPosition - 1, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-			this.wClear = fpLimitToInterval(this.drawingOnCanvas.drawingWidth + 1, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
+			this.xrClear = rData.xi; //fpMin(this.xRi, this.xRf, fpTolerance);
+			this.xrClear = fpLimitToInterval(this.xrClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+			this.wrClear = this.wr + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
+			this.wrClear = fpLimitToInterval(this.wrClear, 0, this.cnv.width - this.xrClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
 		}
 		this.t = Date.now();
 	}
@@ -1565,11 +1468,14 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 	{
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
+		if (this.leftText !== null)
+			this.ctx.clearRect(this.xlClear, -0.5, this.wlClear, this.cnv.height);
+		if (this.rightText !== null)
+			this.ctx.clearRect(this.xrClear, -0.5, this.wrClear, this.cnv.height);
 		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
 		const oldText = this.drawingOnCanvas.text;
 		if (this.leftText !== null)
 		{
-			this.ctx.clearRect(this.xlClear, -0.5, this.wlClear, this.cnv.height);
 			if (this.fcnLeftDrawing !== null)
 			{
 				this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.leftText);
@@ -1585,7 +1491,6 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 		}
 		if (this.rightText !== null)
 		{
-			this.ctx.clearRect(this.xrClear, -0.5, this.wrClear, this.cnv.height);
 			if (this.fcnRightDrawing !== null)
 			{
 				this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.rightText);
@@ -1613,7 +1518,8 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	fcnInitialDrawing = null; // ref. to function used to draw the graphic corresponding to initialText
 	fcnFinalDrawing = null; // ref. to function used to draw the graphic corresponding to finalText
 	wi = 0; // width (in pixels) on canvas of initial drawing
-	wf = 0; // width (in pixels) on canvas of final drawing (including the border)
+	wf = 0; // width (in pixels) on canvas of shrunk (if not rotated) drawing (without any border)
+	wff = 0; // width (in pixels) on canvas of final drawing (including the border)
 	hi = 0; // height (in pixels) on canvas of initial drawing
 	hf = 0; // height (in pixels) on canvas of final drawing (including the border)
 	hwi = 0; // half of width (in pixels) on canvas of initial drawing
@@ -1646,7 +1552,7 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	xInitial() {return this.xi;}
 	xFinal() {return this.xf;}
 	wInitial() {return this.wi;}
-	wFinal() {return this.wf;}
+	wFinal() {return this.wff;}
 	yFinal() {return this.yf;}
 	constructor(d, fdi, fdf) // d must be ref. to DrawingOnCanvas object: tally
 	{// fdi and fdf must be ref-s to functions (drawTally() and drawBox5()) to draw on the canvas
@@ -1674,9 +1580,8 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
 		this.drawingOnCanvas.calculateOnly = true;
 		this.drawingOnCanvas.text = this.initialText;
-		this.drawingOnCanvas.numberOfTallyMarks = 5;
-		let sz = this.fcnInitialDrawing(this.drawingOnCanvas,
-			horizontalOffset, verticalOffset);
+		this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.initialText);
+		let sz = this.fcnInitialDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
 		this.wi = sz.w;
 		this.hi = sz.h;
 		this.hhi = 0.5 * this.hi;
@@ -1684,10 +1589,11 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		this.xc = this.xi + this.hwi;
 		this.yc = this.yi + this.hhi;
 		this.drawingOnCanvas.text = this.finalText;
-		sz = this.fcnFinalDrawing(this.drawingOnCanvas,
-			horizontalOffset, verticalOffset);
-		this.wf = sz.ih; // width of shrunk IIIII = height of column of 5 horizontal lines
-		this.hf = sz.iw; // height of shrunk IIIII = width of column of 5 horizontal lines
+		this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.finalText);
+		sz = this.fcnFinalDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.wff = sz.w;
+		this.wf = sz.ih; // width of shrunk (if not rotated) IIIII == height of column of 5 horizontal lines
+		this.hf = sz.iw; // height of shrunk (if not rotated) IIIII == width of column of 5 horizontal lines
 		this.xf = this.xc - (0.5 * sz.w);
 		this.yf = this.yc - (0.5 * sz.h);
 		this.drawingOnCanvas.text = oldText;
@@ -1741,7 +1647,6 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		this.angle = fpMin(u, this.angleF, fpTolerance); // prevent angle from surpassing angleF
 		this.t = t1;
 	}
-
 	draw()
 	{
 		if (this.cnv === null || this.ctx === null)
@@ -1907,8 +1812,7 @@ class MetamorphoseIIIIItoV // the 1st stage of animations of metamorphosis of II
 	{
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
-		const w = this.cnv.width - this.x0i;
-		this.ctx.clearRect(this.xInitial(), -0.5, w, this.cnv.height);
+		this.ctx.clearRect(this.xInitial(), -0.5, this.wInitial(), this.cnv.height);
 		this.ctx.save(); // to reverse the transform(), using restore(), after drawing at (x0,verticalPosition), before doing the same for the next position
 		this.ctx.transform(1, 0, this.skew, 1, this.x0, this.verticalPosition); // translate the axes to (x0,verticalPosition) and skew leftwards
 		this.ctx.fillText(this.initialText[0], 0, 0);
@@ -2913,8 +2817,6 @@ class AnimateSymbolSubstitutionToFew
 	xfNewText = 0; // final horizontal position (in pixels) of this.morph.finalText on canvas
 	wNewText = 0; // width (in pixels) of this.morph.finalText on canvas
 	yNewText = 0; // vertical position (in pixels) of this.morph.finalText on canvas
-	xClear = 0; // for closeTheGaps
-	wClear = 0; // for closeTheGaps
 	started = false; // true iff initialText was found in entireText
 	finished = false; // iff finished all the stages of this animation
 	constructor(m)
@@ -2972,8 +2874,6 @@ class AnimateSymbolSubstitutionToFew
 		}
 		this.started = true;
 		this.finished = false;
-		this.xClear = this.drawingOnCanvas.horizontalPosition;
-		this.wClear = this.drawingOnCanvas.drawingWidth;
 		this.morph.start();
 		this.ySameText = this.closeTheGaps.textOnly ? this.cnv.height : verticalOffset; // default value, in case cannot obtain valid text metrics
 		this.xiSameText = horizontalOffset;
@@ -3025,10 +2925,9 @@ class AnimateSymbolSubstitutionToFew
 			this.xiSameText += this.morph.wInitial();
 			this.xfSameText += this.morph.wFinal();
 			if (this.morph.finalText != null)
-			{
+			{ // this.xfNewText remains == horizontalOffset
 				this.xiNewText = this.morph.xFinal(); // this returned value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
 				this.wNewText = this.morph.wFinal();
-				this.xfNewText += this.wNewText;
 			}
 		}
 		this.xiSameText = fpLimitToInterval(this.xiSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
@@ -3071,7 +2970,9 @@ class AnimateSymbolSubstitutionToFew
 					y = this.yNewText;
 					rData = {xi, xf, w, y};
 				}
-				this.closeTheGaps.restart(this.sameText, lData, rData);
+				this.ctx.clearRect(this.morph.xInitial(), -0.5,
+									this.morph.wInitial(), this.cnv.height);
+				this.closeTheGaps.start(this.sameText, lData, rData);
 			}
 			this.finished = this.closeTheGaps.done();
 			if (this.finished == false)
@@ -3180,7 +3081,7 @@ class AnimateTallyMarkInsertion
 			xi = this.cnv.width - xi;
 			xf = this.cnv.width - xf;
 		}
-		this.makeSpace.restart(this.entireText, {xi, xf, w, y}, null);
+		this.makeSpace.start(this.entireText, {xi, xf, w, y}, null);
 	}
 	more()
 	{
@@ -3681,7 +3582,6 @@ function incNumAnmtnsConstraints()
 }
 
 let incrementTallyAnimationState = 0; // >>> EXPERIMENTAL <<<
-//let romanNumeralsAdditiveString = null; // >>> EXPERIMENTAL <<<
 
 function incrementNumber()
 {
@@ -3705,32 +3605,16 @@ function incrementNumber()
 		incNumAnmtnsSbtrctv.more();
 		if (insertTally.more() == false)
 		{
-			//romanNumeralsAdditiveString = romanNumeralsAdditive.get(); // >>> EXPERIMENTAL <<<
-			//if (romanNumeralsAdditiveString.length >= 5) // >>> EXPERIMENTAL <<<
-			//	romanNumeralsAdditiveString = romanNumeralsAdditiveString.substring(romanNumeralsAdditiveString.length - 5); // >>> EXPERIMENTAL <<<
-			//if (romanNumeralsAdditiveString == "IIIII") // >>> EXPERIMENTAL <<<
-			//{ // >>> EXPERIMENTAL <<<
 				if (incrementTallyAnimationState == 0) // >>> EXPERIMENTAL <<<
 				{ // >>> EXPERIMENTAL <<<
-			//		mShrinkAndRotateIIIII.start(); // >>> EXPERIMENTAL <<<
 					aBoxIIIII.start(romanNumeralsAdditive.get());
 					incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
 				} // >>> EXPERIMENTAL <<<
 				else if (incrementTallyAnimationState == 1) // >>> EXPERIMENTAL <<<
 				{ // >>> EXPERIMENTAL <<<
-			//		if (mShrinkAndRotateIIIII.done()) // >>> EXPERIMENTAL <<<
-			//		{ // >>> EXPERIMENTAL <<<
-			//			drawBox5(tally, mShrinkAndRotateIIIII.xFinal(), mShrinkAndRotateIIIII.yFinal()); // >>> EXPERIMENTAL <<<
 					if (aBoxIIIII.more() == false)
 						incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
-			//		} // >>> EXPERIMENTAL <<<
-			//		else // >>> EXPERIMENTAL <<<
-			//		{ // >>> EXPERIMENTAL <<<
-			//			mShrinkAndRotateIIIII.proceed(); // >>> EXPERIMENTAL <<<
-			//			mShrinkAndRotateIIIII.draw(); // >>> EXPERIMENTAL <<<
-			//		} // >>> EXPERIMENTAL <<<
 				} // >>> EXPERIMENTAL <<<
-			//} // >>> EXPERIMENTAL <<<
 		}
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
