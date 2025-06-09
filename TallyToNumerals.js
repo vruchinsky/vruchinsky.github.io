@@ -1521,7 +1521,8 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	wf = 0; // width (in pixels) on canvas of shrunk (if not rotated) drawing (without any border)
 	wff = 0; // width (in pixels) on canvas of final drawing (including the border)
 	hi = 0; // height (in pixels) on canvas of initial drawing
-	hf = 0; // height (in pixels) on canvas of final drawing (including the border)
+	hf = 0; // height (in pixels) on canvas of shrunk (if not rotated) drawing (without any border)
+	hff = 0; // height (in pixels) on canvas of final drawing (including the border)
 	hwi = 0; // half of width (in pixels) on canvas of initial drawing
 	hhi = 0; // half of height (in pixels) on canvas of final drawing
 	xi = 0; // initial horizontal position of the right side of initial drawing
@@ -1565,6 +1566,27 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
 			this.ctx = this.cnv.getContext("2d");
 	}
+	computeGraphicsSizes()
+	{
+		const oldText = this.drawingOnCanvas.text;
+		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = true;
+		this.drawingOnCanvas.text = this.initialText;
+		this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.initialText);
+		let sz = this.fcnInitialDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.wi = sz.w;
+		this.hi = sz.h;
+		this.drawingOnCanvas.text = this.finalText;
+		this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.finalText);
+		sz = this.fcnFinalDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.wff = sz.w;
+		this.hff = sz.h;
+		this.wf = sz.ih; // width of shrunk (if not rotated) IIIII == height of column of 5 horizontal lines
+		this.hf = sz.iw; // height of shrunk (if not rotated) IIIII == width of column of 5 horizontal lines
+		this.drawingOnCanvas.text = oldText;
+		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = false;
+	}
 	start()
 	{
 		this.finished = true;
@@ -1576,29 +1598,13 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		this.yi = verticalOffset;
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 			this.xi = this.cnv.width - this.xi;
-		const oldText = this.drawingOnCanvas.text;
-		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
-		this.drawingOnCanvas.calculateOnly = true;
-		this.drawingOnCanvas.text = this.initialText;
-		this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.initialText);
-		let sz = this.fcnInitialDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
-		this.wi = sz.w;
-		this.hi = sz.h;
+		this.computeGraphicsSizes();
 		this.hhi = 0.5 * this.hi;
 		this.hwi = 0.5 * this.wi;
 		this.xc = this.xi + this.hwi;
 		this.yc = this.yi + this.hhi;
-		this.drawingOnCanvas.text = this.finalText;
-		this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.finalText);
-		sz = this.fcnFinalDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
-		this.wff = sz.w;
-		this.wf = sz.ih; // width of shrunk (if not rotated) IIIII == height of column of 5 horizontal lines
-		this.hf = sz.iw; // height of shrunk (if not rotated) IIIII == width of column of 5 horizontal lines
-		this.xf = this.xc - (0.5 * sz.w);
-		this.yf = this.yc - (0.5 * sz.h);
-		this.drawingOnCanvas.text = oldText;
-		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
-		this.drawingOnCanvas.calculateOnly = false;
+		this.xf = this.xc - (0.5 * this.wff);
+		this.yf = this.yc - (0.5 * this.hff);
 		if (fpLess(0, this.wi, fpTolerance))
 			this.scaleXf = 1.23*(this.wf / this.wi); // the increase factor, determined by trial and error, is a hack to remedy excessive shrinking of the drawing
 		if (fpLess(0, this.hi, fpTolerance))
@@ -1711,7 +1717,7 @@ class MetamorphoseIIIIItoV // the 1st stage of animations of metamorphosis of II
 	xFinal() {return this.xf;}
 	wInitial() {return this.wi;}
 	wFinal() {return this.wf;}
-	computeTextWidths() // called in this.start()
+	computeGraphicsSizes() // called in this.start()
 	{ // useless to compute this in this.constructor() b/c no guarantee that the HTML canvas is properly set up before this.constructor() is called
 		if (this.ctx === null)
 			return; // browser does not support canvas
@@ -1734,7 +1740,7 @@ class MetamorphoseIIIIItoV // the 1st stage of animations of metamorphosis of II
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		this.computeTextWidths();
+		this.computeGraphicsSizes();
 		this.x0i = this.x0 = horizontalOffset + this.wi;
 		let metrics = this.ctx.measureText(this.initialText.substring(1));
 		if ((metrics !== null) && fpLess(0, metrics.width, fpTolerance))
@@ -2086,7 +2092,7 @@ class MetamorphoseVVtoX
 	xFinal() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
 	wInitial() {return this.wi;}
 	wFinal() {return this.wf;}
-	computeTextWidths() // called in this.start()
+	computeGraphicsSizes() // called in this.start()
 	{ // useless to compute this in this.constructor() b/c no guarantee that the HTML canvas is properly set up before this.constructor() is called
 		if (this.ctx === null)
 			return; // browser does not support canvas
@@ -2112,7 +2118,7 @@ class MetamorphoseVVtoX
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
-		this.computeTextWidths();
+		this.computeGraphicsSizes();
 		this.x1i = this.x1 = horizontalOffset + this.wi;
 		let metrics = this.ctx.measureText(this.initialText.substring(1));
 		if ((metrics !== null) && fpLess(0, metrics.width, fpTolerance))
@@ -2454,7 +2460,7 @@ class Fade // used to fade graphics in, to fade graphics out...
 	xFinal() {return this.xf;} // horizontal position of finalText at the end of this metamorphosis
 	wInitial() {return this.wi;}
 	wFinal() {return this.wf;}
-	computeTextWidths() // called in this.start() and in AnimateTallyMarkInsertion.start() which calls wFinal() method of this class
+	computeGraphicsSizes() // called in this.start() and in AnimateTallyMarkInsertion.start() which calls wFinal() method of this class
 	{ // useless to compute this in this.constructor() b/c no guarantee that the HTML canvas is properly set up before this.constructor() is called
 		if (this.ctx === null)
 			return; // browser does not support canvas
@@ -2485,7 +2491,7 @@ class Fade // used to fade graphics in, to fade graphics out...
 		this.xi = horizontalOffset;
 		this.xf = horizontalOffset;
 		let metrics = null;
-		this.computeTextWidths();
+		this.computeGraphicsSizes();
 		const finalTextOnly = (this.finalText !== null) && (this.fcnFinalDrawing === null);
 		if (this.initialText !== null)
 		{
@@ -2846,6 +2852,35 @@ class AnimateSymbolSubstitutionToFew
 		this.started = false;
 		this.finished = false;
 	}
+	computeGraphicsSizes()
+	{
+		if (this.closeTheGaps.textOnly)
+		{
+			let metrics = this.ctx.measureText(this.sameText);
+			if (metrics !== null)
+			{
+				if (fpLess(0, metrics.width, fpTolerance))
+					this.wSameText = metrics.width;
+				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
+					this.ySameText = metrics.actualBoundingBoxAscent;
+			}
+		}
+		else
+		{
+			const oldText = this.drawingOnCanvas.text;
+			const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+			this.drawingOnCanvas.calculateOnly = true;
+			this.drawingOnCanvas.text = this.sameText;
+			this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.sameText);
+			let sz = this.closeTheGaps.fcnLeftDrawing(this.drawingOnCanvas, 0, 0);
+			this.wSameText = sz.w;
+			this.drawingOnCanvas.text = oldText;
+			this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+			this.drawingOnCanvas.calculateOnly = false;
+		}
+		if (this.morph.finalText != null)
+			this.wNewText = this.morph.wFinal();
+	}
 	start(sText)
 	{
 		if (sText == null || this.morph.initialText == null ||
@@ -2875,6 +2910,7 @@ class AnimateSymbolSubstitutionToFew
 		this.started = true;
 		this.finished = false;
 		this.morph.start();
+		this.computeGraphicsSizes();
 		this.ySameText = this.closeTheGaps.textOnly ? this.cnv.height : verticalOffset; // default value, in case cannot obtain valid text metrics
 		this.xiSameText = horizontalOffset;
 		this.xfSameText = horizontalOffset;
@@ -2883,22 +2919,13 @@ class AnimateSymbolSubstitutionToFew
 			this.xiNewText = horizontalOffset;
 			this.xfNewText = horizontalOffset;
 		}
-		let metrics = null;
 		if (this.closeTheGaps.textOnly)
 		{
-			metrics = this.ctx.measureText(this.entireText);
+			let metrics = this.ctx.measureText(this.entireText);
 			if (metrics !== null)
 			{
 				if (fpLess(0, metrics.width, fpTolerance))
 					this.xiSameText += metrics.width;
-				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
-					this.ySameText = metrics.actualBoundingBoxAscent;
-			}
-			metrics = this.ctx.measureText(this.sameText);
-			if (metrics !== null)
-			{
-				if (fpLess(0, metrics.width, fpTolerance))
-					this.wSameText = metrics.width;
 				if (fpLess(0, metrics.actualBoundingBoxAscent, fpTolerance))
 					this.ySameText = metrics.actualBoundingBoxAscent;
 			}
@@ -2915,24 +2942,21 @@ class AnimateSymbolSubstitutionToFew
 						this.ySameText = metrics.actualBoundingBoxAscent;
 				}
 				this.xiNewText = this.morph.xFinal(); // this returned value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
-				this.wNewText = this.morph.wFinal();
 				this.xfNewText += this.wNewText;
 			}
 		}
 		else
 		{
-			this.wSameText = this.drawingOnCanvas.drawingWidth;
 			this.xiSameText += this.morph.wInitial();
 			this.xfSameText += this.morph.wFinal();
 			if (this.morph.finalText != null)
 			{ // this.xfNewText remains == horizontalOffset
 				this.xiNewText = this.morph.xFinal(); // this returned value is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
-				this.wNewText = this.morph.wFinal();
 			}
 		}
 		this.xiSameText = fpLimitToInterval(this.xiSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		this.xfSameText = fpLimitToInterval(this.xfSameText, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width
-		this.yNewText = this.ySameText; // TO BE REVISED SOON
+		this.yNewText = this.ySameText;
 
 		if (this.drawingOnCanvas.flipHorizontalAxis == false)
 			this.xiSameText = this.cnv.width - this.xiSameText;
@@ -2981,14 +3005,22 @@ class AnimateSymbolSubstitutionToFew
 				this.closeTheGaps.draw();
 			}
 		}
-		if (this.finished && (this.drawingOnCanvas !== null) && this.closeTheGaps.textOnly)
+		if (this.finished && (this.drawingOnCanvas !== null))
 		{
 			let s = null;
 			if (this.morph.finalText == null)
 				s = (this.morph.initialText==null) ? this.entireText : this.sameText;
 			else
 				s = replaceLastChars(this.entireText, this.morph.initialText, this.morph.finalText);
-			this.drawingOnCanvas.set(s);
+			if (this.closeTheGaps.textOnly)
+				this.drawingOnCanvas.set(s);
+			else //the following redrawing remedies the apparent small jump in some parts of the final
+			{//tally when all the graphics are redrawn at the end of animation e.g. of incrementing from 24
+				this.drawingOnCanvas.clearCanvas();
+				this.drawingOnCanvas.text = s;
+				this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(s);
+				this.closeTheGaps.fcnLeftDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+			}
 		}
 		return !this.finished;
 	}
@@ -3047,7 +3079,7 @@ class AnimateTallyMarkInsertion
 			return; // browser does not support canvas
 		}
 		this.started = true;
-		this.morph.computeTextWidths(); // necessary to assign correct values for this.morph.wInitial() and to this.morph.wFinal()
+		this.morph.computeGraphicsSizes(); // necessary to assign correct values for this.morph.wInitial() and to this.morph.wFinal()
 		let xi = horizontalOffset;
 		let xf = horizontalOffset;
 		let w = 0;
