@@ -2994,8 +2994,9 @@ class AnimateSymbolSubstitutionToFew
 					y = this.yNewText;
 					rData = {xi, xf, w, y};
 				}
-				this.ctx.clearRect(this.morph.xInitial(), -0.5,
-									this.morph.wInitial(), this.cnv.height);
+				this.ctx.clearRect(this.morph.xInitial(), -0.5,//remedies failure to erase top-left
+									this.morph.wInitial(),//corner of merged IIIII until after
+									this.cnv.height);//sliding the resulting V to the right
 				this.closeTheGaps.start(this.sameText, lData, rData);
 			}
 			this.finished = this.closeTheGaps.done();
@@ -3135,10 +3136,13 @@ class AnimateTallyMarkInsertion
 				this.morph.draw();
 			}
 		}
-		if (this.finished && this.makeSpace.textOnly && (this.drawingOnCanvas !== null))
+		if (this.finished && (this.drawingOnCanvas !== null))
 		{
 			const s = this.entireText + this.morph.finalText;
-			this.drawingOnCanvas.set(s);
+			if (this.makeSpace.textOnly)
+				this.drawingOnCanvas.set(s); // also displays the text on the canvas
+			else
+				this.drawingOnCanvas.text = s;
 		}
 		return !this.finished;
 	}
@@ -3629,7 +3633,7 @@ function incrementNumber()
 		eraseDrawings();
 		incNumAnmtnsAddtv.start();
 		incNumAnmtnsSbtrctv.start();
-		insertTally.start(romanNumeralsAdditive.get());
+		insertTally.start(tally.get());
 	}
 	else
 	{
@@ -3639,12 +3643,12 @@ function incrementNumber()
 		{
 				if (incrementTallyAnimationState == 0) // >>> EXPERIMENTAL <<<
 				{ // >>> EXPERIMENTAL <<<
-					aBoxIIIII.start(romanNumeralsAdditive.get());
+					aBoxIIIII.start(tally.get()); // >>> EXPERIMENTAL <<<
 					incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
 				} // >>> EXPERIMENTAL <<<
 				else if (incrementTallyAnimationState == 1) // >>> EXPERIMENTAL <<<
 				{ // >>> EXPERIMENTAL <<<
-					if (aBoxIIIII.more() == false)
+					if (aBoxIIIII.more() == false) // >>> EXPERIMENTAL <<<
 						incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
 				} // >>> EXPERIMENTAL <<<
 		}
