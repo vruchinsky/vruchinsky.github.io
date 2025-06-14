@@ -1327,8 +1327,8 @@ function enableButtons()
 	incrementOrDecrementExecuting = false;
 }
 
-class SlideGraphics // the last stage of animations of metamorphoses of some numerals into others, e.g. IIIII->V, VV->X
-{ // b/c such a metamorphosis leaves gaps in the entire numerical expression, e.g. XXIIIII -> XX  V
+class SlideGraphics //used to make space before inserting (fading in) a tally mark or, alternatively, as the last stage of animations of metamorphoses of some numerals (and tallies) into others, e.g. IIIII->V, VV->X
+{// b/c such a metamorphosis leaves gaps in the entire numerical expression, e.g. XXIIIII -> XX  V
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
@@ -1338,13 +1338,13 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 	fcnLeftDrawing = null; // ref. to function used to draw the left graphic
 	fcnRightDrawing = null; // ref. to function used to draw the right graphic
 	xr = 0; // updated horizontal position (in pixels) of right graphic
-	wr = 0; // width (in pixels) of this.rightText
+	wr = 0; // width (in pixels) of the right graphic
 	xRi = 0; // initial horizontal position (in pixels) of right graphic
 	xRf = 0; // final horizontal position (in pixels) of right graphic
 	xLi = 0; // initial horizontal position (in pixels) of left graphic
 	xLf = 0; // final horizontal position (in pixels) of left graphic
 	xl = 0; // updated horizontal position (in pixels) of left graphic
-	wl = 0; // width (in pixels) of this.leftText
+	wl = 0; // width (in pixels) of the left graphic
 	vxl = 0; // (px/msec) how fast to move xl towards xLf
 	vxr = 0; // (px/msec) how fast to move xr towards xRf
 	lStationary = true; // iff vxl == 0
@@ -1418,7 +1418,8 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 	}
 	done() // true iff finished this particular stage of the animation
 	{
-		if (this.finished) return true;
+		if (this.finished)
+			return true;
 		this.finished =
 			((this.lStationary || fpEqual(this.xl, this.xLf, fpTolerance)) &&
 			(this.rStationary || fpEqual(this.xr, this.xRf, fpTolerance)));
@@ -1428,7 +1429,8 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 	}
 	recent() // returns true iff the most recent call to this.done() has returned true but...
 	{ //...the call to this.done immediately prior to the most recent call to this.done()...
-		if (this.justFinished==false) return false; //...has returned false
+		if (this.justFinished==false) //...has returned false
+			return false;
 		this.justFinished = false;
 		return true;
 	}
@@ -1487,7 +1489,7 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 				this.drawingOnCanvas.horizontalPosition = this.xl;
 				this.ctx.fillText(this.leftText, this.xl, this.verticalPosition);
 			}
-			this.xlClear = this.xl - 1; // subtracting 1 remedies failure to erase rightmost edgewhile sliding
+			this.xlClear = this.xl - 1; // subtracting 1 remedies failure to erase rightmost edge while sliding
 		}
 		if (this.rightText !== null)
 		{
@@ -1508,6 +1510,164 @@ class SlideGraphics // the last stage of animations of metamorphoses of some num
 	}
 }
 
+class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes of...
+{//...5 and merge them into 1 box of 10, analogous to class MetamorphoseVVtoX
+	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
+	initialText = "VV"; // Roman-numeral equivalent of the 2 initial graphics
+	finalText = "X"; // Roman-numeral equivalent of the final graphic
+	initialNumber = 0; // numerical equivalent of initialText[0]
+	finalNumber = 0; // numerical equivalent of finalText
+	fcnDrawing = null; // ref. to function used to draw each of the 2 part of the initial graphic
+	w = 0; // width (in pixels) of each of the 2 parts of the initial graphic
+	ww = 0; // width (in pixels) of the initial graphic (both parts together)
+	h = 0; // height (in pixels) of each of the initial graphic
+	xr = 0; // horizontal position (in pixels) of the right part of the initial graphic
+	yr = 0; // vertical position of the right part of the initial graphic
+	xLi = 0; // initial horizontal position (in pixels) of the left part of the initial graphic
+	xLf = 0; // final horizontal position (in pixels) of the left part of the initial graphic
+	xl = 0; // updated horizontal position (in pixels) of the left part of the initial graphic
+	yLi = 0; // initial vertical position (in pixels) of the left part of the initial graphic
+	yLf = 0; // final vertical position (in pixels) of the left part of the initial graphic
+	yl = 0; // updated vertical position (in pixels) of the left part of the initial graphic
+	moveDown = true; // true iff updating yl, false iff updating xl
+	v = 0; // (px/msec) how fast to move yl from yLi towards yLf and then xl from xLi towards xLf
+	xClear = 0; // horizontal position (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
+	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared in each call to this.draw()
+	wClear = 0; // width (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
+	hClear = 0; // height (in pixels) of the part of the canvas to be cleared in each call to this.draw()
+	t = 0; // (msec) time of last update
+	finished = true; // used to implement this.done()
+	justFinished = false; // used to implement this.recent()
+	xInitial() {return this.xr;}
+	wInitial() {return this.ww;}
+	wFinal() {return this.w;}
+	xFinal() {return this.xr;}
+	constructor(d, iTxt, fTxt, f)
+	{
+		if (d === null)
+			return;
+		this.drawingOnCanvas = d;
+		this.cnv = this.drawingOnCanvas.canvas;
+		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
+			this.ctx = this.cnv.getContext("2d");
+		this.initialText = iTxt;
+		this.finalText = fTxt;
+		this.fcnDrawing = f;
+		if (this.initialText !== null)
+			this.initialNumber = convertRomanNumeralsAdditiveToNumber(this.initialText[0]);
+		if (this.finalText !== null)
+			this.finalNumber = convertRomanNumeralsAdditiveToNumber(this.finalText);
+	}
+	computeGraphicsSizes()
+	{
+		const oldText = this.drawingOnCanvas.text;
+		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = true;
+		this.drawingOnCanvas.text = this.initialText[0];
+		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
+		let sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.w = sz.w;
+		this.h = sz.h;
+		this.drawingOnCanvas.text = this.initialText; // to calculate width of the entire initial graphic (both parts together)
+		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
+		sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.ww = sz.w;
+		this.drawingOnCanvas.text = oldText;
+		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = false;
+	}
+	start()
+	{
+		this.finished = true;
+		this.justFinished = false;
+		this.moveDown = true;
+		if (this.cnv === null || this.ctx === null)
+			return; // browser does not support canvas
+		this.finished = false;
+		this.computeGraphicsSizes();
+		this.xr = horizontalOffset;
+		this.yr = verticalOffset;
+		this.xLi = horizontalOffset + this.w;
+		this.xLf = horizontalOffset;
+		this.yLi = verticalOffset;
+		this.yLf = verticalOffset + this.h;
+		this.xl = this.xLi;
+		this.yl = this.yLi;
+		const d = this.xLi - this.xLf + this.yLf - this.yLi; // total distance to travel
+		this.v = AnimationSpeedMetamorphosis * d;
+		this.xClear = this.xl - 1; // subtracting 1 remedies failure to erase right edge of box while sliding it down
+		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+		this.yClear = this.yl - 1; // subtracting 1 remedies failure to erase top edge of box while sliding it down
+		this.yClear = fpLimitToInterval(this.yClear, 0, this.cnv.height, fpTolerance); // prevent from exceeding canvas width and from being negative
+		this.wClear = this.w;
+		this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
+		this.hClear = this.h + 1; // adding 1 offsets subtraction of 1 from yClear, otherwise bottom edge of box is not erased while sliding it to the right
+		this.hClear = fpLimitToInterval(this.hClear, 0, this.cnv.height - this.yClear, fpTolerance); // prevent from exceeding available canvas height and from being negative
+		this.t = Date.now();
+	}
+	done() // true iff finished this particular stage of the animation
+	{
+		if (this.finished)
+			return true;
+		if (this.moveDown)
+		{
+			if (fpEqual(this.yl, this.yLf, fpTolerance))
+				this.moveDown = false;
+			return false;
+		}
+		this.finished = fpEqual(this.xl, this.xLf, fpTolerance);
+		if (this.finished)
+			this.justFinished = true;
+		return this.finished;
+	}
+	recent() // returns true iff the most recent call to this.done() has returned true but...
+	{//...the call to this.done immediately prior to the most recent call to this.done()...
+		if (this.justFinished==false) //...has returned false
+			return false;
+		this.justFinished = false;
+		return true;
+	}
+	proceed()
+	{
+		if (this.finished) return;
+		const t1 = Date.now(); // (msec)
+		const dt = t1 - this.t; // (msec) time since last update
+		let u;
+		if (this.moveDown)
+		{
+			u = this.yl  + (this.v)*dt;
+			this.yl = fpMin(u, this.yLf, fpTolerance); // prevent yl from surpassing yLf
+		}
+		else
+		{
+			u = this.xl - (this.v)*dt;
+			this.xl = fpMax(u, this.xLf, fpTolerance); // prevent xl from surpassing xLf
+		}
+		this.t = t1;
+	}
+	draw()
+	{
+		if (this.cnv === null || this.ctx === null)
+			return; // browser does not support canvas
+		if (this.fcnDrawing === null)
+			return;
+		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
+		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+		const oldText = this.drawingOnCanvas.text;
+		this.drawingOnCanvas.text = this.initialText[0];
+		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
+		this.drawingOnCanvas.draw(this.fcnDrawing, this.xl, this.yl);
+		this.xClear = this.xl - 1; // subtracting 1 remedies failure to erase right edge of box while sliding it down
+		this.yClear = this.yl - 1; // subtracting 1 remedies failure to erase top edge of box while sliding it down
+		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+		this.drawingOnCanvas.text = oldText;
+		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+		this.yClear = fpLimitToInterval(this.yClear, 0, this.cnv.height, fpTolerance); // prevent from exceeding canvas height and from being negative
+	}
+}
+
 class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||||| -> [box of 5]
 {// (the 2nd stage is sliding all the drawings to the right in order to have no empty spaces on the right or in the middle)
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
@@ -1515,6 +1675,8 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	ctx = null; // drawing context of cnv
 	initialText = "IIIII"; // (constant) to help identify this class in other code
 	finalText = "V"; // (constant) to help identify this class in other code
+	initialNumber = 0; // numerical equivalent of initialText
+	finalNumber = 0; // numerical equivalent of finalText
 	fcnInitialDrawing = null; // ref. to function used to draw the graphic corresponding to initialText
 	fcnFinalDrawing = null; // ref. to function used to draw the graphic corresponding to finalText
 	wi = 0; // width (in pixels) on canvas of initial drawing
@@ -1543,10 +1705,10 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	angleF = 0.5*Math.PI; // (constant) orientation of the final drawing
 	vAngle = 0; // how fast to move angle towards angleF (calculated from angleF, angleI and AnimationSpeedMetamorphosis)
 	angle = 0; // (of the left V) current value (starts = angleI and decreases to angleF)
-	xClear = 0; // horizontal position of area to be cleared in each call to this.draw()
-	yClear = 0; // vertical position of area to be cleared in each call to this.draw()
-	wClear = 0; // horizontal extent of area to be cleared in each call to this.draw()
-	hClear = 0; // vertical extent of area to be cleared in each call to this.draw()
+	xClear = 0; // horizontal position (in pixels) of the part of the canvas to be cleared in each call to this.draw()
+	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared in each call to this.draw()
+	wClear = 0; // width (in pixels) of the part of the canvas to be cleared in each call to this.draw()
+	hClear = 0; // height (in pixels) of the part of the canvas to be cleared in each call to this.draw()
 	t = 0; // (msec) time of last update
 	finished = true; // iff finished the metamorphosis of intialText into finalText
 	justFinished = false; // used to implement this.recent()
@@ -1565,6 +1727,8 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		this.cnv = this.drawingOnCanvas.canvas;
 		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
 			this.ctx = this.cnv.getContext("2d");
+		this.initialNumber = convertRomanNumeralsAdditiveToNumber(this.initialText);
+		this.finalNumber = convertRomanNumeralsAdditiveToNumber(this.finalText);
 	}
 	computeGraphicsSizes()
 	{
@@ -1572,12 +1736,12 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
 		this.drawingOnCanvas.calculateOnly = true;
 		this.drawingOnCanvas.text = this.initialText;
-		this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.initialText);
+		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber
 		let sz = this.fcnInitialDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
 		this.wi = sz.w;
 		this.hi = sz.h;
 		this.drawingOnCanvas.text = this.finalText;
-		this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.finalText);
+		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber
 		sz = this.fcnFinalDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
 		this.wff = sz.w;
 		this.hff = sz.h;
@@ -1635,7 +1799,8 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	}
 	recent() // returns true iff the most recent call to this.done() has returned true but...
 	{ //...the call to this.done immediately prior to the most recent call to this.done()...
-		if (this.justFinished==false) return false; //...has returned false
+		if (this.justFinished==false) //...has returned false
+			return false;
 		this.justFinished = false;
 		return true;
 	}
@@ -1666,7 +1831,7 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		const oldText = this.drawingOnCanvas.text;
 		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
 		this.drawingOnCanvas.text = this.initialText;
-		this.drawingOnCanvas.numberOfTallyMarks = 5;
+		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
 		if (this.fcnInitialDrawing !== null)
 			this.drawingOnCanvas.draw(this.fcnInitialDrawing, 0, 0);
 		this.drawingOnCanvas.text = oldText;
@@ -1675,8 +1840,8 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 	}
 }
 
-class MetamorphoseIIIIItoV // the 1st stage of animations of metamorphosis of IIIII->V
-{// (the 2nd stage is sliding all the drawings to the right in order to have no empty spaces on the right or in the middle)
+class MetamorphoseIIIIItoV //1st stage of animations of metamorphosis of IIIII->V
+{//(but for tally drawings, instead use class ShrinkAndRotateIIIII)
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
@@ -2045,8 +2210,8 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 	}
 }
 
-class MetamorphoseVVtoX
-{ // the first stage of animations of metamorphosis of VV->X
+class MetamorphoseVVtoX // 1st stage of animations of VV->X (but for tally...
+{//...drawings, instead use class MergeVerticallyTwoHorizontallyAdjacentBoxes)
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
@@ -3565,6 +3730,9 @@ insertTally.setDrawing(drawTally);
 let mShrinkAndRotateIIIII = new ShrinkAndRotateIIIII(tally, drawTally, drawBox5); // >>> EXPERIMENTAL <<<
 let aBoxIIIII = new AnimateSymbolSubstitutionToFew(mShrinkAndRotateIIIII); // >>> EXPERIMENTAL <<<
 aBoxIIIII.setDrawings(drawTally, drawBox5); // >>> EXPERIMENTAL <<<
+let mFivesToTen = new MergeVerticallyTwoHorizontallyAdjacentBoxes(tally, "VV", "X", drawTally); // >>> EXPERIMENTAL <<<
+let aFivesToTen = new AnimateSymbolSubstitutionToFew(mFivesToTen); // >>> EXPERIMENTAL <<<
+aFivesToTen.setDrawings(drawTally, drawBox10); // >>> EXPERIMENTAL <<<
 
 function incNumAnmtnsConstraints()
 {
@@ -3633,25 +3801,36 @@ function incrementNumber()
 		eraseDrawings();
 		incNumAnmtnsAddtv.start();
 		incNumAnmtnsSbtrctv.start();
-		insertTally.start(tally.get());
+		insertTally.start(tally.get()); // >>> EXPERIMENTAL <<<
 	}
 	else
 	{
 		incNumAnmtnsAddtv.more();
 		incNumAnmtnsSbtrctv.more();
-		if (insertTally.more() == false)
-		{
-				if (incrementTallyAnimationState == 0) // >>> EXPERIMENTAL <<<
-				{ // >>> EXPERIMENTAL <<<
-					aBoxIIIII.start(tally.get()); // >>> EXPERIMENTAL <<<
-					incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
-				} // >>> EXPERIMENTAL <<<
-				else if (incrementTallyAnimationState == 1) // >>> EXPERIMENTAL <<<
-				{ // >>> EXPERIMENTAL <<<
-					if (aBoxIIIII.more() == false) // >>> EXPERIMENTAL <<<
-						incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
-				} // >>> EXPERIMENTAL <<<
-		}
+		if (incrementTallyAnimationState == 0) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (insertTally.more() == false) // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				aBoxIIIII.start(tally.get()); // >>> EXPERIMENTAL <<<
+				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
+		else if (incrementTallyAnimationState == 1) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (aBoxIIIII.more() == false) // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				aFivesToTen.start(tally.get()); // >>> EXPERIMENTAL <<<
+				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
+		else if (incrementTallyAnimationState == 2) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (aFivesToTen.more() == false) // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				//aTensToFifty.start(tally.get()); // >>> EXPERIMENTAL <<<
+				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
 	}
 	if (incNumAnmtnsAddtv.finished() && incNumAnmtnsSbtrctv.finished())
 	{ // reset() method changes the internal state read by finished() accessor...
@@ -3659,6 +3838,7 @@ function incrementNumber()
 		incNumAnmtnsSbtrctv.reset(); //...otherwise this branch of this if-statement will never be executed
 		insertTally.reset();
 		aBoxIIIII.reset(); // >>> EXPERIMENTAL <<<
+		aFivesToTen.reset(); // >>> EXPERIMENTAL <<<
 		incrementTallyAnimationState = 0; // >>> EXPERIMENTAL <<<
 		inputNumber++;
 		setNumber();
