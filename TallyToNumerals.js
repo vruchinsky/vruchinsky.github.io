@@ -1520,9 +1520,11 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes of...
 	initialNumber = 0; // numerical equivalent of initialText[0]
 	finalNumber = 0; // numerical equivalent of finalText
 	fcnDrawing = null; // ref. to function used to draw each of the 2 part of the initial graphic
-	w = 0; // width (in pixels) of each of the 2 parts of the initial graphic
-	ww = 0; // width (in pixels) of the initial graphic (both parts together)
-	h = 0; // height (in pixels) of each of the initial graphic
+	w1 = 0; // width (in pixels) of each of the 2 parts of the initial graphic
+	wi = 0; // width (in pixels) of entire initial graphic (both parts together)
+	wf = 0; // width (in pixels) of the final graphic
+	hi = 0; // height (in pixels) of the initial graphic
+	hf = 0; // height (in pixels) of the final graphic
 	xr = 0; // horizontal position (in pixels) of the right part of the initial graphic
 	yr = 0; // vertical position of the right part of the initial graphic
 	xLi = 0; // initial horizontal position (in pixels) of the left part of the initial graphic
@@ -1541,8 +1543,8 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes of...
 	finished = true; // used to implement this.done()
 	justFinished = false; // used to implement this.recent()
 	xInitial() {return this.xr;}
-	wInitial() {return this.ww;}
-	wFinal() {return this.w;}
+	wInitial() {return this.wi;}
+	wFinal() {return this.wf;}
 	xFinal() {return this.xr;}
 	constructor(d, iTxt, fTxt, f)
 	{
@@ -1568,12 +1570,18 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes of...
 		this.drawingOnCanvas.text = this.initialText[0];
 		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
 		let sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
-		this.w = sz.w;
-		this.h = sz.h;
-		this.drawingOnCanvas.text = this.initialText; // to calculate width of the entire initial graphic (both parts together)
+		this.w1 = sz.w;
+		this.hi = sz.h;
+		this.drawingOnCanvas.text = this.initialText; // calculate width of entire initial graphic (both parts together)
 		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
 		sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
-		this.ww = sz.w;
+		this.wi = sz.w;
+		this.hi = sz.h;
+		this.drawingOnCanvas.text = this.finalText; // calculate width of the final graphic
+		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
+		sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.wf = sz.w;
+		this.hf = sz.h;
 		this.drawingOnCanvas.text = oldText;
 		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
 		this.drawingOnCanvas.calculateOnly = false;
@@ -1589,10 +1597,10 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes of...
 		this.computeGraphicsSizes();
 		this.xr = horizontalOffset;
 		this.yr = verticalOffset;
-		this.xLi = horizontalOffset + this.w;
+		this.xLi = horizontalOffset + this.w1;
 		this.xLf = horizontalOffset;
 		this.yLi = verticalOffset;
-		this.yLf = verticalOffset + this.h;
+		this.yLf = verticalOffset + this.hf - this.hi;
 		this.xl = this.xLi;
 		this.yl = this.yLi;
 		const d = this.xLi - this.xLf + this.yLf - this.yLi; // total distance to travel
@@ -1601,9 +1609,9 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes of...
 		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		this.yClear = this.yl - 1; // subtracting 1 remedies failure to erase top edge of box while sliding it down
 		this.yClear = fpLimitToInterval(this.yClear, 0, this.cnv.height, fpTolerance); // prevent from exceeding canvas width and from being negative
-		this.wClear = this.w;
+		this.wClear = this.w1;
 		this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
-		this.hClear = this.h + 1; // adding 1 offsets subtraction of 1 from yClear, otherwise bottom edge of box is not erased while sliding it to the right
+		this.hClear = this.hi + 1; // adding 1 offsets subtraction of 1 from yClear, otherwise bottom edge of box is not erased while sliding it to the right
 		this.hClear = fpLimitToInterval(this.hClear, 0, this.cnv.height - this.yClear, fpTolerance); // prevent from exceeding available canvas height and from being negative
 		this.t = Date.now();
 	}
