@@ -615,14 +615,16 @@ function drawColumn50hLines(d, x, y, len) // d is ref. to object of class Drawin
 	const y0 = y; // save the initial vertical position to use it at the end to calculate the height of this drawing
 	const xr = x + len + hSpaceBetween5s; // offset the 2nd column horizontally
 	const dy = verticalOffsetBetween5s;
+	let ya = new Array(5);
 	for (let i=0; i<5; i++)
 	{
+		ya[i] = y;
 		y += draw10hLinesIn2Columns(d, x, xr, y, y + dy, len);
 		y += verticalSpaceBetween5s; // regular vertical spacing (for visual clarity)
 	}
 	const w = 2*len + hSpaceBetween5s;  // width of the drawing
 	const h = y - y0 + verticalOffsetBetween5s - verticalSpaceBetween5s; // height of the drawing
-	return {w, h, xr, dy};
+	return {w, h, xr, dy, ya};
 }
 
 function drawBox50(d, x, y, boxWidth) // column of 25 short horizontal tally marks on the left,...
@@ -647,7 +649,8 @@ function drawBox50(d, x, y, boxWidth) // column of 25 short horizontal tally mar
 	const h = boundingRectHeight; // height of the drawing
 	const x2 = columnMeasurements.xr;
 	const dy = columnMeasurements.dy;
-	return {w, h, l, x1, x2, dy};
+	const ya = columnMeasurements.ya;
+	return {w, h, l, x1, x2, dy, ya};
 }
 
 function drawColumn100hLines(d, x, y, len) // d is ref. to object of class DrawingOnCanvas (tally)
