@@ -1524,16 +1524,16 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 	}
 }
 
-class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes of...
-{//...5 and merge them into 1 box of 10, analogous to class MetamorphoseVVtoX
+class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each containing 5 tally marks,...
+{//...and merge them into 1 box of 10, corresponds to class MetamorphoseVVtoX for numerals
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
-	initialText = "VV"; // Roman-numeral equivalent of the 2 initial graphics
-	finalText = "X"; // Roman-numeral equivalent of the final graphic
+	initialText = null; // Roman-numeral equivalent of the 2 initial graphics
+	finalText = null; // Roman-numeral equivalent of the final graphic
 	initialNumber = 0; // numerical equivalent of initialText[0]
 	finalNumber = 0; // numerical equivalent of finalText
-	fcnDrawing = null; // ref. to function used to draw each of the 2 part of the initial graphic
+	fcnDrawing = null; // ref. to function used to draw each of the 2 parts of the initial graphic
 	w1 = 0; // width (in pixels) of each of the 2 parts of the initial graphic
 	wi = 0; // width (in pixels) of entire initial graphic (both parts together)
 	wf = 0; // width (in pixels) of the final graphic
@@ -1690,7 +1690,173 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes of...
 	}
 }
 
-class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||||| -> [box of 5]
+class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each containing 10 tally marks,...
+{//...merging them into 1 box containing 50 tally marks, corresponds to Fade(romanNumeralsAdditive, "XXXXX", "L")
+	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
+	initialText = "XXXXX"; // Roman-numeral equivalent of the initial graphics
+	finalText = "L"; // Roman-numeral equivalent of the final graphic
+	initialNumber = 0; // numerical equivalent of initialText[0]
+	finalNumber = 0; // numerical equivalent of finalText
+	fcnDrawing = null; // ref. to function used to draw each of the 5 parts of the initial graphic
+	w1 = 0; // width (in pixels) of each of the 5 parts of the initial graphic
+	wi = 0; // width (in pixels) of entire initial graphic (all parts together)
+	wf = 0; // width (in pixels) of the final graphic
+	hi = 0; // height (in pixels) of the initial graphic
+	hf = 0; // height (in pixels) of the final graphic
+	xr = 0; // horizontal position (in pixels) of the right part of the initial graphic
+	yr = 0; // vertical position of the right part of the initial graphic
+	xLi = 0; // initial horizontal position (in pixels) of the left part of the initial graphic
+	xLf = 0; // final horizontal position (in pixels) of the left part of the initial graphic
+	xl = 0; // updated horizontal position (in pixels) of the left part of the initial graphic
+	yLi = 0; // initial vertical position (in pixels) of the left part of the initial graphic
+	yLf = 0; // final vertical position (in pixels) of the left part of the initial graphic
+	yl = 0; // updated vertical position (in pixels) of the left part of the initial graphic
+	shorten = true; // true iff shortening tally marks, false in later stages of this animation
+	shrink = false; // true iff aligning 2 groups of 5 shrunk tally marks vertically thus shrinking vertically each box of 10, false in other stages of this animation
+	merge = false; // true iff aligning horizontally 5 shrunk boxes, each containing 2 groups of 5 shrunk tally marks, false in other stages of this animation
+	v = 0; // (px/msec) how fast to move yl from yLi towards yLf and then xl from xLi towards xLf
+	xClear = 0; // horizontal position (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
+	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared in each call to this.draw()
+	wClear = 0; // width (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
+	hClear = 0; // height (in pixels) of the part of the canvas to be cleared in each call to this.draw()
+	t = 0; // (msec) time of last update
+	finished = true; // used to implement this.done()
+	justFinished = false; // used to implement this.recent()
+	xInitial() {return this.xr;}
+	wInitial() {return this.wi;}
+	wFinal() {return this.wf;}
+	xFinal() {return this.xr;}
+	constructor(d, f)
+	{
+		if (d === null)
+			return;
+		this.drawingOnCanvas = d;
+		this.cnv = this.drawingOnCanvas.canvas;
+		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
+			this.ctx = this.cnv.getContext("2d");
+		this.fcnDrawing = f;
+		if (this.initialText !== null)
+			this.initialNumber = convertRomanNumeralsAdditiveToNumber(this.initialText[0]);
+		if (this.finalText !== null)
+			this.finalNumber = convertRomanNumeralsAdditiveToNumber(this.finalText);
+	}
+	computeGraphicsSizes()
+	{
+		const oldText = this.drawingOnCanvas.text;
+		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = true;
+		this.drawingOnCanvas.text = this.initialText[0];
+		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
+		let sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.w1 = sz.w;
+		this.hi = sz.h;
+		this.drawingOnCanvas.text = this.initialText; // calculate width of entire initial graphic (both parts together)
+		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
+		sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.wi = sz.w;
+		this.hi = sz.h;
+		this.drawingOnCanvas.text = this.finalText; // calculate width of the final graphic
+		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
+		sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.wf = sz.w;
+		this.hf = sz.h;
+		this.drawingOnCanvas.text = oldText;
+		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = false;
+	}
+	start()
+	{
+		this.finished = true;
+		this.justFinished = false;
+		this.moveDown = true;
+		if (this.cnv === null || this.ctx === null)
+			return; // browser does not support canvas
+		this.finished = false;
+		this.computeGraphicsSizes();
+		this.xr = horizontalOffset;
+		this.yr = verticalOffset;
+		this.xLi = horizontalOffset + this.w1;
+		this.xLf = horizontalOffset;
+		this.yLi = verticalOffset;
+		this.yLf = verticalOffset + this.hf - this.hi;
+		this.xl = this.xLi;
+		this.yl = this.yLi;
+		const d = this.xLi - this.xLf + this.yLf - this.yLi; // total distance to travel
+		this.v = AnimationSpeedMetamorphosis * d;
+		this.xClear = this.xl - 1; // subtracting 1 remedies failure to erase right edge of box while sliding it down
+		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+		this.yClear = this.yl - 1; // subtracting 1 remedies failure to erase top edge of box while sliding it down
+		this.yClear = fpLimitToInterval(this.yClear, 0, this.cnv.height, fpTolerance); // prevent from exceeding canvas width and from being negative
+		this.wClear = this.w1;
+		this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
+		this.hClear = this.hi + 1; // adding 1 offsets subtraction of 1 from yClear, otherwise bottom edge of box is not erased while sliding it to the right
+		this.hClear = fpLimitToInterval(this.hClear, 0, this.cnv.height - this.yClear, fpTolerance); // prevent from exceeding available canvas height and from being negative
+		this.t = Date.now();
+	}
+	done() // true iff finished this particular stage of the animation
+	{
+		if (this.finished)
+			return true;
+		if (this.moveDown)
+		{
+			if (fpEqual(this.yl, this.yLf, fpTolerance))
+				this.moveDown = false;
+			return false;
+		}
+		this.finished = fpEqual(this.xl, this.xLf, fpTolerance);
+		if (this.finished)
+			this.justFinished = true;
+		return this.finished;
+	}
+	recent() // returns true iff the most recent call to this.done() has returned true but...
+	{//...the call to this.done immediately prior to the most recent call to this.done()...
+		if (this.justFinished==false) //...has returned false
+			return false;
+		this.justFinished = false;
+		return true;
+	}
+	proceed()
+	{
+		if (this.finished) return;
+		const t1 = Date.now(); // (msec)
+		const dt = t1 - this.t; // (msec) time since last update
+		let u;
+		if (this.moveDown)
+		{
+			u = this.yl  + (this.v)*dt;
+			this.yl = fpMin(u, this.yLf, fpTolerance); // prevent yl from surpassing yLf
+		}
+		else
+		{
+			u = this.xl - (this.v)*dt;
+			this.xl = fpMax(u, this.xLf, fpTolerance); // prevent xl from surpassing xLf
+		}
+		this.t = t1;
+	}
+	draw()
+	{
+		if (this.cnv === null || this.ctx === null)
+			return; // browser does not support canvas
+		if (this.fcnDrawing === null)
+			return;
+		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
+		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+		const oldText = this.drawingOnCanvas.text;
+		this.drawingOnCanvas.text = this.initialText[0];
+		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
+		this.drawingOnCanvas.draw(this.fcnDrawing, this.xl, this.yl);
+		this.xClear = this.xl - 1; // subtracting 1 remedies failure to erase right edge of box while sliding it down
+		this.yClear = this.yl - 1; // subtracting 1 remedies failure to erase top edge of box while sliding it down
+		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+		this.drawingOnCanvas.text = oldText;
+		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
+		this.yClear = fpLimitToInterval(this.yClear, 0, this.cnv.height, fpTolerance); // prevent from exceeding canvas height and from being negative
+	}
+}
+
+class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||||| into box of 5 horizontal tally marks
 {// (the 2nd stage is sliding all the drawings to the right in order to have no empty spaces on the right or in the middle)
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
@@ -2232,8 +2398,8 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 	}
 }
 
-class MetamorphoseVVtoX // 1st stage of animations of VV->X (but for tally...
-{//...drawings, instead use class MergeVerticallyTwoHorizontallyAdjacentBoxes)
+class MetamorphoseVVtoX // 1st stage of animations of VV->X (but for tally drawings,...
+{//...instead use class MergeVerticallyTwoHorizontallyAdjacentBoxes)
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
