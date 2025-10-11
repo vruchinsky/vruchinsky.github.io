@@ -51,8 +51,8 @@ const buttonDisabledColor = "#505050";
 class DrawingOnCanvas
 {
 // this.text and this.numberOfTallyMarks are used in function drawTally()
-// when sliding tally rightwards after one tally mark is faded out
-// but before inputNumber and romanNumeralsAdditive
+// when sliding the remaining tally drawing(s) rightwards after one tally
+// mark is faded out but before inputNumber and romanNumeralsAdditive
 // are updated (which is done at the end of decrementNumer())
 // otherwise, if inputNumber and romanNumeralsAdditive are used directly,
 // the faded out tally mark mistakenly reappears when the tally is slid rightwards
@@ -633,11 +633,11 @@ function drawBox50(d, x, y, boxWidth) // column of 25 short horizontal tally mar
 		boxWidth = Math.floor(stringWidthOnCanvas(d.ctx, "L")); // make same width as Roman numeral
 	const boundingRectWidth = boxWidth - boundaryMargin;
 	const l = Math.floor((boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding - hSpaceBetween5s)/2);
-	const x1 = x + boundaryPadding + boundaryThickness; // left column horizontal position
+	const ix1 = x + boundaryPadding + boundaryThickness; // left column horizontal position
 	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
 	const oldlw = d.ctx.lineWidth;
 	d.ctx.lineWidth = tallyMarkThickness;
-	const columnMeasurements = drawColumn50hLines(d, x1, lineVpos, l);
+	const columnMeasurements = drawColumn50hLines(d, ix1, lineVpos, l);
 	const boundingRectHeight = columnMeasurements.h + 2*boundaryPadding + 2*boundaryThickness;
 	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
 	d.ctx.lineWidth = boundaryThickness;
@@ -647,7 +647,7 @@ function drawBox50(d, x, y, boxWidth) // column of 25 short horizontal tally mar
 	d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth; // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
-	const x2 = columnMeasurements.xr;
+	const ix2 = columnMeasurements.xr;
 	const dy = columnMeasurements.dy;
 	const ya = columnMeasurements.ya;
 	return {w, h, l, ix1, ix2, dy, ya};
@@ -824,6 +824,7 @@ function drawTally(drwngOnCnv, x0, y) // drwngOnCnv is ref. to object of class D
 	drwngOnCnv.ctx.strokeStyle = foregroundColor;
 	drwngOnCnv.ctx.lineWidth = tallyMarkThickness;
 	let dx, i, c, x;
+	let sza = []; // i-th element contains measurements of tally drawing corresponding to i-th numeral in rna
 	let sz = {w, h};
 	let pc = null;
 	let nDs = 0; // used to calculate the horizontal position x of each component of this drawing
@@ -842,12 +843,12 @@ function drawTally(drwngOnCnv, x0, y) // drwngOnCnv is ref. to object of class D
 		x = Math.floor(x0 + stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j + 1)) + (nDs * wBox500));
 		switch (c)
 		{
-			case "I": sz = drawTallyMark(drwngOnCnv, x, y, dx); break;
-			case "V": sz = drawBox5(drwngOnCnv, x, y, dx); break;
-			case "X": sz = drawBox10(drwngOnCnv, x, y, dx); break;
-			case "L": sz = drawBox50(drwngOnCnv, x, y, dx); break;
-			case "C": sz = drawBox100(drwngOnCnv, x, y, dx); break;
-			case "D": sz = drawBox500(drwngOnCnv, x, y, dx); nDs++; /* dx = */ wBox500 = sz.w; break;
+			case "I": sz = drawTallyMark(drwngOnCnv, x, y, dx); sza.push(sz); break;
+			case "V": sz = drawBox5(drwngOnCnv, x, y, dx); sza.push(sz); break;
+			case "X": sz = drawBox10(drwngOnCnv, x, y, dx); sza.push(sz); break;
+			case "L": sz = drawBox50(drwngOnCnv, x, y, dx); sza.push(sz); break;
+			case "C": sz = drawBox100(drwngOnCnv, x, y, dx); sza.push(sz); break;
+			case "D": sz = drawBox500(drwngOnCnv, x, y, dx); sza.push(sz); nDs++; wBox500 = sz.w; break;
 			case "M": nMs++; dx = 0; break;
 		}
 		if (h < sz.h)
@@ -860,6 +861,7 @@ function drawTally(drwngOnCnv, x0, y) // drwngOnCnv is ref. to object of class D
 		x = Math.floor(x0 + stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j + 1))
 			+ (nDs * wBox500));
 		sz = drawBox1000(drwngOnCnv, x, y, r);
+		sza.push(sz);
 		box1000horizontalPosition = x;
 		wBox1K = sz.w;
 	}
@@ -870,6 +872,7 @@ function drawTally(drwngOnCnv, x0, y) // drwngOnCnv is ref. to object of class D
 		x = Math.floor(x0 + stringWidthOnCanvas(drwngOnCnv.ctx, rna.substring(j + 1))
 			+ (nDs * wBox500) + wBox1K);
 		sz = drawBox1000(drwngOnCnv, x, y, 10);
+		sza.push(sz);
 		wBox10K = sz.w;
 	}
 	if (nDs > 0 || nMs > 0)
@@ -878,7 +881,7 @@ function drawTally(drwngOnCnv, x0, y) // drwngOnCnv is ref. to object of class D
 		+ (nDs * wBox500) + wBox1K + wBox10K);
 	drwngOnCnv.ctx.strokeStyle = oldStrokeStyle;
 	drwngOnCnv.ctx.lineWidth = oldLineWidth;
-	return {w, h};
+	return {w, h, sza};
 }
 
 function replaceLastChars(s, a, b) // if string s ends with string a,
