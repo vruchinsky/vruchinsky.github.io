@@ -603,17 +603,17 @@ function drawBox10(d, x, y, boxWidth) // d is ref. to object of class DrawingOnC
 	return {w, h, x, y, iw, ix, iy1, iy2};
 }
 
-function draw10hLinesIn2Columns(d, x, xr, y, yr, len) // d is ref. to object of class DrawingOnCanvas (tally)
+function draw10hLinesIn2Columns(d, x, xl, y, yl, len) // d is ref. to object of class DrawingOnCanvas (tally)
 { // used in drawColumn50hLines()
 	const h = drawColumnHlines(d, x, y, len, 5); // 1st column of five horizontal,
-	drawColumnHlines(d, xr, yr, len, 5); // 2nd column (offset horizontally&vertically)
+	drawColumnHlines(d, xl, yl, len, 5); // 2nd column (offset horizontally&vertically)
 	return h;
 }
 
 function drawColumn50hLines(d, x, y0, len) // d is ref. to object of class DrawingOnCanvas (tally)
 { // used in drawBox50(), drawBox100() and drawColumn100hLines()
 	const ix2 = len + hSpaceBetween5s; // horizontal offset of the 2nd column
-	const xr = x + ix2; // offset the 2nd column horizontally
+	const xl = x + ix2; // offset the 2nd column horizontally
 	const dy = verticalOffsetBetween5s;
 	let ya = new Array(5);
 	let yOffset = boundaryPadding + boundaryThickness; // left column vertical offset
@@ -622,7 +622,7 @@ function drawColumn50hLines(d, x, y0, len) // d is ref. to object of class Drawi
 	{
 		ya[i] = yOffset;
 		y = y0 + yOffset; // left column vertical position
-		yOffset += draw10hLinesIn2Columns(d, x, xr, y, y + dy, len);
+		yOffset += draw10hLinesIn2Columns(d, x, xl, y, y + dy, len);
 		yOffset += verticalSpaceBetween5s; // regular vertical spacing (for visual clarity)
 	}
 	const w = 2*len + hSpaceBetween5s;  // width of the drawing
@@ -1707,7 +1707,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	fcnDrawing = null; // ref. to function used to draw all the tally drawings
 	szi = null; // measurements of each of 5 parts of initial graphic
 	szf = null; // measurements of final graphic
-//	xl = 0; // updated horizontal position (in pixels) of the left part of the initial graphic
+	ixl = 0; // updated horizontal offset (in pixels) of the left column of each part of the initial graphic
 //	yl = 0; // updated vertical position (in pixels) of the left part of the initial graphic
 	animationStage = 0; // 0 = shortening tally marks, 1 = aligning 2 groups of 5 shrunk tally marks vertically thus shrinking vertically each box of 10, 2 = aligning horizontally 5 shrunk boxes, each containing 2 groups of 5 shrunk tally marks
 	v = 0; // (px/msec) how fast to move yl from yLi towards yLf and then xl from xLi towards xLf
