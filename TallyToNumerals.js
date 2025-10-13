@@ -610,21 +610,24 @@ function draw10hLinesIn2Columns(d, x, xr, y, yr, len) // d is ref. to object of 
 	return h;
 }
 
-function drawColumn50hLines(d, x, y, len) // d is ref. to object of class DrawingOnCanvas (tally)
+function drawColumn50hLines(d, x, y0, len) // d is ref. to object of class DrawingOnCanvas (tally)
 { // used in drawBox50(), drawBox100() and drawColumn100hLines()
-	const y0 = y; // save the initial vertical position to use it at the end to calculate the height of this drawing
-	const xr = x + len + hSpaceBetween5s; // offset the 2nd column horizontally
+	const ix2 = len + hSpaceBetween5s; // horizontal offset of the 2nd column
+	const xr = x + ix2; // offset the 2nd column horizontally
 	const dy = verticalOffsetBetween5s;
 	let ya = new Array(5);
+	let yOffset = boundaryPadding + boundaryThickness; // left column vertical offset
+	let y;
 	for (let i=0; i<5; i++)
 	{
-		ya[i] = y;
-		y += draw10hLinesIn2Columns(d, x, xr, y, y + dy, len);
-		y += verticalSpaceBetween5s; // regular vertical spacing (for visual clarity)
+		ya[i] = yOffset;
+		y = y0 + yOffset; // left column vertical position
+		yOffset += draw10hLinesIn2Columns(d, x, xr, y, y + dy, len);
+		yOffset += verticalSpaceBetween5s; // regular vertical spacing (for visual clarity)
 	}
 	const w = 2*len + hSpaceBetween5s;  // width of the drawing
-	const h = y - y0 + verticalOffsetBetween5s - verticalSpaceBetween5s; // height of the drawing
-	return {w, h, xr, dy, ya};
+	const h = yOffset + verticalOffsetBetween5s - verticalSpaceBetween5s; // height of the drawing
+	return {w, h, ix2, dy, ya};
 }
 
 function drawBox50(d, x, y, boxWidth) // column of 25 short horizontal tally marks on the left,...
@@ -633,12 +636,12 @@ function drawBox50(d, x, y, boxWidth) // column of 25 short horizontal tally mar
 		boxWidth = Math.floor(stringWidthOnCanvas(d.ctx, "L")); // make same width as Roman numeral
 	const boundingRectWidth = boxWidth - boundaryMargin;
 	const l = Math.floor((boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding - hSpaceBetween5s)/2);
-	const ix1 = x + boundaryPadding + boundaryThickness; // left column horizontal position
-	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
+	const ix1 = boundaryPadding + boundaryThickness; // left column horizontal offset
+	const lineHpos = x + ix1; // left column horizontal position
 	const oldlw = d.ctx.lineWidth;
 	d.ctx.lineWidth = tallyMarkThickness;
-	const columnMeasurements = drawColumn50hLines(d, ix1, lineVpos, l);
-	const boundingRectHeight = columnMeasurements.h + 2*boundaryPadding + 2*boundaryThickness;
+	const columnMeasurements = drawColumn50hLines(d, lineHpos, y, l);
+	const boundingRectHeight = columnMeasurements.h + boundaryPadding + boundaryThickness;
 	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
 	d.ctx.lineWidth = boundaryThickness;
 	if (d.calculateOnly == false)
@@ -647,7 +650,7 @@ function drawBox50(d, x, y, boxWidth) // column of 25 short horizontal tally mar
 	d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth; // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
-	const ix2 = columnMeasurements.xr;
+	const ix2 = ix1 + columnMeasurements.ix2;
 	const dy = columnMeasurements.dy;
 	const ya = columnMeasurements.ya;
 	return {w, h, x, y, l, ix1, ix2, dy, ya};
@@ -1702,27 +1705,11 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	initialNumber = 0; // numerical equivalent of initialText[0]
 	finalNumber = 0; // numerical equivalent of finalText
 	fcnDrawing = null; // ref. to function used to draw all the tally drawings
-	//w1 = 0; // width (in pixels) of each of 5 parts of initial graphic
-	wi = 0; // width (in pixels) of entire initial graphic (all parts together)
-	wf = 0; // width (in pixels) of final graphic
-	hi = 0; // height (in pixels) of initial graphic
-	hf = 0; // height (in pixels) of final graphic
-	li = 0; // length of each tally mark in initial gaphic
-	lf = 0; // length of each tally mark in final gaphic
-	ixi = 0; // horizontal offset of each tally mark in initial gaphic
-	ix1f = 0; // horizontal offset of each right-side tally mark in final gaphic
-	ix2f = 0; // horizontal offset of each left-side tally mark in final gaphic
-	xr = 0; // horizontal position (in pixels) of right-most part of initial graphic
-	yr = 0; // vertical position of right part of initial graphic
-	xLi = 0; // initial horizontal position (in pixels) of the left part of the initial graphic
-	xLf = 0; // final horizontal position (in pixels) of the left part of the initial graphic
-	xl = 0; // updated horizontal position (in pixels) of the left part of the initial graphic
-	yLi = 0; // initial vertical position (in pixels) of the left part of the initial graphic
-	yLf = 0; // final vertical position (in pixels) of the left part of the initial graphic
-	yl = 0; // updated vertical position (in pixels) of the left part of the initial graphic
-	shorten = true; // true iff shortening tally marks, false in later stages of this animation
-	shrink = false; // true iff aligning 2 groups of 5 shrunk tally marks vertically thus shrinking vertically each box of 10, false in other stages of this animation
-	merge = false; // true iff aligning horizontally 5 shrunk boxes, each containing 2 groups of 5 shrunk tally marks, false in other stages of this animation
+	szi = null; // measurements of each of 5 parts of initial graphic
+	szf = null; // measurements of final graphic
+//	xl = 0; // updated horizontal position (in pixels) of the left part of the initial graphic
+//	yl = 0; // updated vertical position (in pixels) of the left part of the initial graphic
+	animationStage = 0; // 0 = shortening tally marks, 1 = aligning 2 groups of 5 shrunk tally marks vertically thus shrinking vertically each box of 10, 2 = aligning horizontally 5 shrunk boxes, each containing 2 groups of 5 shrunk tally marks
 	v = 0; // (px/msec) how fast to move yl from yLi towards yLf and then xl from xLi towards xLf
 	xClear = 0; // horizontal position (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
 	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared in each call to this.draw()
