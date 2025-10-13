@@ -512,7 +512,7 @@ function drawTallyMark(d, x, y, w)
 	if (d.calculateOnly == false)
 		drawVline(d.ctx, Math.floor(x + w/2), y, h);
 	d.ctx.lineWidth = oldLineWidth; // restore the original value
-	return {w, h};
+	return {w, h, x, y};
 }
 
 function weightedAverageTruncated(a, b, w) {return Math.floor((1-w)*a + w*b);}
@@ -571,7 +571,7 @@ function drawBox5(d, x, y, boxWidth) // d is ref. to object of class DrawingOnCa
 	const h = boundingRectHeight; // height of the drawing
 	const iw = lineLength;  // inner width = width of the column of lines
 	const ih = columnHeight; // inner height = height of the column of lines
-	return {w, h, iw, ih};
+	return {w, h, x, y, iw, ih};
 }
 
 function drawBox10(d, x, y, boxWidth) // d is ref. to object of class DrawingOnCanvas (tally)
@@ -600,7 +600,7 @@ function drawBox10(d, x, y, boxWidth) // d is ref. to object of class DrawingOnC
 	const w = boxWidth; // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
 	const iw = lineLength; // inner width = width of the column of lines
-	return {w, h, iw, ix, iy1, iy2};
+	return {w, h, x, y, iw, ix, iy1, iy2};
 }
 
 function draw10hLinesIn2Columns(d, x, xr, y, yr, len) // d is ref. to object of class DrawingOnCanvas (tally)
@@ -650,7 +650,7 @@ function drawBox50(d, x, y, boxWidth) // column of 25 short horizontal tally mar
 	const ix2 = columnMeasurements.xr;
 	const dy = columnMeasurements.dy;
 	const ya = columnMeasurements.ya;
-	return {w, h, l, ix1, ix2, dy, ya};
+	return {w, h, x, y, l, ix1, ix2, dy, ya};
 }
 
 function drawColumn100hLines(d, x, y, len) // d is ref. to object of class DrawingOnCanvas (tally)
@@ -1695,14 +1695,13 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each con
 class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each containing 10 tally marks,...
 {//...merging them into 1 box containing 50 tally marks. (corresponds to Fade(romanNumeralsAdditive, "XXXXX", "L"))
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
-	cnv = null; // HTML canvas object on which to draw the animation
+	cnv = null; // HTML canvas object on which to draw animation
 	ctx = null; // drawing context of cnv
-	initialText = "XXXXX"; // Roman-numeral equivalent of the initial graphics
-	finalText = "L"; // Roman-numeral equivalent of the final graphic
+	initialText = "XXXXX"; // Roman-numeral equivalent of initial graphics
+	finalText = "L"; // Roman-numeral equivalent of final graphic
 	initialNumber = 0; // numerical equivalent of initialText[0]
 	finalNumber = 0; // numerical equivalent of finalText
-	fcnInitialDrawing = null; // ref. to function used to draw each of 5 parts of initial graphic
-	fcnFinalDrawing = null; // ref. to function used to draw the graphic corresponding to finalText
+	fcnDrawing = null; // ref. to function used to draw all the tally drawings
 	//w1 = 0; // width (in pixels) of each of 5 parts of initial graphic
 	wi = 0; // width (in pixels) of entire initial graphic (all parts together)
 	wf = 0; // width (in pixels) of final graphic
@@ -1736,7 +1735,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	xFinal() {return this.xr;}
 	wInitial() {return this.wi;}
 	wFinal() {return this.wf;}
-	constructor(d, fdi, fdf)
+	constructor(d, f)
 	{
 		if (d === null)
 			return;
@@ -1744,10 +1743,9 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		this.cnv = this.drawingOnCanvas.canvas;
 		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
 			this.ctx = this.cnv.getContext("2d");
-		this.fcnInitialDrawing = fdi;
-		this.fcnFinalDrawing = fdf;
+		this.fcnDrawing = f;
 		if (this.initialText !== null)
-			this.initialNumber = convertRomanNumeralsAdditiveToNumber(this.initialText[0]);
+			this.initialNumber = convertRomanNumeralsAdditiveToNumber(this.initialText);
 		if (this.finalText !== null)
 			this.finalNumber = convertRomanNumeralsAdditiveToNumber(this.finalText);
 	}
@@ -1756,19 +1754,14 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		const oldText = this.drawingOnCanvas.text;
 		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
 		this.drawingOnCanvas.calculateOnly = true;
-		this.drawingOnCanvas.text = this.initialText[0]; // calculate width of 1 of parts of initial graphic
+		this.drawingOnCanvas.text = this.initialText; // calculate sizes of all parts of initial graphic
 		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
-		let sz = this.fcnInitialDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		let sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
 		this.w1 = sz.w;
 		this.hi = sz.h;
-		this.drawingOnCanvas.text = this.initialText; // calculate width of entire initial graphic (all parts together)
+		this.drawingOnCanvas.text = this.finalText; // calculate sizes of final graphic
 		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
-		sz = this.fcnInitialDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
-		this.wi = sz.w;
-		this.hi = sz.h;
-		this.drawingOnCanvas.text = this.finalText; // calculate width of the final graphic
-		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
-		sz = this.fcnFinalDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
 		this.wf = sz.w;
 		this.hf = sz.h;
 		this.drawingOnCanvas.text = oldText;
@@ -3930,7 +3923,7 @@ aBoxIIIII.setDrawings(drawTally, drawBox5); // >>> EXPERIMENTAL <<<
 let mFivesToTen = new MergeVerticallyTwoHorizontallyAdjacentBoxes(tally, "VV", "X", drawTally); // >>> EXPERIMENTAL <<<
 let aFivesToTen = new AnimateSymbolSubstitutionToFew(mFivesToTen); // >>> EXPERIMENTAL <<<
 aFivesToTen.setDrawings(drawTally, drawBox10); // >>> EXPERIMENTAL <<<
-let mTensToFifty = new MergeVerticallyFiveHorizontallyAdjacentBoxes(tally, drawBox10, drawBox50); // >>> EXPERIMENTAL <<<
+let mTensToFifty = new MergeVerticallyFiveHorizontallyAdjacentBoxes(tally, drawTally); // >>> EXPERIMENTAL <<<
 let aTensToFifty = new AnimateSymbolSubstitutionToFew(mTensToFifty); // >>> EXPERIMENTAL <<<
 aTensToFifty.setDrawings(drawTally, drawBox50); // >>> EXPERIMENTAL <<<
 
