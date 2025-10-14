@@ -1556,9 +1556,9 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each con
 	moveDown = true; // true iff updating yl, false iff updating xl
 	v = 0; // (px/msec) how fast to move yl from yLi towards yLf and then xl from xLi towards xLf
 	xClear = 0; // horizontal position (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
-	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared in each call to this.draw()
+	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
 	wClear = 0; // width (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
-	hClear = 0; // height (in pixels) of the part of the canvas to be cleared in each call to this.draw()
+	hClear = 0; // height (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
 	t = 0; // (msec) time of last update
 	finished = true; // used to implement this.done()
 	justFinished = false; // used to implement this.recent()
@@ -1708,13 +1708,16 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	szi = null; // measurements of each of 5 parts of initial graphic
 	szf = null; // measurements of final graphic
 	ixl = 0; // updated horizontal offset (in pixels) of the left column of each part of the initial graphic
+	ixlf = 0; // final horizontal offset (in pixels) of the left column of each part of the initial graphic
+	l = 0; // updated length of each tally mark
+	lf = 0; // final length of each tally mark
 //	yl = 0; // updated vertical position (in pixels) of the left part of the initial graphic
-	animationStage = 0; // 0 = shortening tally marks, 1 = aligning 2 groups of 5 shrunk tally marks vertically thus shrinking vertically each box of 10, 2 = aligning horizontally 5 shrunk boxes, each containing 2 groups of 5 shrunk tally marks
-	v = 0; // (px/msec) how fast to move yl from yLi towards yLf and then xl from xLi towards xLf
-	xClear = 0; // horizontal position (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
-	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared in each call to this.draw()
-	wClear = 0; // width (in pixels) of the part of the canvas to be cleared before redrawing the left graphic
-	hClear = 0; // height (in pixels) of the part of the canvas to be cleared in each call to this.draw()
+	animationStage = 0; // 0 = shortening the tally marks, 1 = aligning 2 groups of 5 shrunk tally marks vertically thus shrinking vertically each box of 10, 2 = aligning horizontally 5 shrunk boxes, each containing 2 groups of 5 shrunk tally marks
+	v = 0; // (px/msec) how fast to move ixl towards ixlf
+	xClear = 0; // horizontal position (in pixels) of the part of the canvas to be cleared before redrawing
+	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared before redrawing
+	wClear = 0; // width (in pixels) of the part of the canvas to be cleared before redrawing
+	hClear = 0; // height (in pixels) of the part of the canvas to be cleared before redrawing
 	t = 0; // (msec) time of last update
 	finished = true; // used to implement this.done()
 	justFinished = false; // used to implement this.recent()
@@ -1743,14 +1746,14 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		this.drawingOnCanvas.calculateOnly = true;
 		this.drawingOnCanvas.text = this.initialText; // calculate sizes of all parts of initial graphic
 		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
-		let sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
-		this.w1 = sz.w;
-		this.hi = sz.h;
+		this.szi = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.ixl = this.szi.sza[0].ix;
+		this.l = this.szi.sza[0].iw;
 		this.drawingOnCanvas.text = this.finalText; // calculate sizes of final graphic
 		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
-		sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
-		this.wf = sz.w;
-		this.hf = sz.h;
+		this.szf = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.ixlf = this.szf.sza[0].ix2;
+		this.lf = this.szf.sza[0].l;
 		this.drawingOnCanvas.text = oldText;
 		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
 		this.drawingOnCanvas.calculateOnly = false;
@@ -1759,42 +1762,38 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	{
 		this.finished = true;
 		this.justFinished = false;
-		this.moveDown = true;
+		this.animationStage = 0;
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
 		this.computeGraphicsSizes();
-		this.xr = horizontalOffset;
+/* 		this.xr = horizontalOffset;
 		this.yr = verticalOffset;
 		this.xLi = horizontalOffset + this.w1;
 		this.xLf = horizontalOffset;
 		this.yLi = verticalOffset;
 		this.yLf = verticalOffset + this.hf - this.hi;
 		this.xl = this.xLi;
-		this.yl = this.yLi;
-		const d = this.xLi - this.xLf + this.yLf - this.yLi; // total distance to travel
-		this.v = AnimationSpeedMetamorphosis * d;
-		this.xClear = this.xl - 1; // subtracting 1 remedies failure to erase right edge of box while sliding it down
-		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		this.yClear = this.yl - 1; // subtracting 1 remedies failure to erase top edge of box while sliding it down
-		this.yClear = fpLimitToInterval(this.yClear, 0, this.cnv.height, fpTolerance); // prevent from exceeding canvas width and from being negative
-		this.wClear = this.w1;
-		this.wClear = fpLimitToInterval(this.wClear, 0, this.cnv.width - this.xClear, fpTolerance); // prevent from exceeding available canvas width and from being negative
-		this.hClear = this.hi + 1; // adding 1 offsets subtraction of 1 from yClear, otherwise bottom edge of box is not erased while sliding it to the right
-		this.hClear = fpLimitToInterval(this.hClear, 0, this.cnv.height - this.yClear, fpTolerance); // prevent from exceeding available canvas height and from being negative
+		this.yl = this.yLi; */
+		this.v = AnimationSpeedMetamorphosis * (this.ixl - this.ixlf);
+		this.xClear = horizontalOffset;
+		this.yClear = verticalOffset;
+		this.wClear = this.szi.w; // initial drawing is wider
+		this.hClear = this.szf.h; // final drawing is taller
 		this.t = Date.now();
 	}
 	done() // true iff finished this particular stage of the animation
 	{
 		if (this.finished)
 			return true;
-		if (this.moveDown)
-		{
-			if (fpEqual(this.yl, this.yLf, fpTolerance))
-				this.moveDown = false;
-			return false;
-		}
-		this.finished = fpEqual(this.xl, this.xLf, fpTolerance);
+//		if (this.animationStage == 0)
+//		{
+			if (fpEqual(this.ixl, this.ixlf, fpTolerance) &&
+				fpEqual(this.l, this.lf, fpTolerance))
+				return true; // this.animationStage = 1;
+//			return false;
+//		}
+//		this.finished = fpEqual(this.xl, this.xLf, fpTolerance);
 		if (this.finished)
 			this.justFinished = true;
 		return this.finished;
@@ -1812,16 +1811,18 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
 		let u;
-		if (this.moveDown)
-		{
-			u = this.yl  + (this.v)*dt;
-			this.yl = fpMin(u, this.yLf, fpTolerance); // prevent yl from surpassing yLf
-		}
-		else
-		{
-			u = this.xl - (this.v)*dt;
-			this.xl = fpMax(u, this.xLf, fpTolerance); // prevent xl from surpassing xLf
-		}
+//		if (this.animationStage == 0)
+//		{
+			u = this.ixl + (this.v)*dt;
+			this.ixl = fpMin(u, this.ixlf, fpTolerance); // prevent ixl from surpassing ixlf
+			u = this.l - (this.v)*dt;
+			this.l = fpMax(u, this.lf, fpTolerance); // prevent l from surpassing lf
+//		}
+//		else
+//		{
+//			u = this.xl - (this.v)*dt;
+//			this.xl = fpMax(u, this.xLf, fpTolerance); // prevent xl from surpassing xLf
+//		}
 		this.t = t1;
 	}
 	draw()
@@ -1831,17 +1832,15 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		if (this.fcnDrawing === null)
 			return;
 		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
-		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
-		const oldText = this.drawingOnCanvas.text;
-		this.drawingOnCanvas.text = this.initialText[0];
-		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
-		this.drawingOnCanvas.draw(this.fcnDrawing, this.xl, this.yl);
-		this.xClear = this.xl - 1; // subtracting 1 remedies failure to erase right edge of box while sliding it down
-		this.yClear = this.yl - 1; // subtracting 1 remedies failure to erase top edge of box while sliding it down
-		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
-		this.drawingOnCanvas.text = oldText;
-		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		this.yClear = fpLimitToInterval(this.yClear, 0, this.cnv.height, fpTolerance); // prevent from exceeding canvas height and from being negative
+		let xr;
+		const yr = this.szi.sza[0].y;
+		const yl = yr + this.szf.dy;
+		for (let i=0; i<5; i++)
+		{
+			xr = this.szi.sza[i].x;
+			draw10hLinesIn2Columns(this.drawingOnCanvas, xr, xr + this.ixl, yr, yl, this.l);
+			roundedRect(this.ctx, xr, yr, this.szi.sza[i].w, this.szi.sza[i].h, boxCornerRadius);
+		}
 	}
 }
 
@@ -4007,7 +4006,15 @@ function incrementNumber()
 		{ // >>> EXPERIMENTAL <<<
 			if (aFivesToTen.more() == false) // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
-				//aTensToFifty.start(tally.get()); // >>> EXPERIMENTAL <<<
+				aTensToFifty.start(tally.get()); // >>> EXPERIMENTAL <<<
+				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
+		else if (incrementTallyAnimationState == 3) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (aTensToFifty.more() == false) // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				//aFiftiesToHundred.start(tally.get()); // >>> EXPERIMENTAL <<<
 				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
 		} // >>> EXPERIMENTAL <<<
@@ -4019,6 +4026,7 @@ function incrementNumber()
 		insertTally.reset();
 		aBoxIIIII.reset(); // >>> EXPERIMENTAL <<<
 		aFivesToTen.reset(); // >>> EXPERIMENTAL <<<
+		aTensToFifty.reset(); // >>> EXPERIMENTAL <<<
 		incrementTallyAnimationState = 0; // >>> EXPERIMENTAL <<<
 		inputNumber++;
 		setNumber();
