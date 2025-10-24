@@ -591,12 +591,14 @@ function drawBox10(d, x, y, boxWidth) // d is ref. to object of class DrawingOnC
 	lineVpos = y + iy2; // then space underneath,
 	const columnHeight2 = drawColumnHlines(d, lineHpos, lineVpos, lineLength, 5); // then another column of five horizontal
 	const boundingRectHeight = columnHeight1 + columnHeight2 + verticalSpaceBetween5s + 2*boundaryPadding + 2*boundaryThickness;
-	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
-	d.ctx.lineWidth = boundaryThickness;
 	if (d.calculateOnly == false)
+	{
+		d.ctx.lineWidth = boundaryThickness;
+		const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
 		roundedRect(d.ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
+		d.ctx.strokeStyle = foregroundColor; // restore foreground color
+	}
 	d.ctx.lineWidth = oldlw; // restore lineWidth
-	d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth; // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
 	const iw = lineLength; // inner width = width of the column of lines
@@ -1775,7 +1777,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		this.yLf = verticalOffset + this.hf - this.hi;
 		this.xl = this.xLi;
 		this.yl = this.yLi; */
-		this.v = AnimationSpeedMetamorphosis * (this.ixl - this.ixlf);
+		this.v = AnimationSpeedMetamorphosis * (this.l - this.lf);
 		this.xClear = horizontalOffset;
 		this.yClear = verticalOffset;
 		this.wClear = this.szi.w; // initial drawing is wider
@@ -1790,10 +1792,9 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 //		{
 			if (fpEqual(this.ixl, this.ixlf, fpTolerance) &&
 				fpEqual(this.l, this.lf, fpTolerance))
-				return true; // this.animationStage = 1;
+				this.finished = true; // this.animationStage = 1;
 //			return false;
 //		}
-//		this.finished = fpEqual(this.xl, this.xLf, fpTolerance);
 		if (this.finished)
 			this.justFinished = true;
 		return this.finished;
@@ -1832,14 +1833,21 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		if (this.fcnDrawing === null)
 			return;
 		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
-		let xr;
-		const yr = this.szi.sza[0].y;
-		const yl = yr + this.szf.dy;
+		let x, xr;
+		const y = this.szi.sza[0].y;
+		const yr = y + this.szi.sza[0].iy1;
+		const yl = y + this.szi.sza[0].iy2;
 		for (let i=0; i<5; i++)
 		{
-			xr = this.szi.sza[i].x;
-			draw10hLinesIn2Columns(this.drawingOnCanvas, xr, xr + this.ixl, yr, yl, this.l);
-			roundedRect(this.ctx, xr, yr, this.szi.sza[i].w, this.szi.sza[i].h, boxCornerRadius);
+			x = this.szi.sza[i].x;
+			xr = x + this.szi.sza[i].ix;
+			draw10hLinesIn2Columns(this.drawingOnCanvas, xr, x + this.ixl, yr, yl, this.l);
+			const foregroundColor = setIntermediateColor(this.ctx, foregroundWeightBoxBoundary);
+			const oldlw = this.ctx.lineWidth;
+			this.ctx.lineWidth = boundaryThickness;
+			roundedRect(this.ctx, x, y, this.szi.sza[i].w, this.szi.sza[i].h, boxCornerRadius);
+			this.ctx.lineWidth = oldlw; // restore lineWidth
+			this.ctx.strokeStyle = foregroundColor; // restore foreground color
 		}
 	}
 }
