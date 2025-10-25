@@ -27,7 +27,7 @@ const tallyMarkThickness = 1;
 const hSpace = 2;
 const verticalSpaceBetweenTallyMarks = 3;
 const verticalSpaceBetween5s = 6;
-const verticalSpaceBetween50s = 7;
+const verticalSpaceBetween50s = 4;
 const horizontalOffset = 2;
 const verticalOffset = 2;
 const boundaryMargin = 1;
@@ -290,17 +290,18 @@ function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclu
 	else
 		ctx.moveTo(x, y1);
 	if (fpLess(0, radius, fpTolerance) && fpLess(0, heightVisible, fpTolerance))
-	{ // 1st rounded corner
+	{
 		let startAngle = Math.PI;
-		if (heightVisible - fpTolerance <= radius)
+		if (fpLessEq(heightVisible, radius, fpTolerance))
 		{
 			const s = (radius - heightVisible) / radius;
 			const c = Math.sqrt(1 - s*s);
 			if (fpLess(widthOcclude, radius*(1-c), fpTolerance))
 				startAngle = Math.acos((radius - widthOcclude) / radius);
 			else startAngle = Math.asin(s);
+			startAngle = Math.PI - startAngle;
 		}
-		ctx.arc(x0, y1, radius, startAngle, 0.5*Math.PI, true);
+		ctx.arc(x0, y1, radius, startAngle, 0.5*Math.PI, true); // 1st rounded corner
 	} else
 		ctx.moveTo(x0, y + dy);
 	if (occlude == false || fpLess(0, heightVisible, fpTolerance))
@@ -316,7 +317,7 @@ function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclu
 	else
 		ctx.moveTo(x + dx, y0);
 	if (fpLess(0, radius, fpTolerance) && fpLess(0, widthVisible, fpTolerance))
-	{ // 3rd rounded corner
+	{
 		let endAngle = 1.5*Math.PI;
 		if (fpLessEq(widthVisible, radius, fpTolerance))
 		{
@@ -328,7 +329,7 @@ function roundedRect(ctx, x, y, width, height, radius, widthOcclude, heightOcclu
 				endAngle = Math.acos(c);
 			endAngle = 2*Math.PI - endAngle;
 		}
-		ctx.arc(x1, y0, radius, 0, endAngle, true);
+		ctx.arc(x1, y0, radius, 0, endAngle, true); // 3rd rounded corner
 	} else
 		ctx.moveTo(x1, y);
 	const xf = occlude ? (fpLessEq(radius, widthVisible, fpTolerance) ? x+widthOcclude : x1): x0;
@@ -675,11 +676,9 @@ function drawBox100(d, x, y, boxWidth) // column of 50 short horizontal tally ma
 		boxWidth = Math.floor(stringWidthOnCanvas(d.ctx, "C")); // make same width as Roman numeral
 	const boundingRectWidth = boxWidth - boundaryMargin;
 	const lineLength = Math.floor((boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding - hSpaceBetween5s)/2);
-	//const lineLength = boundingRectWidth/2 - boundaryPadding - boundaryThickness - 1;
 	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
-	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
-	const columnSize = drawColumn100hLines(d, lineHpos, lineVpos, lineLength);
-	const boundingRectHeight = columnSize.h + 2*boundaryPadding + 2*boundaryThickness;
+	const columnSize = drawColumn100hLines(d, lineHpos, y, lineLength);
+	const boundingRectHeight = columnSize.h + boundaryPadding + boundaryThickness;
 	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
 	const oldlw = d.ctx.lineWidth;
 	d.ctx.lineWidth = boundaryThickness;
@@ -716,11 +715,10 @@ function drawBox500(d, x, y, rnWidth) // 5 double columns each of 100 short hori
 	const boundingRectWidth = Math.floor(boxWidth - boundaryMargin);
 	const columns500width = boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding;
 	const lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
-	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
 	const oldlw = d.ctx.lineWidth;
 	d.ctx.lineWidth = tallyMarkThickness;
-	const columnSize = draw500hLinesIn5doubleColumns(d, lineHpos, lineVpos, columns500width);
-	const boundingRectHeight = columnSize.h + 2*boundaryPadding + 2*boundaryThickness; // same as for 100
+	const columnSize = draw500hLinesIn5doubleColumns(d, lineHpos, y, columns500width);
+	const boundingRectHeight = columnSize.h + boundaryPadding + boundaryThickness; // same as for 100
 	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
 	d.ctx.lineWidth = boundaryThickness;
 	if (d.calculateOnly == false)
@@ -747,13 +745,12 @@ function drawBox1000(d, x, y, n) // 10 double columns each of 100 short horizont
 	const columns1000width = boundingRectWidth - 2*boundaryThickness - 2*boundaryPadding;
 	const columns500width = Math.floor((columns1000width - hSpaceBetween500s) / 2);
 	let lineHpos = x + boundaryPadding + boundaryThickness; // left column horizontal position
-	const lineVpos = y + boundaryPadding + boundaryThickness; // left column vertical position
 	const oldlw = d.ctx.lineWidth;
 	d.ctx.lineWidth = tallyMarkThickness;
-	const columnSize1 = draw500hLinesIn5doubleColumns(d, lineHpos, lineVpos, columns500width);
+	const columnSize1 = draw500hLinesIn5doubleColumns(d, lineHpos, y, columns500width);
 	lineHpos = lineHpos + columns500width + hSpaceBetween500s;
-	draw500hLinesIn5doubleColumns(d, lineHpos, lineVpos, columns500width);
-	const boundingRectHeight = columnSize1.h + 2*boundaryPadding + 2*boundaryThickness; // for 1 rectangular box of 1000 tally marks, same as for 100
+	draw500hLinesIn5doubleColumns(d, lineHpos, y, columns500width);
+	const boundingRectHeight = columnSize1.h + boundaryPadding + boundaryThickness; // for 1 rectangular box of 1000 tally marks, same as for 100
 	const foregroundColor = setIntermediateColor(d.ctx, foregroundWeightBoxBoundary);
 	d.ctx.lineWidth = boundaryThickness;
 	if (d.calculateOnly == false)
@@ -1845,7 +1842,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 			const foregroundColor = setIntermediateColor(this.ctx, foregroundWeightBoxBoundary);
 			const oldlw = this.ctx.lineWidth;
 			this.ctx.lineWidth = boundaryThickness;
-			roundedRect(this.ctx, x, y, this.szi.sza[i].w, this.szi.sza[i].h, boxCornerRadius);
+			//roundedRect(this.ctx, x, y, this.szi.sza[i].w, this.szi.sza[i].h, boxCornerRadius);
 			this.ctx.lineWidth = oldlw; // restore lineWidth
 			this.ctx.strokeStyle = foregroundColor; // restore foreground color
 		}
@@ -4031,7 +4028,7 @@ function incrementNumber()
 	{ // reset() method changes the internal state read by finished() accessor...
 		incNumAnmtnsAddtv.reset(); //...so call it only (immediately) after _both_ animation sequences finish,...
 		incNumAnmtnsSbtrctv.reset(); //...otherwise this branch of this if-statement will never be executed
-		insertTally.reset();
+		insertTally.reset(); // >>> EXPERIMENTAL <<<
 		aBoxIIIII.reset(); // >>> EXPERIMENTAL <<<
 		aFivesToTen.reset(); // >>> EXPERIMENTAL <<<
 		aTensToFifty.reset(); // >>> EXPERIMENTAL <<<
