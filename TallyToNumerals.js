@@ -26,8 +26,8 @@ const tallyMarkHeight = 25;
 const tallyMarkThickness = 1;
 const hSpace = 2;
 const verticalSpaceBetweenTallyMarks = 3;
-const verticalSpaceBetween5s = 6;
-const verticalSpaceBetween50s = 4;
+const verticalSpaceBetween5s = 5;
+const verticalSpaceBetween50s = 2;
 const horizontalOffset = 2;
 const verticalOffset = 2;
 const boundaryMargin = 1;
@@ -610,7 +610,7 @@ function draw10hLinesIn2Columns(d, x, xl, y, yl, len) // d is ref. to object of 
 { // used in drawColumn50hLines()
 	const h = drawColumnHlines(d, x, y, len, 5); // 1st column of five horizontal,
 	drawColumnHlines(d, xl, yl, len, 5); // 2nd column (offset horizontally&vertically)
-	return h;
+	return (h + fpMax(y,yl,fpTolerance) - fpMin(y,yl,fpTolerance));
 }
 
 function drawColumn50hLines(d, x, y0, len) // d is ref. to object of class DrawingOnCanvas (tally)
@@ -627,9 +627,10 @@ function drawColumn50hLines(d, x, y0, len) // d is ref. to object of class Drawi
 		y = y0 + yOffset; // left column vertical position
 		yOffset += draw10hLinesIn2Columns(d, x, xl, y, y + dy, len);
 		yOffset += verticalSpaceBetween5s; // regular vertical spacing (for visual clarity)
+		yOffset -= dy;
 	}
 	const w = 2*len + hSpaceBetween5s;  // width of the drawing
-	const h = yOffset + verticalOffsetBetween5s - verticalSpaceBetween5s; // height of the drawing
+	const h = yOffset - verticalSpaceBetween5s; // height of the drawing
 	return {w, h, ix2, dy, ya};
 }
 
@@ -1710,8 +1711,9 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	ixlf = 0; // final horizontal offset (in pixels) of the left column of each part of the initial graphic
 	l = 0; // updated length of each tally mark
 	lf = 0; // final length of each tally mark
-//	yl = 0; // updated vertical position (in pixels) of the left part of the initial graphic
-	animationStage = 0; // 0 = shortening the tally marks, 1 = aligning 2 groups of 5 shrunk tally marks vertically thus shrinking vertically each box of 10, 2 = aligning horizontally 5 shrunk boxes, each containing 2 groups of 5 shrunk tally marks
+	yl = 0; // updated vertical offset (in pixels) of the left part of the initial graphic
+	ylf = 0; // final horizontal offset (in pixels) of the left column of each part of the initial graphic
+	metamorphosisStage = 0; // 0 = shortening the tally marks, 1 = aligning 2 groups of 5 shrunk tally marks vertically thus shrinking vertically each box of 10, 2 = aligning horizontally 5 shrunk boxes, each containing 2 groups of 5 shrunk tally marks
 	v = 0; // (px/msec) how fast to move ixl towards ixlf
 	xClear = 0; // horizontal position (in pixels) of the part of the canvas to be cleared before redrawing
 	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared before redrawing
@@ -1761,7 +1763,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	{
 		this.finished = true;
 		this.justFinished = false;
-		this.animationStage = 0;
+		this.metamorphosisStage = 0;
 		if (this.cnv === null || this.ctx === null)
 			return; // browser does not support canvas
 		this.finished = false;
@@ -1771,10 +1773,10 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		this.xLi = horizontalOffset + this.w1;
 		this.xLf = horizontalOffset;
 		this.yLi = verticalOffset;
-		this.yLf = verticalOffset + this.hf - this.hi;
-		this.xl = this.xLi;
-		this.yl = this.yLi; */
-		this.v = AnimationSpeedMetamorphosis * (this.l - this.lf);
+		this.xl = this.xLi; */
+		this.yl = this.szi.sza[0].iy2;
+		this.ylf = this.szi.sza[0].iy1 + this.szf.sza[0].dy;
+		this.v = AnimationSpeedMetamorphosis * (this.l - this.lf + this.yl - this.ylf);
 		this.xClear = horizontalOffset - 1; // subtracting 1 remedies wrong erasure of rightmost edge of any box immediately to the left of the 5 boxes of 10
 		this.yClear = verticalOffset;
 		this.wClear = this.szi.w; // initial drawing is wider
@@ -1785,13 +1787,18 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	{
 		if (this.finished)
 			return true;
-//		if (this.animationStage == 0)
-//		{
+		if (this.metamorphosisStage == 0)
+		{
 			if (fpEqual(this.ixl, this.ixlf, fpTolerance) &&
 				fpEqual(this.l, this.lf, fpTolerance))
-				this.finished = true; // this.animationStage = 1;
-//			return false;
-//		}
+				this.metamorphosisStage = 1;
+			return false;
+		}
+		else if (this.metamorphosisStage == 1)
+		{
+			if (fpEqual(this.yl, this.ylf, fpTolerance))
+				this.finished = true;
+		}
 		if (this.finished)
 			this.justFinished = true;
 		return this.finished;
@@ -1809,18 +1816,18 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
 		let u;
-//		if (this.animationStage == 0)
-//		{
+		if (this.metamorphosisStage == 0)
+		{
 			u = this.ixl + (this.v)*dt;
 			this.ixl = fpMin(u, this.ixlf, fpTolerance); // prevent ixl from surpassing ixlf
 			u = this.l - (this.v)*dt;
 			this.l = fpMax(u, this.lf, fpTolerance); // prevent l from surpassing lf
-//		}
-//		else
-//		{
-//			u = this.xl - (this.v)*dt;
-//			this.xl = fpMax(u, this.xLf, fpTolerance); // prevent xl from surpassing xLf
-//		}
+		}
+		else if (this.metamorphosisStage == 1)
+		{
+			u = this.yl - (this.v)*dt;
+			this.yl = fpMax(u, this.ylf, fpTolerance); // prevent yl from surpassing ylf
+		}
 		this.t = t1;
 	}
 	draw()
@@ -1830,19 +1837,22 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		if (this.fcnDrawing === null)
 			return;
 		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
-		let x, xr;
+		let x, x1, x2, h;
 		const y = this.szi.sza[0].y;
-		const yr = y + this.szi.sza[0].iy1;
-		const yl = y + this.szi.sza[0].iy2;
+		const yr = this.szi.sza[0].iy1;
+		const y1 = y + yr;
+		const y2 = y + this.yl;
 		for (let i=0; i<5; i++)
 		{
 			x = this.szi.sza[i].x;
-			xr = x + this.szi.sza[i].ix;
-			draw10hLinesIn2Columns(this.drawingOnCanvas, xr, x + this.ixl, yr, yl, this.l);
+			x1 = x + this.szi.sza[i].ix;
+			x2 = x + this.ixl;
+			h = draw10hLinesIn2Columns(this.drawingOnCanvas, x1, x2, y1, y2, this.l);
+			h += 2 * (boundaryPadding + boundaryThickness);
 			const foregroundColor = setIntermediateColor(this.ctx, foregroundWeightBoxBoundary);
 			const oldlw = this.ctx.lineWidth;
 			this.ctx.lineWidth = boundaryThickness;
-			//roundedRect(this.ctx, x, y, this.szi.sza[i].w, this.szi.sza[i].h, boxCornerRadius);
+			roundedRect(this.ctx, x, y, this.szi.sza[i].w, h, boxCornerRadius);
 			this.ctx.lineWidth = oldlw; // restore lineWidth
 			this.ctx.strokeStyle = foregroundColor; // restore foreground color
 		}
