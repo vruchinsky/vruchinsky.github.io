@@ -1775,7 +1775,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		this.xl = this.xLi;
 		this.yl = this.yLi; */
 		this.v = AnimationSpeedMetamorphosis * (this.l - this.lf);
-		this.xClear = horizontalOffset;
+		this.xClear = horizontalOffset - 1; // subtracting 1 remedies wrong erasure of rightmost edge of any box immediately to the left of the 5 boxes of 10
 		this.yClear = verticalOffset;
 		this.wClear = this.szi.w; // initial drawing is wider
 		this.hClear = this.szf.h; // final drawing is taller
