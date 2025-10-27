@@ -630,7 +630,7 @@ function drawColumn50hLines(d, x, y0, len) // d is ref. to object of class Drawi
 		yOffset -= dy;
 	}
 	const w = 2*len + hSpaceBetween5s;  // width of the drawing
-	const h = yOffset - verticalSpaceBetween5s; // height of the drawing
+	const h = yOffset + dy - verticalSpaceBetween5s; // height of the drawing
 	return {w, h, ix2, dy, ya};
 }
 
@@ -1711,6 +1711,9 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	ixlf = 0; // final horizontal offset (in pixels) of the left column of each part of the initial graphic
 	l = 0; // updated length of each tally mark
 	lf = 0; // final length of each tally mark
+	x = null; // updated horizontal position of each of 5 boxes of 10 tally marks
+	xf = 0; // final horizontal position of 5 boxes of 10 tally marks
+	vx = null; // how fast to move each x[i] towards xf[i]
 	y = null; // updated vertical position of each of 5 boxes of 10 tally marks
 	yf = null; // final vertical position of each of 5 boxes of 10 tally marks
 	vy = null; // how fast to move each y[i] towards yf[i]
@@ -1771,20 +1774,21 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 			return; // browser does not support canvas
 		this.finished = false;
 		this.computeGraphicsSizes();
-/*		this.xr = horizontalOffset;
-		this.yr = verticalOffset;
-		this.xLi = horizontalOffset + this.w1;
-		this.xLf = horizontalOffset;
-		this.yLi = verticalOffset;
-		this.xl = this.xLi; */
+		if (this.x === null)
+			this.x = new Array(5);
+		if (this.vx === null)
+			this.vx = new Array(5);
 		if (this.y === null)
 			this.y = new Array(5);
 		if (this.yf === null)
 			this.yf = new Array(5);
 		if (this.vy === null)
 			this.vy = new Array(5);
+		this.xf = this.szf.sza[0].x;
 		for (let i=0; i<5; i++)
 		{
+			this.x[i] = this.szi.sza[i].x;
+			this.vx[i] = AnimationSpeedMetamorphosis * (this.xf - this.x[i]);
 			this.y[i] = this.szi.sza[i].y;
 			this.yf[i] = this.y[i];
 			if (i > 0)
@@ -1804,6 +1808,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	{
 		if (this.finished)
 			return true;
+		let allEqual;
 		if (this.metamorphosisStage == 0)
 		{
 			if (fpEqual(this.ixl, this.ixlf, fpTolerance) &&
@@ -1813,7 +1818,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		}
 		else if (this.metamorphosisStage == 1)
 		{
-			let allEqual = true;
+			allEqual = true;
 			for (let i=0; i<5; i++)
 			{
 				if (fpEqual(this.y[i], this.yf[i], fpTolerance) == false)
@@ -1825,12 +1830,22 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 			if (allEqual && fpEqual(this.yl, this.ylf, fpTolerance) == false)
 				allEqual = false;
 			if (allEqual)
-				this.finished = true;
-				//this.metamorphosisStage = 2;
+				this.metamorphosisStage = 2;
 		}
-		//else if (this.metamorphosisStage == 2)
-		//{
-		//}
+		else if (this.metamorphosisStage == 2)
+		{
+			allEqual = true;
+			for (let i=0; i<5; i++)
+			{
+				if (fpEqual(this.x[i], this.xf, fpTolerance) == false)
+				{
+					allEqual = false;
+					break;
+				}
+			}
+			if (allEqual)
+				this.finished = true;
+		}
 		if (this.finished)
 			this.justFinished = true;
 		return this.finished;
@@ -1865,9 +1880,14 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 				this.y[i] = fpMin(u, this.yf[i], fpTolerance); // prevent y[i] from surpassing yf[i]
 			}
 		}
-		//else if (this.metamorphosisStage == 2)
-		//{
-		//}
+		else if (this.metamorphosisStage == 2)
+		{
+			for (let i=0; i<5; i++)
+			{
+				u = this.x[i] + (this.vx[i])*dt;
+				this.x[i] = fpMax(u, this.xf, fpTolerance); // prevent x[i] from surpassing xf
+			}
+		}
 		this.t = t1;
 	}
 	draw()
@@ -1877,22 +1897,20 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		if (this.fcnDrawing === null)
 			return;
 		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
-		let x, x1, x2, y1, y2, h;
-		//const y = this.szi.sza[0].y;
+		let x1, x2, y1, y2, h;
 		const yr = this.szi.sza[0].iy1;
 		for (let i=0; i<5; i++)
 		{
 			y1 = this.y[i] + yr;
 			y2 = this.y[i] + this.yl;
-			x = this.szi.sza[i].x;
-			x1 = x + this.szi.sza[i].ix;
-			x2 = x + this.ixl;
+			x1 = this.x[i] + this.szi.sza[i].ix;
+			x2 = this.x[i] + this.ixl;
 			h = draw10hLinesIn2Columns(this.drawingOnCanvas, x1, x2, y1, y2, this.l);
 			h += 2 * (boundaryPadding + boundaryThickness);
 			const foregroundColor = setIntermediateColor(this.ctx, foregroundWeightBoxBoundary);
 			const oldlw = this.ctx.lineWidth;
 			this.ctx.lineWidth = boundaryThickness;
-			roundedRect(this.ctx, x, this.y[i], this.szi.sza[i].w, h, boxCornerRadius);
+			roundedRect(this.ctx, this.x[i], this.y[i], this.szi.sza[i].w, h, boxCornerRadius);
 			this.ctx.lineWidth = oldlw; // restore lineWidth
 			this.ctx.strokeStyle = foregroundColor; // restore foreground color
 		}
