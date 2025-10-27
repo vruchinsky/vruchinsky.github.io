@@ -1711,6 +1711,8 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	ixlf = 0; // final horizontal offset (in pixels) of the left column of each part of the initial graphic
 	l = 0; // updated length of each tally mark
 	lf = 0; // final length of each tally mark
+	y = null;  // updated vertical position of each of 5 boxes of 10 tally marks
+	yf = null;  // final vertical position of each of 5 boxes of 10 tally marks
 	yl = 0; // updated vertical offset (in pixels) of the left part of the initial graphic
 	ylf = 0; // final horizontal offset (in pixels) of the left column of each part of the initial graphic
 	metamorphosisStage = 0; // 0 = shortening the tally marks, 1 = aligning 2 groups of 5 shrunk tally marks vertically thus shrinking vertically each box of 10, 2 = aligning horizontally 5 shrunk boxes, each containing 2 groups of 5 shrunk tally marks
@@ -1768,12 +1770,21 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 			return; // browser does not support canvas
 		this.finished = false;
 		this.computeGraphicsSizes();
-/* 		this.xr = horizontalOffset;
+/*		this.xr = horizontalOffset;
 		this.yr = verticalOffset;
 		this.xLi = horizontalOffset + this.w1;
 		this.xLf = horizontalOffset;
 		this.yLi = verticalOffset;
 		this.xl = this.xLi; */
+		if (this.y === null)
+			this.y = new Array(5);
+		if (this.yf === null)
+			this.yf = new Array(5);
+		for (let i=0; i<5; i++)
+		{
+			this.y[i] = this.szi.sza[i].y;
+			this.yf[i] = this.y[i] + this.szf.sza[0].ya[i];
+		}
 		this.yl = this.szi.sza[0].iy2;
 		this.ylf = this.szi.sza[0].iy1 + this.szf.sza[0].dy;
 		this.v = AnimationSpeedMetamorphosis * (this.l - this.lf + this.yl - this.ylf);
@@ -1796,9 +1807,24 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		}
 		else if (this.metamorphosisStage == 1)
 		{
-			if (fpEqual(this.yl, this.ylf, fpTolerance))
+			let allEqual = true;
+			for (let i=0; i<5; i++)
+			{
+				if (fpEqual(this.y[i], this.yf[i], fpTolerance) == false)
+				{
+					allEqual = false;
+					break;
+				}
+			}
+			if (allEqual && fpEqual(this.yl, this.ylf, fpTolerance) == false)
+				allEqual = false;
+			if (allEqual)
 				this.finished = true;
+				//this.metamorphosisStage = 2;
 		}
+		//else if (this.metamorphosisStage == 2)
+		//{
+		//}
 		if (this.finished)
 			this.justFinished = true;
 		return this.finished;
@@ -1827,7 +1853,15 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		{
 			u = this.yl - (this.v)*dt;
 			this.yl = fpMax(u, this.ylf, fpTolerance); // prevent yl from surpassing ylf
+			for (let i=0; i<5; i++)
+			{
+				u = this.y[i] + (this.v)*dt;
+				this.y[i] = fpMin(u, this.yf[i], fpTolerance); // prevent y[i] from surpassing yf[i]
+			}
 		}
+		//else if (this.metamorphosisStage == 2)
+		//{
+		//}
 		this.t = t1;
 	}
 	draw()
@@ -1837,13 +1871,13 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		if (this.fcnDrawing === null)
 			return;
 		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
-		let x, x1, x2, h;
-		const y = this.szi.sza[0].y;
+		let x, x1, x2, y1, y2, h;
+		//const y = this.szi.sza[0].y;
 		const yr = this.szi.sza[0].iy1;
-		const y1 = y + yr;
-		const y2 = y + this.yl;
 		for (let i=0; i<5; i++)
 		{
+			y1 = this.y[i] + yr;
+			y2 = this.y[i] + this.yl;
 			x = this.szi.sza[i].x;
 			x1 = x + this.szi.sza[i].ix;
 			x2 = x + this.ixl;
@@ -1852,7 +1886,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 			const foregroundColor = setIntermediateColor(this.ctx, foregroundWeightBoxBoundary);
 			const oldlw = this.ctx.lineWidth;
 			this.ctx.lineWidth = boundaryThickness;
-			roundedRect(this.ctx, x, y, this.szi.sza[i].w, h, boxCornerRadius);
+			roundedRect(this.ctx, x, this.y[i], this.szi.sza[i].w, h, boxCornerRadius);
 			this.ctx.lineWidth = oldlw; // restore lineWidth
 			this.ctx.strokeStyle = foregroundColor; // restore foreground color
 		}
