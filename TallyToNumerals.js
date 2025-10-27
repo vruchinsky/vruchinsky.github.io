@@ -1711,8 +1711,9 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	ixlf = 0; // final horizontal offset (in pixels) of the left column of each part of the initial graphic
 	l = 0; // updated length of each tally mark
 	lf = 0; // final length of each tally mark
-	y = null;  // updated vertical position of each of 5 boxes of 10 tally marks
-	yf = null;  // final vertical position of each of 5 boxes of 10 tally marks
+	y = null; // updated vertical position of each of 5 boxes of 10 tally marks
+	yf = null; // final vertical position of each of 5 boxes of 10 tally marks
+	vy = null; // how fast to move each y[i] towards yf[i]
 	yl = 0; // updated vertical offset (in pixels) of the left part of the initial graphic
 	ylf = 0; // final horizontal offset (in pixels) of the left column of each part of the initial graphic
 	metamorphosisStage = 0; // 0 = shortening the tally marks, 1 = aligning 2 groups of 5 shrunk tally marks vertically thus shrinking vertically each box of 10, 2 = aligning horizontally 5 shrunk boxes, each containing 2 groups of 5 shrunk tally marks
@@ -1780,15 +1781,20 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 			this.y = new Array(5);
 		if (this.yf === null)
 			this.yf = new Array(5);
+		if (this.vy === null)
+			this.vy = new Array(5);
 		for (let i=0; i<5; i++)
 		{
 			this.y[i] = this.szi.sza[i].y;
-			this.yf[i] = this.y[i] + this.szf.sza[0].ya[i];
+			this.yf[i] = this.y[i];
+			if (i > 0)
+				this.yf[i] += (this.szf.sza[0].ya[i] - this.szf.sza[0].ya[0]);
+			this.vy[i] = AnimationSpeedMetamorphosis * (this.yf[i] - this.y[i]);
 		}
 		this.yl = this.szi.sza[0].iy2;
 		this.ylf = this.szi.sza[0].iy1 + this.szf.sza[0].dy;
 		this.v = AnimationSpeedMetamorphosis * (this.l - this.lf + this.yl - this.ylf);
-		this.xClear = horizontalOffset - 1; // subtracting 1 remedies wrong erasure of rightmost edge of any box immediately to the left of the 5 boxes of 10
+		this.xClear = horizontalOffset - 1; // subtracting 1 remedies wrong erasure of rightmost edge of any box immediately to the left of 5 boxes of 10
 		this.yClear = verticalOffset;
 		this.wClear = this.szi.w; // initial drawing is wider
 		this.hClear = this.szf.h; // final drawing is taller
@@ -1855,7 +1861,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 			this.yl = fpMax(u, this.ylf, fpTolerance); // prevent yl from surpassing ylf
 			for (let i=0; i<5; i++)
 			{
-				u = this.y[i] + (this.v)*dt;
+				u = this.y[i] + (this.vy[i])*dt;
 				this.y[i] = fpMin(u, this.yf[i], fpTolerance); // prevent y[i] from surpassing yf[i]
 			}
 		}
