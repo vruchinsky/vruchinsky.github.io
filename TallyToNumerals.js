@@ -884,7 +884,8 @@ function drawTally(drwngOnCnv, x0, y) // drwngOnCnv is ref. to object of class D
 		+ (nDs * wBox500) + wBox1K + wBox10K);
 	drwngOnCnv.ctx.strokeStyle = oldStrokeStyle;
 	drwngOnCnv.ctx.lineWidth = oldLineWidth;
-	return {w, h, sza};
+	x = x0;
+	return {w, h, x, y, sza};
 }
 
 function replaceLastChars(s, a, b) // if string s ends with string a,
@@ -1546,7 +1547,6 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each con
 	hi = 0; // height (in pixels) of initial graphic
 	hf = 0; // height (in pixels) of final graphic
 	xr = 0; // horizontal position (in pixels) of right part of initial graphic
-	yr = 0; // vertical position of right part of initial graphic
 	xLi = 0; // initial horizontal position (in pixels) of left part of initial graphic
 	xLf = 0; // final horizontal position (in pixels) of left part of initial graphic
 	xl = 0; // updated horizontal position (in pixels) of left part of initial graphic
@@ -1590,7 +1590,9 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each con
 		this.drawingOnCanvas.text = this.initialText[0]; // calculate width of 1 of parts of initial graphic
 		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
 		let sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
-		this.w1 = sz.w; // (and both parts of initial graphic have same height which is retrieved a little later here)
+		this.w1 = sz.w; // (and both parts of initial graphic have same height, retrieved a little later here)
+		this.yLi = sz.y; // both parts of initial graphic have same vertical offset
+		this.xr = sz.x;
 		this.drawingOnCanvas.text = this.initialText; // calculate size of entire initial graphic (both parts together)
 		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
 		sz = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
@@ -1604,6 +1606,11 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each con
 		this.drawingOnCanvas.text = oldText;
 		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
 		this.drawingOnCanvas.calculateOnly = false;
+		this.xLf = this.xr;
+		this.xLi = this.xLf + this.w1;
+		this.yLf = this.yLi + this.hf - this.hi;
+		this.xl = this.xLi;
+		this.yl = this.yLi;
 	}
 	start()
 	{
@@ -1614,14 +1621,6 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each con
 			return; // browser does not support canvas
 		this.finished = false;
 		this.computeGraphicsSizes();
-		this.xr = horizontalOffset;
-		this.yr = verticalOffset;
-		this.xLi = horizontalOffset + this.w1;
-		this.xLf = horizontalOffset;
-		this.yLi = verticalOffset;
-		this.yLf = verticalOffset + this.hf - this.hi;
-		this.xl = this.xLi;
-		this.yl = this.yLi;
 		const d = this.xLi - this.xLf + this.yLf - this.yLi; // total distance to travel
 		this.v = AnimationSpeedMetamorphosis * d;
 		this.xClear = this.xl - 1; // subtracting 1 remedies failure to erase right edge of box while sliding it down
@@ -1707,10 +1706,13 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 	fcnDrawing = null; // ref. to function used to draw all the tally drawings
 	szi = null; // measurements of each of 5 parts of initial graphic
 	szf = null; // measurements of final graphic
+	wi = 0; // width (in pixels) of entire initial graphic (both parts together)
+	wf = 0; // width (in pixels) of final graphic
 	ixl = 0; // updated horizontal offset (in pixels) of the left column of each part of the initial graphic
 	ixlf = 0; // final horizontal offset (in pixels) of the left column of each part of the initial graphic
 	l = 0; // updated length of each tally mark
 	lf = 0; // final length of each tally mark
+	xr = 0; // horizontal position (in pixels) of rightmost part of initial graphic
 	x = null; // updated horizontal position of each of 5 boxes of 10 tally marks
 	xf = 0; // final horizontal position of 5 boxes of 10 tally marks
 	vx = null; // how fast to move each x[i] towards xf[i]
@@ -1764,6 +1766,9 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 		this.drawingOnCanvas.text = oldText;
 		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
 		this.drawingOnCanvas.calculateOnly = false;
+		this.wi = this.szi.w;
+		this.wf = this.szf.w;
+		this.xf = this.szf.sza[0].x;
 	}
 	start()
 	{
@@ -1784,7 +1789,6 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 			this.yf = new Array(5);
 		if (this.vy === null)
 			this.vy = new Array(5);
-		this.xf = this.szf.sza[0].x;
 		for (let i=0; i<5; i++)
 		{
 			this.x[i] = this.szi.sza[i].x;
@@ -1795,6 +1799,7 @@ class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each co
 				this.yf[i] += (this.szf.sza[0].ya[i] - this.szf.sza[0].ya[0]);
 			this.vy[i] = AnimationSpeedMetamorphosis * (this.yf[i] - this.y[i]);
 		}
+		this.xr = this.szi.x;
 		this.yl = this.szi.sza[0].iy2;
 		this.ylf = this.szi.sza[0].iy1 + this.szf.sza[0].dy;
 		this.v = AnimationSpeedMetamorphosis * (this.l - this.lf + this.yl - this.ylf);
