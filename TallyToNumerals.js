@@ -1694,7 +1694,7 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each con
 	}
 }
 
-class MergeVerticallyFiveHorizontallyAdjacentBoxes //i.e. stack 5 boxes, each containing 10 tally marks,...
+class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 {//...merging them into 1 box containing 50 tally marks. (corresponds to Fade(romanNumeralsAdditive, "XXXXX", "L"))
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw animation
@@ -3987,9 +3987,12 @@ aBoxIIIII.setDrawings(drawTally, drawBox5); // >>> EXPERIMENTAL <<<
 let mFivesToTen = new MergeVerticallyTwoHorizontallyAdjacentBoxes(tally, "VV", "X", drawTally); // >>> EXPERIMENTAL <<<
 let aFivesToTen = new AnimateSymbolSubstitutionToFew(mFivesToTen); // >>> EXPERIMENTAL <<<
 aFivesToTen.setDrawings(drawTally, drawBox10); // >>> EXPERIMENTAL <<<
-let mTensToFifty = new MergeVerticallyFiveHorizontallyAdjacentBoxes(tally, drawTally); // >>> EXPERIMENTAL <<<
+let mTensToFifty = new MergeTensToFifty(tally, drawTally); // >>> EXPERIMENTAL <<<
 let aTensToFifty = new AnimateSymbolSubstitutionToFew(mTensToFifty); // >>> EXPERIMENTAL <<<
 aTensToFifty.setDrawings(drawTally, drawBox50); // >>> EXPERIMENTAL <<<
+let mFiftiesToHundred = new MergeVerticallyTwoHorizontallyAdjacentBoxes(tally, "LL", "C", drawTally); // >>> EXPERIMENTAL <<<
+let aFiftiesToHundred = new AnimateSymbolSubstitutionToFew(mFiftiesToHundred); // >>> EXPERIMENTAL <<<
+aFiftiesToHundred.setDrawings(drawTally, drawBox100); // >>> EXPERIMENTAL <<<
 
 function incNumAnmtnsConstraints()
 {
@@ -4092,7 +4095,15 @@ function incrementNumber()
 		{ // >>> EXPERIMENTAL <<<
 			if (aTensToFifty.more() == false) // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
-				//aFiftiesToHundred.start(tally.get()); // >>> EXPERIMENTAL <<<
+				aFiftiesToHundred.start(tally.get()); // >>> EXPERIMENTAL <<<
+				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
+		else if (incrementTallyAnimationState == 4) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (aFiftiesToHundred.more() == false) // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				//aHundredsToFiveHundred.start(tally.get()); // >>> EXPERIMENTAL <<<
 				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
 		} // >>> EXPERIMENTAL <<<
@@ -4105,6 +4116,7 @@ function incrementNumber()
 		aBoxIIIII.reset(); // >>> EXPERIMENTAL <<<
 		aFivesToTen.reset(); // >>> EXPERIMENTAL <<<
 		aTensToFifty.reset(); // >>> EXPERIMENTAL <<<
+		aFiftiesToHundred.reset(); // >>> EXPERIMENTAL <<<
 		incrementTallyAnimationState = 0; // >>> EXPERIMENTAL <<<
 		inputNumber++;
 		setNumber();
