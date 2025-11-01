@@ -691,7 +691,7 @@ function drawBox100(d, x, y, boxWidth) // column of 50 short horizontal tally ma
 	d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	const w = boxWidth;  // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
-	return {w, h, x, y, ix, iy};
+	return {w, h, x, y, ix, iy, l};
 }
 
 function draw500hLinesIn5doubleColumns(d, x, y, xOffset, yOffset, w) // d is ref. to object of class DrawingOnCanvas (tally)
@@ -736,7 +736,9 @@ function drawBox500(d, x, y, rnWidth) // 5 double columns each of 100 short hori
 	const w = boxWidth; // width of the drawing
 	const h = boundingRectHeight; // height of the drawing
 	const xa = columnSize.xa;
-	return {w, h, x, y, xa, iy};
+	const l = columnSize.l;
+	const cw = columns500width;
+	return {w, h, x, y, xa, iy, l, cw};
 }
 
 // d is ref. to object of class DrawingOnCanvas (tally)
@@ -795,7 +797,9 @@ function drawBox1000(d, x, y, n) // 10 double columns each of 100 short horizont
 	d.ctx.lineWidth = oldlw; // restore lineWidth
 	w = boxWidth + n*hShift;  // width of the drawing
 	h = boundingRectHeight + n*vShift; // height of the drawing
-	return {w, h, x, y, xa, iy};
+	const l = columnSize1.l;
+	const cw = columns500width;
+	return {w, h, x, y, xa, iy, l, cw};
 }
 
 // For that part of romanNumeralsAdditive.text, which contains only
@@ -1721,9 +1725,12 @@ class MergeHorizontallyAdjacentBoxesHorizontally //i.e. merge 5 (or 2) identical
 	wi = 0; // width (in pixels) of entire initial graphic (both parts together)
 	wf = 0; // width (in pixels) of final graphic
 	xr = 0; // horizontal position (in pixels) of rightmost part of initial graphic
-	x = null; // updated horizontal position of each of nInitial boxes
-	xf = null; // final horizontal position each of nInitial boxes
+	x = null; // updated rightmost horizontal position of rightmost tally marks in each of nInitial graphics
+	xf = null; // final rightmost horizontal position of rightmost tally marks in each of nInitial graphics
 	v = null; // how fast to move each x[i] towards xf[i]
+	y = 0; // vertical position of all the graphics
+	yt = 0; // vertical position of top tally marks in all the graphics
+	l = 0; // length of each tally mark
 	xClear = 0; // horizontal position (in pixels) of the part of the canvas to be cleared before redrawing
 	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared before redrawing
 	wClear = 0; // width (in pixels) of the part of the canvas to be cleared before redrawing
@@ -1787,24 +1794,27 @@ class MergeHorizontallyAdjacentBoxesHorizontally //i.e. merge 5 (or 2) identical
 		for (let i=0; i<this.nInitial; i++)
 		{
 			if (this.initialText[0] === "C")
-				this.x[i] = this.szi.sza[i].ix;
+				this.x[i] = this.szi.sza[i].x + this.szi.sza[i].ix;
 			else if (this.initialText[0] === "D")
-				this.x[i] = this.szi.sza[i].xa[0];
+				this.x[i] = this.szi.sza[i].x + this.szi.sza[i].xa[0];
 			else
 				this.x[i] = 0;
 			if (this.finalText[0] === "D")
-				this.xf[i] = this.szf.sza[i].xa[0];
+				this.xf[i] = this.szf.sza[0].x + this.szf.sza[0].xa[i];
 			else if (this.finalText[0] === "M")
-				this.xf[i] = this.szf.sza[i].xa[0];
+				this.xf[i] = this.szf.sza[0].x + this.szf.xa[0].xa[i];
 			else
 				this.xf[i] = 0;
-			this.vx[i] = AnimationSpeedMetamorphosis * (this.xf[i] - this.x[i]);
+			this.v[i] = AnimationSpeedMetamorphosis * (this.xf[i] - this.x[i]);
 		}
 		this.xr = this.szi.x;
-		this.xClear = this.szi.x;
+		this.y = this.szi.y;
+		this.yt = this.szi.y + this.szi.sza[0].iy;
+		this.l = this.szi.sza[0].l;
+		this.xClear = this.szi.x - 1; // subtracting 1 remedies erroneous erasure of rightmost edge of other graphics during this metamorphosis
 		this.yClear = this.szi.y;
 		this.wClear = this.szi.w; // initial drawing is wider
-		this.hClear = this.szf.h; // final drawing is taller
+		this.hClear = this.szf.h;
 		this.t = Date.now();
 	}
 	done() // true iff finished this particular stage of the animation
@@ -1841,10 +1851,35 @@ class MergeHorizontallyAdjacentBoxesHorizontally //i.e. merge 5 (or 2) identical
 		let u;
 		for (let i=0; i<this.nInitial; i++)
 		{
-			u = this.x[i] + (this.vx[i])*dt;
+			u = this.x[i] + (this.v[i])*dt;
 			this.x[i] = fpMax(u, this.xf[i], fpTolerance); // prevent x[i] from surpassing xf
 		}
 		this.t = t1;
+	}
+	draw()
+	{
+		if (this.cnv === null || this.ctx === null)
+			return; // browser does not support canvas
+		if (this.fcnDrawing === null)
+			return;
+		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
+		const xOffset = this.szi.sza[0].ix; // horizontal distance from boundary to nearest tally mark
+		let sz = null;
+		for (let i=0; i<this.nInitial; i++)
+		{
+			if (this.initialText[0] === "C")
+				sz = drawColumn100hLines(this.drawingOnCanvas, this.x[i], this.yt, 0, 0, this.l);
+			else if (this.initialText[0] === "D")
+				sz = draw500hLinesIn5doubleColumns(this.drawingOnCanvas, this.x[i], this.yt, 0, 0, this.szi.sza[0].cw);
+		}
+		const cw = (this.initialText[0] === "C" || this.initialText[0] === "D") ? sz.w : 0;
+		const foregroundColor = setIntermediateColor(this.ctx, foregroundWeightBoxBoundary);
+		const oldlw = this.ctx.lineWidth;
+		this.ctx.lineWidth = boundaryThickness;
+		const w = this.x[this.nInitial - 1] - this.xr + cw + xOffset;
+		roundedRect(this.ctx, this.xr, this.y, w, this.szi.h, boxCornerRadius);
+		this.ctx.lineWidth = oldlw; // restore lineWidth
+		this.ctx.strokeStyle = foregroundColor; // restore foreground color
 	}
 }
 
@@ -4149,6 +4184,9 @@ aTensToFifty.setDrawings(drawTally, drawBox50); // >>> EXPERIMENTAL <<<
 let mFiftiesToHundred = new MergeTwoHorizontallyAdjacentBoxesVertically(tally, "LL", "C", drawTally); // >>> EXPERIMENTAL <<<
 let aFiftiesToHundred = new AnimateSymbolSubstitutionToFew(mFiftiesToHundred); // >>> EXPERIMENTAL <<<
 aFiftiesToHundred.setDrawings(drawTally, drawBox100); // >>> EXPERIMENTAL <<<
+let mHundredsToFiveHundred = new MergeHorizontallyAdjacentBoxesHorizontally(tally, "CCCCC", "D", drawTally); // >>> EXPERIMENTAL <<<
+let aHundredsToFiveHundred = new AnimateSymbolSubstitutionToFew(mHundredsToFiveHundred); // >>> EXPERIMENTAL <<<
+aHundredsToFiveHundred.setDrawings(drawTally, drawBox500); // >>> EXPERIMENTAL <<<
 
 function incNumAnmtnsConstraints()
 {
@@ -4259,7 +4297,15 @@ function incrementNumber()
 		{ // >>> EXPERIMENTAL <<<
 			if (aFiftiesToHundred.more() == false) // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
-				//aHundredsToFiveHundred.start(tally.get()); // >>> EXPERIMENTAL <<<
+				aHundredsToFiveHundred.start(tally.get()); // >>> EXPERIMENTAL <<<
+				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
+		else if (incrementTallyAnimationState == 5) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (aHundredsToFiveHundred.more() == false) // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
+				//aFiveHundredsToThousand.start(tally.get()); // >>> EXPERIMENTAL <<<
 				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
 		} // >>> EXPERIMENTAL <<<
@@ -4273,6 +4319,7 @@ function incrementNumber()
 		aFivesToTen.reset(); // >>> EXPERIMENTAL <<<
 		aTensToFifty.reset(); // >>> EXPERIMENTAL <<<
 		aFiftiesToHundred.reset(); // >>> EXPERIMENTAL <<<
+		aHundredsToFiveHundred.reset(); // >>> EXPERIMENTAL <<<
 		incrementTallyAnimationState = 0; // >>> EXPERIMENTAL <<<
 		inputNumber++;
 		setNumber();
