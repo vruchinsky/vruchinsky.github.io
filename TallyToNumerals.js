@@ -1542,8 +1542,8 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 	}
 }
 
-class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each containing 5 tally marks,...
-{//...and merge them into 1 box of 10. (corresponds to class MetamorphoseVVtoX for numerals)
+class MergeTwoHorizontallyAdjacentBoxesVertically //i.e. stack 2 boxes, each containing 5 (or 50) tally marks, and merge them into...
+{//...1 box of 10 (or 100) tally marks. (corresponds to class MetamorphoseVVtoX (or Fade(romanNumeralsAdditive, "LL", "C")) for numerals)
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
@@ -1589,7 +1589,7 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each con
 		this.finalText = fTxt;
 		this.fcnDrawing = f;
 		if (this.initialText !== null)
-			this.initialNumber = convertRomanNumeralsAdditiveToNumber(this.initialText[0]);
+			this.initialNumber = convertRomanNumeralsAdditiveToNumber(this.initialText);
 		if (this.finalText !== null)
 			this.finalNumber = convertRomanNumeralsAdditiveToNumber(this.finalText);
 	}
@@ -1705,6 +1705,149 @@ class MergeVerticallyTwoHorizontallyAdjacentBoxes //i.e. stack 2 boxes, each con
 	}
 }
 
+class MergeHorizontallyAdjacentBoxesHorizontally //i.e. merge 5 (or 2) identical-looking boxes, all in 1 horizontal row,...
+{//...each containing 100 (or 500) tally marks, horizontally into a single box
+	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
+	cnv = null; // HTML canvas object on which to draw the animation
+	ctx = null; // drawing context of cnv
+	initialText = null; // Roman-numeral equivalent of the 2 initial graphics
+	finalText = null; // Roman-numeral equivalent of the final graphic
+	initialNumber = 0; // numerical equivalent of initialText[0]
+	finalNumber = 0; // numerical equivalent of finalText
+	nInitial = 0; // how many horizontally-adjacent boxes of tally marks are to be merged
+	fcnDrawing = null; // ref. to function used to draw initial graphic and final graphic
+	szi = null; // measurements of each of nInitial parts of initial graphic
+	szf = null; // measurements of final graphic
+	wi = 0; // width (in pixels) of entire initial graphic (both parts together)
+	wf = 0; // width (in pixels) of final graphic
+	xr = 0; // horizontal position (in pixels) of rightmost part of initial graphic
+	x = null; // updated horizontal position of each of nInitial boxes
+	xf = null; // final horizontal position each of nInitial boxes
+	v = null; // how fast to move each x[i] towards xf[i]
+	xClear = 0; // horizontal position (in pixels) of the part of the canvas to be cleared before redrawing
+	yClear = 0; // vertical position (in pixels) of the part of the canvas to be cleared before redrawing
+	wClear = 0; // width (in pixels) of the part of the canvas to be cleared before redrawing
+	hClear = 0; // height (in pixels) of the part of the canvas to be cleared before redrawing
+	t = 0; // (msec) time of last update
+	finished = true; // used to implement this.done()
+	justFinished = false; // used to implement this.recent()
+	xInitial() {return this.xr;}
+	xFinal() {return this.xr;}
+	wInitial() {return this.wi;}
+	wFinal() {return this.wf;}
+	constructor(d, iTxt, fTxt, f)
+	{
+		if (d === null)
+			return;
+		this.drawingOnCanvas = d;
+		this.cnv = this.drawingOnCanvas.canvas;
+		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
+			this.ctx = this.cnv.getContext("2d");
+		this.initialText = iTxt;
+		this.finalText = fTxt;
+		this.fcnDrawing = f;
+		this.nInitial = this.initialText.length;
+		if (this.initialText !== null)
+			this.initialNumber = convertRomanNumeralsAdditiveToNumber(this.initialText);
+		if (this.finalText !== null)
+			this.finalNumber = convertRomanNumeralsAdditiveToNumber(this.finalText);
+	}
+	computeGraphicsSizes()
+	{
+		const oldText = this.drawingOnCanvas.text;
+		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = true;
+		this.drawingOnCanvas.text = this.initialText; // calculate sizes of all parts of initial graphic
+		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
+		this.szi = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.drawingOnCanvas.text = this.finalText; // calculate sizes of final graphic
+		this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
+		this.szf = this.fcnDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.drawingOnCanvas.text = oldText;
+		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = false;
+		this.wi = this.szi.w;
+		this.wf = this.szf.w;
+	}
+	start()
+	{
+		this.finished = true;
+		this.justFinished = false;
+		this.metamorphosisStage = 0;
+		if (this.cnv === null || this.ctx === null)
+			return; // browser does not support canvas
+		this.finished = false;
+		this.computeGraphicsSizes();
+		if (this.x === null)
+			this.x = new Array(this.nInitial);
+		if (this.xf === null)
+			this.xf = new Array(this.nInitial);
+		if (this.v === null)
+			this.v = new Array(this.nInitial);
+		for (let i=0; i<this.nInitial; i++)
+		{
+			if (this.initialText[0] === "C")
+				this.x[i] = this.szi.sza[i].ix;
+			else if (this.initialText[0] === "D")
+				this.x[i] = this.szi.sza[i].xa[0];
+			else
+				this.x[i] = 0;
+			if (this.finalText[0] === "D")
+				this.xf[i] = this.szf.sza[i].xa[0];
+			else if (this.finalText[0] === "M")
+				this.xf[i] = this.szf.sza[i].xa[0];
+			else
+				this.xf[i] = 0;
+			this.vx[i] = AnimationSpeedMetamorphosis * (this.xf[i] - this.x[i]);
+		}
+		this.xr = this.szi.x;
+		this.xClear = this.szi.x;
+		this.yClear = this.szi.y;
+		this.wClear = this.szi.w; // initial drawing is wider
+		this.hClear = this.szf.h; // final drawing is taller
+		this.t = Date.now();
+	}
+	done() // true iff finished this particular stage of the animation
+	{
+		if (this.finished)
+			return true;
+		let allEqual = true;
+		for (let i=0; i<this.nInitial; i++)
+		{
+			if (fpEqual(this.x[i], this.xf[i], fpTolerance) == false)
+			{
+				allEqual = false;
+				break;
+			}
+		}
+		if (allEqual)
+			this.finished = true;
+		if (this.finished)
+			this.justFinished = true;
+		return this.finished;
+	}
+	recent() // returns true iff the most recent call to this.done() has returned true but...
+	{//...the call to this.done immediately prior to the most recent call to this.done()...
+		if (this.justFinished==false) //...has returned false
+			return false;
+		this.justFinished = false;
+		return true;
+	}
+	proceed()
+	{
+		if (this.finished) return;
+		const t1 = Date.now(); // (msec)
+		const dt = t1 - this.t; // (msec) time since last update
+		let u;
+		for (let i=0; i<this.nInitial; i++)
+		{
+			u = this.x[i] + (this.vx[i])*dt;
+			this.x[i] = fpMax(u, this.xf[i], fpTolerance); // prevent x[i] from surpassing xf
+		}
+		this.t = t1;
+	}
+}
+
 class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 {//...merging them into 1 box containing 50 tally marks. (corresponds to Fade(romanNumeralsAdditive, "XXXXX", "L"))
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
@@ -1714,6 +1857,7 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 	finalText = "L"; // Roman-numeral equivalent of final graphic
 	initialNumber = 0; // numerical equivalent of initialText[0]
 	finalNumber = 0; // numerical equivalent of finalText
+	nInitial = 0; // how many horizontally-adjacent boxes of tally marks are to be merged
 	fcnDrawing = null; // ref. to function used to draw all the tally drawings
 	szi = null; // measurements of each of 5 parts of initial graphic
 	szf = null; // measurements of final graphic
@@ -1726,7 +1870,7 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 	xr = 0; // horizontal position (in pixels) of rightmost part of initial graphic
 	x = null; // updated horizontal position of each of 5 boxes of 10 tally marks
 	xf = 0; // final horizontal position of 5 boxes of 10 tally marks
-	vx = null; // how fast to move each x[i] towards xf[i]
+	vx = null; // how fast to move each x[i] towards xf
 	y = null; // updated vertical position of each of 5 boxes of 10 tally marks
 	yf = null; // final vertical position of each of 5 boxes of 10 tally marks
 	vy = null; // how fast to move each y[i] towards yf[i]
@@ -1754,6 +1898,7 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 		if (this.cnv.getContext !== null) // otherwise, browser does not support canvas
 			this.ctx = this.cnv.getContext("2d");
 		this.fcnDrawing = f;
+		this.nInitial = this.initialText.length;
 		if (this.initialText !== null)
 			this.initialNumber = convertRomanNumeralsAdditiveToNumber(this.initialText);
 		if (this.finalText !== null)
@@ -1791,16 +1936,16 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 		this.finished = false;
 		this.computeGraphicsSizes();
 		if (this.x === null)
-			this.x = new Array(5);
+			this.x = new Array(this.nInitial);
 		if (this.vx === null)
-			this.vx = new Array(5);
+			this.vx = new Array(this.nInitial);
 		if (this.y === null)
-			this.y = new Array(5);
+			this.y = new Array(this.nInitial);
 		if (this.yf === null)
-			this.yf = new Array(5);
+			this.yf = new Array(this.nInitial);
 		if (this.vy === null)
-			this.vy = new Array(5);
-		for (let i=0; i<5; i++)
+			this.vy = new Array(this.nInitial);
+		for (let i=0; i<this.nInitial; i++)
 		{
 			this.x[i] = this.szi.sza[i].x;
 			this.vx[i] = AnimationSpeedMetamorphosis * (this.xf - this.x[i]);
@@ -1814,8 +1959,8 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 		this.yl = this.szi.sza[0].iy2;
 		this.ylf = this.szi.sza[0].iy1 + this.szf.sza[0].dy;
 		this.v = AnimationSpeedMetamorphosis * (this.l - this.lf + this.yl - this.ylf);
-		this.xClear = horizontalOffset - 1; // subtracting 1 remedies wrong erasure of rightmost edge of any box immediately to the left of 5 boxes of 10
-		this.yClear = verticalOffset;
+		this.xClear = this.szi.x - 1; // subtracting 1 remedies wrong erasure of rightmost edge of any box immediately to the left of 5 boxes of 10
+		this.yClear = this.szi.y;
 		this.wClear = this.szi.w; // initial drawing is wider
 		this.hClear = this.szf.h; // final drawing is taller
 		this.t = Date.now();
@@ -1835,7 +1980,7 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 		else if (this.metamorphosisStage == 1)
 		{
 			allEqual = true;
-			for (let i=0; i<5; i++)
+			for (let i=0; i<this.nInitial; i++)
 			{
 				if (fpEqual(this.y[i], this.yf[i], fpTolerance) == false)
 				{
@@ -1851,7 +1996,7 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 		else if (this.metamorphosisStage == 2)
 		{
 			allEqual = true;
-			for (let i=0; i<5; i++)
+			for (let i=0; i<this.nInitial; i++)
 			{
 				if (fpEqual(this.x[i], this.xf, fpTolerance) == false)
 				{
@@ -1890,7 +2035,7 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 		{
 			u = this.yl - (this.v)*dt;
 			this.yl = fpMax(u, this.ylf, fpTolerance); // prevent yl from surpassing ylf
-			for (let i=0; i<5; i++)
+			for (let i=0; i<this.nInitial; i++)
 			{
 				u = this.y[i] + (this.vy[i])*dt;
 				this.y[i] = fpMin(u, this.yf[i], fpTolerance); // prevent y[i] from surpassing yf[i]
@@ -1898,7 +2043,7 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 		}
 		else if (this.metamorphosisStage == 2)
 		{
-			for (let i=0; i<5; i++)
+			for (let i=0; i<this.nInitial; i++)
 			{
 				u = this.x[i] + (this.vx[i])*dt;
 				this.x[i] = fpMax(u, this.xf, fpTolerance); // prevent x[i] from surpassing xf
@@ -1915,7 +2060,7 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
 		let x1, x2, y1, y2, h;
 		const yr = this.szi.sza[0].iy1;
-		for (let i=0; i<5; i++)
+		for (let i=0; i<this.nInitial; i++)
 		{
 			y1 = this.y[i] + yr;
 			y2 = this.y[i] + this.yl;
@@ -2476,7 +2621,7 @@ class MetamorphoseVtoIIIII // animation of metamorphosis of V->IIIII
 }
 
 class MetamorphoseVVtoX // 1st stage of animations of VV->X (but for tally drawings,...
-{//...instead use class MergeVerticallyTwoHorizontallyAdjacentBoxes)
+{//...instead use class MergeTwoHorizontallyAdjacentBoxesVertically)
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
@@ -3995,13 +4140,13 @@ insertTally.setDrawing(drawTally);
 let mShrinkAndRotateIIIII = new ShrinkAndRotateIIIII(tally, drawTally, drawBox5); // >>> EXPERIMENTAL <<<
 let aBoxIIIII = new AnimateSymbolSubstitutionToFew(mShrinkAndRotateIIIII); // >>> EXPERIMENTAL <<<
 aBoxIIIII.setDrawings(drawTally, drawBox5); // >>> EXPERIMENTAL <<<
-let mFivesToTen = new MergeVerticallyTwoHorizontallyAdjacentBoxes(tally, "VV", "X", drawTally); // >>> EXPERIMENTAL <<<
+let mFivesToTen = new MergeTwoHorizontallyAdjacentBoxesVertically(tally, "VV", "X", drawTally); // >>> EXPERIMENTAL <<<
 let aFivesToTen = new AnimateSymbolSubstitutionToFew(mFivesToTen); // >>> EXPERIMENTAL <<<
 aFivesToTen.setDrawings(drawTally, drawBox10); // >>> EXPERIMENTAL <<<
 let mTensToFifty = new MergeTensToFifty(tally, drawTally); // >>> EXPERIMENTAL <<<
 let aTensToFifty = new AnimateSymbolSubstitutionToFew(mTensToFifty); // >>> EXPERIMENTAL <<<
 aTensToFifty.setDrawings(drawTally, drawBox50); // >>> EXPERIMENTAL <<<
-let mFiftiesToHundred = new MergeVerticallyTwoHorizontallyAdjacentBoxes(tally, "LL", "C", drawTally); // >>> EXPERIMENTAL <<<
+let mFiftiesToHundred = new MergeTwoHorizontallyAdjacentBoxesVertically(tally, "LL", "C", drawTally); // >>> EXPERIMENTAL <<<
 let aFiftiesToHundred = new AnimateSymbolSubstitutionToFew(mFiftiesToHundred); // >>> EXPERIMENTAL <<<
 aFiftiesToHundred.setDrawings(drawTally, drawBox100); // >>> EXPERIMENTAL <<<
 
