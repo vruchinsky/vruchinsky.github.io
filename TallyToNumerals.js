@@ -1709,8 +1709,8 @@ class MergeTwoHorizontallyAdjacentBoxesVertically //i.e. stack 2 boxes, each con
 	}
 }
 
-class MergeHorizontallyAdjacentBoxesHorizontally //i.e. merge 5 (or 2) identical-looking boxes, all in 1 horizontal row,...
-{//...each containing 100 (or 500) tally marks, horizontally into a single box
+class MergeHorizontallyAdjacentBoxesHorizontally //i.e. merge 5 (or 2) identical-looking boxes,...
+{//...all in 1 horizontal row, each containing 100 (or 500) tally marks, horizontally into 1 box
 	drawingOnCanvas = null; // ref. to DrawingOnCanvas object which contains ref. to HTML canvas object on which to draw the animation and the text to draw
 	cnv = null; // HTML canvas object on which to draw the animation
 	ctx = null; // drawing context of cnv
@@ -1799,10 +1799,8 @@ class MergeHorizontallyAdjacentBoxesHorizontally //i.e. merge 5 (or 2) identical
 				this.x[i] = this.szi.sza[i].x + this.szi.sza[i].xa[0];
 			else
 				this.x[i] = 0;
-			if (this.finalText[0] === "D")
+			if (this.finalText[0] === "D" || this.finalText[0] === "M")
 				this.xf[i] = this.szf.sza[0].x + this.szf.sza[0].xa[i];
-			else if (this.finalText[0] === "M")
-				this.xf[i] = this.szf.sza[0].x + this.szf.xa[0].xa[i];
 			else
 				this.xf[i] = 0;
 			this.v[i] = AnimationSpeedMetamorphosis * (this.xf[i] - this.x[i]);
@@ -4187,6 +4185,9 @@ aFiftiesToHundred.setDrawings(drawTally, drawBox100); // >>> EXPERIMENTAL <<<
 let mHundredsToFiveHundred = new MergeHorizontallyAdjacentBoxesHorizontally(tally, "CCCCC", "D", drawTally); // >>> EXPERIMENTAL <<<
 let aHundredsToFiveHundred = new AnimateSymbolSubstitutionToFew(mHundredsToFiveHundred); // >>> EXPERIMENTAL <<<
 aHundredsToFiveHundred.setDrawings(drawTally, drawBox500); // >>> EXPERIMENTAL <<<
+let mFiveHundredsToThousand = new MergeHorizontallyAdjacentBoxesHorizontally(tally, "DD", "M", drawTally); // >>> EXPERIMENTAL <<<
+let aFiveHundredsToThousand = new AnimateSymbolSubstitutionToFew(mFiveHundredsToThousand); // >>> EXPERIMENTAL <<<
+aFiveHundredsToThousand.setDrawings(drawTally, drawBox1000); // >>> EXPERIMENTAL <<<
 
 function incNumAnmtnsConstraints()
 {
@@ -4305,6 +4306,14 @@ function incrementNumber()
 		{ // >>> EXPERIMENTAL <<<
 			if (aHundredsToFiveHundred.more() == false) // >>> EXPERIMENTAL <<<
 			{ // >>> EXPERIMENTAL <<<
+				aFiveHundredsToThousand.start(tally.get()); // >>> EXPERIMENTAL <<<
+				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
+			} // >>> EXPERIMENTAL <<<
+		} // >>> EXPERIMENTAL <<<
+		else if (incrementTallyAnimationState == 6) // >>> EXPERIMENTAL <<<
+		{ // >>> EXPERIMENTAL <<<
+			if (aFiveHundredsToThousand.more() == false) // >>> EXPERIMENTAL <<<
+			{ // >>> EXPERIMENTAL <<<
 				//aFiveHundredsToThousand.start(tally.get()); // >>> EXPERIMENTAL <<<
 				incrementTallyAnimationState++; // >>> EXPERIMENTAL <<<
 			} // >>> EXPERIMENTAL <<<
@@ -4320,6 +4329,7 @@ function incrementNumber()
 		aTensToFifty.reset(); // >>> EXPERIMENTAL <<<
 		aFiftiesToHundred.reset(); // >>> EXPERIMENTAL <<<
 		aHundredsToFiveHundred.reset(); // >>> EXPERIMENTAL <<<
+		aFiveHundredsToThousand.reset(); // >>> EXPERIMENTAL <<<
 		incrementTallyAnimationState = 0; // >>> EXPERIMENTAL <<<
 		inputNumber++;
 		setNumber();
