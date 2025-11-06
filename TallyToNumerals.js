@@ -38,6 +38,8 @@ const hSpaceBetween100s = 2;
 const hSpaceBetween500s = 5;
 const horizontalOffsetBetween1000s = 1;
 const verticalOffsetBetween1000s = 1;
+const hShiftBox1000 = boundaryPadding + boundaryThickness;
+const vShiftBox1000 = boundaryPadding + boundaryThickness;
 const verticalOffsetBetween5s = Math.ceil(verticalSpaceBetweenTallyMarks / 2);
 const connectingLineBeginningVerticalSectionLength = 3;
 const connectingLineEndingVerticalSectionLength = 3;
@@ -768,12 +770,10 @@ function drawBox1000(d, x, y, n) // 10 double columns each of 100 short horizont
 	d.ctx.lineWidth = boundaryThickness;
 	if (d.calculateOnly == false)
 		roundedRect(d.ctx, x, y, boundingRectWidth, boundingRectHeight, boxCornerRadius);
-	const hShift = boundaryPadding + boundaryThickness;
-	const vShift = boundaryPadding + boundaryThickness;
-	const widthOcclude = boundingRectWidth - hShift;
-	const heightOcclude = boundingRectHeight - vShift;
-	const dx = hShift + horizontalOffsetBetween1000s;
-	const dy = vShift + verticalOffsetBetween1000s;
+	const widthOcclude = boundingRectWidth - hShiftBox1000;
+	const heightOcclude = boundingRectHeight - vShiftBox1000;
+	const dx = hShiftBox1000 + horizontalOffsetBetween1000s;
+	const dy = vShiftBox1000 + verticalOffsetBetween1000s;
 	let sx = x; // shifted horizontal position (of additional rectangular boxes)
 	let sy = y; // shifted vertical position (of additional rectangular boxes)
 	for (let i=1, j=1; i<n; i++, j++) // draw additional rectangular boxes looking...
@@ -786,8 +786,8 @@ function drawBox1000(d, x, y, n) // 10 double columns each of 100 short horizont
 		}
 		else
 		{
-			sx += hShift;
-			sy += vShift;
+			sx += hShiftBox1000;
+			sy += vShiftBox1000;
 		}
 		setIntermediateColor(d.ctx, (j%2==0) ? foregroundWeightBoxBoundary : foregroundWeightBoxBoundary2);
 		if (d.calculateOnly == false)
@@ -795,8 +795,8 @@ function drawBox1000(d, x, y, n) // 10 double columns each of 100 short horizont
 		d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	}
 	d.ctx.lineWidth = oldlw; // restore lineWidth
-	w = boxWidth + n*hShift;  // width of the drawing
-	h = boundingRectHeight + n*vShift; // height of the drawing
+	w = boxWidth + n*hShiftBox1000;  // width of the drawing
+	h = boundingRectHeight + n*vShiftBox1000; // height of the drawing
 	const l = columnSize1.l;
 	const cw = columns500width;
 	return {w, h, x, y, xa, iy, l, cw};
@@ -1394,14 +1394,15 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 	xrClear = 0; // horizontal position (in pixels) of the part of canvas to be cleared before redrawing the right graphic
 	wrClear = 0; // width (in pixels) of the part of canvas to be cleared before redrawing the right graphic
 	t = 0; // (msec) time of last update
-	verticalPosition = 0; // vertical position of all the text treated by this class
+	yr = 0; // vertical position (in pixels) of right graphic
+	yl = 0; // vertical position (in pixels) of left graphic
 	finished = true; // used to implement this.done()
 	justFinished = false; // used to implement this.recent()
-	constructor(m, s)
+	constructor(m, rText)
 	{
 		this.cnv = m.cnv;
 		this.ctx = m.ctx;
-		this.rightText = s;
+		this.rightText = rText;
 		this.drawingOnCanvas = m.drawingOnCanvas;
 	}
 	setDrawings(lf, rf)
@@ -1421,12 +1422,13 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 		this.leftText = lText;
 		this.xl = this.xLi = lData.xi; // xi is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
 		this.xLf = lData.xf; // this instance is used to move only this.leftText
-		this.verticalPosition = lData.y;
+		this.yl = lData.y;
 		this.wl = lData.w;
 		if (rData != null)
 		{ // move both this.leftText and this.rightText
 			this.xr = this.xRi = rData.xi;
 			this.xRf = rData.xf;
+			this.yr = rData.y;
 			this.wr = rData.w;
 		}
 		this.vxl = AnimationSpeedClosingTheGaps * (this.xLf - this.xLi);
@@ -1518,12 +1520,12 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 			{
 				this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.leftText);
 				this.drawingOnCanvas.text = this.leftText;
-				this.drawingOnCanvas.draw(this.fcnLeftDrawing, this.xl, this.verticalPosition);
+				this.drawingOnCanvas.draw(this.fcnLeftDrawing, this.xl, this.yl);
 			}
 			else
 			{
 				this.drawingOnCanvas.horizontalPosition = this.xl;
-				this.ctx.fillText(this.leftText, this.xl, this.verticalPosition);
+				this.ctx.fillText(this.leftText, this.xl, this.yl);
 			}
 			this.xlClear = this.xl - 1; // subtracting 1 remedies failure to erase rightmost edge while sliding
 		}
@@ -1533,10 +1535,10 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 			{
 				this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.rightText);
 				this.drawingOnCanvas.text = this.rightText;
-				this.drawingOnCanvas.draw(this.fcnRightDrawing, this.xr, this.verticalPosition);
+				this.drawingOnCanvas.draw(this.fcnRightDrawing, this.xr, this.yr);
 			}
 			else
-				this.ctx.fillText(this.rightText, this.xr, this.verticalPosition);
+				this.ctx.fillText(this.rightText, this.xr, this.yr);
 			this.xrClear = this.xr - 2; // subtracting 2 remedies failure to erase top-left corner of V while sliding to the right
 		}
 		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
