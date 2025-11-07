@@ -1370,9 +1370,9 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 	ctx = null; // drawing context of cnv
 	leftText = null; // constant
 	rightText = null; // constant
-	textOnly = true; // true iff fcnLeftDrawing===null
 	fcnLeftDrawing = null; // ref. to function used to draw the left graphic
 	fcnRightDrawing = null; // ref. to function used to draw the right graphic
+	textOnly = true; // false iff fcnLeftDrawing != null // used in other classes
 	xr = 0; // updated horizontal position (in pixels) of right graphic
 	wr = 0; // width (in pixels) of the right graphic
 	xRi = 0; // initial horizontal position (in pixels) of right graphic
@@ -1383,8 +1383,6 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 	wl = 0; // width (in pixels) of the left graphic
 	vxl = 0; // (px/msec) how fast to move xl towards xLf
 	vxr = 0; // (px/msec) how fast to move xr towards xRf
-//	lStationary = true; // iff vxl == 0 and vyl == 0
-//	rStationary = true; // iff vxr == 0 and vyr == 0
 	vxlZero = true; // iff vxl == 0
 	vylZero = true; // iff vyl == 0
 	vxrZero = true; // iff vxr == 0
@@ -1422,6 +1420,20 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 			this.fcnRightDrawing = rf;
 		this.textOnly = false;
 	}
+/* 	computeGraphicsSizes()
+	{
+		const oldText = this.drawingOnCanvas.text;
+		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = true;
+		this.drawingOnCanvas.text = this.leftText; // calculate size of the left graphic
+		const leftNumber = convertRomanNumeralsAdditiveToNumber(this.leftText);
+		this.drawingOnCanvas.numberOfTallyMarks = leftNumber;
+		const sz = this.fcnLeftDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.drawingOnCanvas.text = oldText;
+		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+		this.drawingOnCanvas.calculateOnly = false;
+		this.wl = sz.w;
+	} */
 	start(lText, lData, rData)
 	{
 		this.finished = true;
@@ -1431,24 +1443,24 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 		this.finished = false;
 		this.leftText = lText;
 		this.xl = this.xLi = lData.xi; // xi is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
-///////////////////////////////////////////////////////
-		this.xLf = lData.xf; // this instance is used to move only this.leftText
-/////////////////////////////////////////////////////// REVISE
+		this.xLf = lData.xf;
 		this.yl = this.yLi = lData.y;
+		this.yLf = this.yLi;
 		this.wl = lData.w;
 		if (rData != null)
 		{ // move both this.leftText and this.rightText
 			this.xr = this.xRi = rData.xi;
-///////////////////////////////////////////////////////
-			this.xRf = rData.xf; ////////////////////// REVISE
-///////////////////////////////////////////////////////
+			this.xRf = rData.xf;
 			this.yr = this.yRi = rData.y;
 			this.wr = rData.w;
 		}
-///////////////////////////////////////////////////////
-		this.yLf = this.yLi; ////////////////////////// REVISE
-		this.yRf = this.yRi; ////////////////////////// REVISE
-///////////////////////////////////////////////////////
+		this.yRf = this.yRi;
+		if ((this.fcnLeftDrawing !== null) && (this.rightText === "M") &&
+			(this.leftText !== null) && (this.leftText !== ""))
+		{ // slide stack of boxes of 1000 tally marks on the left under...
+			this.xLf = hShiftBox1000; //...the newly merged box of 1000...
+			this.yLf += vShiftBox1000; //...on the right
+		}
 		this.vxl = AnimationSpeedClosingTheGaps * (this.xLf - this.xLi);
 		this.vyl = AnimationSpeedClosingTheGaps * (this.yLf - this.yLi);
 		this.vxlZero = (this.leftText===null) || (this.leftText==="") ||
