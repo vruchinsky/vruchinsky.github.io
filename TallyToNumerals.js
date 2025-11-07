@@ -1383,8 +1383,12 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 	wl = 0; // width (in pixels) of the left graphic
 	vxl = 0; // (px/msec) how fast to move xl towards xLf
 	vxr = 0; // (px/msec) how fast to move xr towards xRf
-	lStationary = true; // iff vxl == 0
-	rStationary = true; // iff vxr == 0
+//	lStationary = true; // iff vxl == 0 and vyl == 0
+//	rStationary = true; // iff vxr == 0 and vyr == 0
+	vxlZero = true; // iff vxl == 0
+	vylZero = true; // iff vyl == 0
+	vxrZero = true; // iff vxr == 0
+	vyrZero = true; // iff vyr == 0
 	vlNeg = false; // iff vxl < 0
 	vlPos = false; // iff vxl > 0
 	vrNeg = false; // iff vxr < 0
@@ -1396,6 +1400,12 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 	t = 0; // (msec) time of last update
 	yr = 0; // vertical position (in pixels) of right graphic
 	yl = 0; // vertical position (in pixels) of left graphic
+	yRi = 0; // initial vertical position (in pixels) of right graphic
+	yRf = 0; // final vertical position (in pixels) of right graphic
+	yLi = 0; // initial vertical position (in pixels) of left graphic
+	yLf = 0; // final vertical position (in pixels) of left graphic
+	vyl = 0; // (px/msec) how fast to move yl towards yLf
+	vyr = 0; // (px/msec) how fast to move yr towards yRf
 	finished = true; // used to implement this.done()
 	justFinished = false; // used to implement this.recent()
 	constructor(m, rText)
@@ -1421,26 +1431,40 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 		this.finished = false;
 		this.leftText = lText;
 		this.xl = this.xLi = lData.xi; // xi is already adjusted according to this.drawingOnCanvas.flipHorizontalAxis
+///////////////////////////////////////////////////////
 		this.xLf = lData.xf; // this instance is used to move only this.leftText
-		this.yl = lData.y;
+/////////////////////////////////////////////////////// REVISE
+		this.yl = this.yLi = lData.y;
 		this.wl = lData.w;
 		if (rData != null)
 		{ // move both this.leftText and this.rightText
 			this.xr = this.xRi = rData.xi;
-			this.xRf = rData.xf;
-			this.yr = rData.y;
+///////////////////////////////////////////////////////
+			this.xRf = rData.xf; ////////////////////// REVISE
+///////////////////////////////////////////////////////
+			this.yr = this.yRi = rData.y;
 			this.wr = rData.w;
 		}
+///////////////////////////////////////////////////////
+		this.yLf = this.yLi; ////////////////////////// REVISE
+		this.yRf = this.yRi; ////////////////////////// REVISE
+///////////////////////////////////////////////////////
 		this.vxl = AnimationSpeedClosingTheGaps * (this.xLf - this.xLi);
-		this.lStationary = (this.leftText===null) ||
-			(this.leftText==="") || fpEqual(this.vxl, 0, fpTolerance);
+		this.vyl = AnimationSpeedClosingTheGaps * (this.yLf - this.yLi);
+		this.vxlZero = (this.leftText===null) || (this.leftText==="") ||
+			fpEqual(this.vxl, 0, fpTolerance);
 		this.vlPos = fpLess(0, this.vxl, fpTolerance);
 		this.vlNeg = fpLess(this.vxl, 0, fpTolerance);
+		this.vylZero = (this.leftText===null) || (this.leftText==="") ||
+			fpEqual(this.vyl, 0, fpTolerance);
 		this.vxr = (this.rightText===null) ? 0 : (AnimationSpeedClosingTheGaps * (this.xRf - this.xRi));
-		this.rStationary = (this.rightText===null) ||
-			(this.rightText==="") || fpEqual(this.vxr, 0, fpTolerance);
+		this.vyr = (this.rightText===null) ? 0 : (AnimationSpeedClosingTheGaps * (this.yRf - this.yRi));
+		this.vxrZero = (this.rightText===null) || (this.rightText==="") ||
+			fpEqual(this.vxr, 0, fpTolerance);
 		this.vrPos = fpLess(0, this.vxr, fpTolerance);
 		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
+		this.vyrZero = (this.rightText===null) || (this.rightText==="") ||
+			fpEqual(this.vyr, 0, fpTolerance);
 		this.xlClear = lData.xi; // fpMin(this.xLi, this.xLf, fpTolerance);
 		this.xlClear = fpLimitToInterval(this.xlClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		this.wlClear = this.wl + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
@@ -1459,8 +1483,10 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 		if (this.finished)
 			return true;
 		this.finished =
-			((this.lStationary || fpEqual(this.xl, this.xLf, fpTolerance)) &&
-			(this.rStationary || fpEqual(this.xr, this.xRf, fpTolerance)));
+			((this.vxlZero || fpEqual(this.xl, this.xLf, fpTolerance)) &&
+			(this.vylZero || fpEqual(this.yl, this.yLf, fpTolerance)) &&
+			(this.vxrZero || fpEqual(this.xr, this.xRf, fpTolerance)) &&
+			(this.vyrZero || fpEqual(this.yr, this.yRf, fpTolerance)));
 		if (this.finished)
 			this.justFinished = true;
 		return this.finished;
@@ -1478,17 +1504,20 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 		const t1 = Date.now(); // (msec)
 		const dt = t1 - this.t; // (msec) time since last update
 		let u;
-		if (this.rStationary == false)
+		if (this.vxrZero == false)
 		{
 			u = this.xr  + (this.vxr)*dt;
-			if (this.vrPos)
-			{
-				this.xr = fpMin(u, this.xRf, fpTolerance); // prevent xr from surpassing xRf (i.e. moving off canvas)
-			} else if (this.vrNeg) {
-				this.xr = fpMax(this.xRf, u, fpTolerance); // prevent xr from surpassing xRf
-			}
+			if (this.vrPos) // prevent this.xr from surpassing this.xRf (i.e. moving off canvas)
+				this.xr = fpMin(u, this.xRf, fpTolerance);
+			else if (this.vrNeg)
+				this.xr = fpMax(this.xRf, u, fpTolerance);
 		}
-		if (this.lStationary == false)
+		if (this.vyrZero == false)
+		{
+			u = this.yr  + (this.vyr)*dt;
+			this.yr = fpMin(u, this.yRf, fpTolerance); // prevent this.yr from surpassing this.yRf (i.e. moving off canvas)
+		}
+		if (this.vxlZero == false)
 		{
 			u = this.xl + (this.vxl)*dt;
 			if (this.vlPos)
@@ -1499,8 +1528,13 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 				else if (fpLess(this.xl, xlLim, fpTolerance)) // prevent this.xl from being set back
 					this.xl = xlLim;
 			} else if (this.vlNeg) {
-					this.xl = fpMax(this.xLf, u, fpTolerance); // prevent xl from surpassing xLf
+				this.xl = fpMax(this.xLf, u, fpTolerance); // prevent this.xl from surpassing this.xLf
 			}
+		}
+		if (this.vylZero == false)
+		{
+			u = this.yl + (this.vyl)*dt;
+			this.yl = fpMin(u, this.yLf, fpTolerance); // prevent this.yl from surpassing this.yLf (i.e. moving off canvas)
 		}
 		this.t = t1;
 	}
