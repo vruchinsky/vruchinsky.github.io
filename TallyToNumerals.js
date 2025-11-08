@@ -1556,7 +1556,7 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 			return; // browser does not support canvas
 		if (this.leftText !== null)
 			this.ctx.clearRect(this.xlClear, -0.5, this.wlClear, this.cnv.height);
-		if (this.rightText !== null)
+		if (this.rightText !== null && (this.vxrZero == false || this.vyrZero == false))
 			this.ctx.clearRect(this.xrClear, -0.5, this.wrClear, this.cnv.height);
 		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
 		const oldText = this.drawingOnCanvas.text;
@@ -1575,7 +1575,7 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 			}
 			this.xlClear = this.xl - 1; // subtracting 1 remedies failure to erase rightmost edge while sliding
 		}
-		if (this.rightText !== null)
+		if (this.rightText !== null && (this.vxrZero == false || this.vyrZero == false))
 		{
 			if (this.fcnRightDrawing !== null)
 			{
@@ -1708,7 +1708,10 @@ class MergeTwoHorizontallyAdjacentBoxesVertically //i.e. stack 2 boxes, each con
 		}
 		this.finished = fpEqual(this.xl, this.xLf, fpTolerance);
 		if (this.finished)
+		{
 			this.justFinished = true;
+			this.draw();
+		}
 		return this.finished;
 	}
 	recent() // returns true iff the most recent call to this.done() has returned true but...
@@ -1742,14 +1745,32 @@ class MergeTwoHorizontallyAdjacentBoxesVertically //i.e. stack 2 boxes, each con
 			return; // browser does not support canvas
 		if (this.fcnDrawing === null)
 			return;
+		if (this.finished)
+		{
+			this.hClear = this.hf;
+			this.hClear = fpLimitToInterval(this.hClear, 0, this.cnv.height - this.yClear, fpTolerance); // prevent from exceeding available canvas height and from being negative
+			this.yClear = this.yLi;
+			this.yClear = fpLimitToInterval(this.yClear, 0, this.cnv.height, fpTolerance); // prevent from exceeding canvas height and from being negative
+		}
 		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
 		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
 		const oldText = this.drawingOnCanvas.text;
-		this.drawingOnCanvas.text = this.initialText[0];
-		this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
-		this.drawingOnCanvas.draw(this.fcnDrawing, this.xl, this.yl);
-		this.xClear = this.xl - 1; // subtracting 1 remedies failure to erase right edge of box while sliding it down
-		this.yClear = this.yl - 1; // subtracting 1 remedies failure to erase top edge of box while sliding it down
+		if (this.finished)
+		{
+			this.drawingOnCanvas.text = this.finalText;
+			this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
+			this.drawingOnCanvas.draw(this.fcnDrawing, this.xr, this.yLi);
+			this.xClear = this.xr;
+			this.yClear = this.yLi;
+		}
+		else
+		{
+			this.drawingOnCanvas.text = this.initialText[0];
+			this.drawingOnCanvas.numberOfTallyMarks = this.initialNumber;
+			this.drawingOnCanvas.draw(this.fcnDrawing, this.xl, this.yl);
+			this.xClear = this.xl - 1; // subtracting 1 remedies failure to erase right edge of box while sliding it down
+			this.yClear = this.yl - 1; // subtracting 1 remedies failure to erase top edge of box while sliding it down
+		}
 		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
 		this.drawingOnCanvas.text = oldText;
 		this.xClear = fpLimitToInterval(this.xClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
@@ -2089,7 +2110,10 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 				this.finished = true;
 		}
 		if (this.finished)
+		{
+			this.draw();
 			this.justFinished = true;
+		}
 		return this.finished;
 	}
 	recent() // returns true iff the most recent call to this.done() has returned true but...
@@ -2139,6 +2163,17 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 		if (this.fcnDrawing === null)
 			return;
 		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
+		if (this.finished)
+		{
+			const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+			const oldText = this.drawingOnCanvas.text;
+			this.drawingOnCanvas.text = this.finalText;
+			this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
+			this.drawingOnCanvas.draw(this.fcnDrawing, this.xf, this.yf[0]);
+			this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+			this.drawingOnCanvas.text = oldText;
+			return;
+		}
 		let x1, x2, y1, y2, h;
 		const yr = this.szi.sza[0].iy1;
 		for (let i=0; i<this.nInitial; i++)
@@ -3650,7 +3685,8 @@ class AnimateSymbolSubstitutionToFew
 					y = this.yNewText;
 					rData = {xi, xf, w, y};
 				}
-				this.ctx.clearRect(this.morph.xInitial(), -0.5,//remedies failure to erase top-left
+				if (this.closeTheGaps.textOnly)
+					this.ctx.clearRect(this.morph.xInitial(), -0.5,//remedies failure to erase top-left
 									this.morph.wInitial(),//corner of merged IIIII until after
 									this.cnv.height);//sliding the resulting V to the right
 				this.closeTheGaps.start(this.sameText, lData, rData);
