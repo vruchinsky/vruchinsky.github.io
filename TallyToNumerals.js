@@ -795,8 +795,8 @@ function drawBox1000(d, x, y, n) // 10 double columns each of 100 short horizont
 		d.ctx.strokeStyle = foregroundColor; // restore foreground color
 	}
 	d.ctx.lineWidth = oldlw; // restore lineWidth
-	w = boxWidth + n*hShiftBox1000;  // width of the drawing
-	h = boundingRectHeight + n*vShiftBox1000; // height of the drawing
+	w = boundingRectWidth + (n-1)*hShiftBox1000; // width of the drawing
+	h = boundingRectHeight + (n-1)*vShiftBox1000; // height of the drawing
 	const l = columnSize1.l;
 	const cw = columns500width;
 	return {w, h, x, y, xa, iy, l, cw};
@@ -1379,6 +1379,7 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 	textOnly = true; // false iff fcnLeftDrawing != null // used in other classes
 	xr = 0; // updated horizontal position (in pixels) of right graphic
 	wr = 0; // width (in pixels) of the right graphic
+	hr = 0; // height (in pixels) of the right graphic
 	xRi = 0; // initial horizontal position (in pixels) of right graphic
 	xRf = 0; // final horizontal position (in pixels) of right graphic
 	xLi = 0; // initial horizontal position (in pixels) of left graphic
@@ -1395,6 +1396,9 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 	vlPos = false; // iff vxl > 0
 	vrNeg = false; // iff vxr < 0
 	vrPos = false; // iff vxr > 0
+	stackUpAnotherBox1000 = false; // iff at least 1 box of 1000 on the left and 1 newly formed box of 1000 on the right
+	redrawRightGraphic = false; // whether to erase and redraw the right graphic
+	moveRightGraphic = false; // whether to move the right graphic
 	xlClear = 0; // horizontal position (in pixels) of the part of canvas to be cleared before redrawing the left graphic
 	wlClear = 0; // width (in pixels) of the part of canvas to be cleared before redrawing the left graphic
 	xrClear = 0; // horizontal position (in pixels) of the part of canvas to be cleared before redrawing the right graphic
@@ -1424,20 +1428,23 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 			this.fcnRightDrawing = rf;
 		this.textOnly = false;
 	}
-/* 	computeGraphicsSizes()
+	computeGraphicsSizes()
 	{
+		if (this.fcnRightDrawing === null)
+			return;
 		const oldText = this.drawingOnCanvas.text;
 		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
 		this.drawingOnCanvas.calculateOnly = true;
-		this.drawingOnCanvas.text = this.leftText; // calculate size of the left graphic
-		const leftNumber = convertRomanNumeralsAdditiveToNumber(this.leftText);
-		this.drawingOnCanvas.numberOfTallyMarks = leftNumber;
-		const sz = this.fcnLeftDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
+		this.drawingOnCanvas.text = this.rightText; // calculate size of the right graphic
+		const rightNumber = convertRomanNumeralsAdditiveToNumber(this.rightText);
+		this.drawingOnCanvas.numberOfTallyMarks = rightNumber;
+		const sz = this.fcnRightDrawing(this.drawingOnCanvas, horizontalOffset, verticalOffset);
 		this.drawingOnCanvas.text = oldText;
 		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
 		this.drawingOnCanvas.calculateOnly = false;
-		this.wl = sz.w;
-	} */
+		this.wr = sz.w; // overrides the earlier assignment, in this.start(), which uses data passed from calling code
+		this.hr = sz.h;
+	}
 	start(lText, lData, rData)
 	{
 		this.finished = true;
@@ -1452,18 +1459,20 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 		this.yLf = this.yLi;
 		this.wl = lData.w;
 		if (rData != null)
-		{ // move both this.leftText and this.rightText
+		{// move both this.leftText and this.rightText
 			this.xr = this.xRi = rData.xi;
 			this.xRf = rData.xf;
 			this.yr = this.yRi = rData.y;
 			this.wr = rData.w;
 		}
 		this.yRf = this.yRi;
-		if ((this.fcnLeftDrawing !== null) && (this.rightText === "M") &&
-			(this.leftText !== null) && (this.leftText !== ""))
-		{ // slide stack of boxes of 1000 tally marks on the left under...
-			this.xLf = hShiftBox1000; //...the newly merged box of 1000...
-			this.yLf += vShiftBox1000; //...on the right
+		this.stackUpAnotherBox1000 = (this.fcnLeftDrawing !== null) &&
+			(this.rightText === "M") && (this.leftText !== null) && (this.leftText !== "");
+		if (this.stackUpAnotherBox1000) // slide stack of boxes of 1000 tally...
+		{//...marks on the left under the newly merged box of 1000 on the right
+			this.computeGraphicsSizes();
+			this.xLf = hShiftBox1000;
+			this.yLf += vShiftBox1000;
 		}
 		this.vxl = AnimationSpeedClosingTheGaps * (this.xLf - this.xLi);
 		this.vyl = AnimationSpeedClosingTheGaps * (this.yLf - this.yLi);
@@ -1481,6 +1490,9 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 		this.vrNeg = fpLess(this.vxr, 0, fpTolerance);
 		this.vyrZero = (this.rightText===null) || (this.rightText==="") ||
 			fpEqual(this.vyr, 0, fpTolerance);
+		this.moveRightGraphic = (this.rightText !== null) &&
+			(this.vxrZero == false || this.vyrZero == false);
+		this.redrawRightGraphic = this.stackUpAnotherBox1000 || this.moveRightGraphic;
 		this.xlClear = lData.xi; // fpMin(this.xLi, this.xLf, fpTolerance);
 		this.xlClear = fpLimitToInterval(this.xlClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		this.wlClear = this.wl + 2; // add 2 otherwise upper-right corner of V is not erased (thus leaves a streak) when sliding
@@ -1560,8 +1572,8 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 			return; // browser does not support canvas
 		if (this.leftText !== null)
 			this.ctx.clearRect(this.xlClear, -0.5, this.wlClear, this.cnv.height);
-		if (this.rightText !== null && (this.vxrZero == false || this.vyrZero == false))
-			this.ctx.clearRect(this.xrClear, -0.5, this.wrClear, this.cnv.height);
+		if (this.redrawRightGraphic)
+			this.ctx.clearRect(this.xrClear, -0.5, this.wrClear, this.cnv.height); // position of prior drawing
 		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
 		const oldText = this.drawingOnCanvas.text;
 		if (this.leftText !== null)
@@ -1578,8 +1590,13 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 				this.ctx.fillText(this.leftText, this.xl, this.yl);
 			}
 			this.xlClear = this.xl - 1; // subtracting 1 remedies failure to erase rightmost edge while sliding
+			this.xlClear = fpLimitToInterval(this.xlClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		}
-		if (this.rightText !== null && (this.vxrZero == false || this.vyrZero == false))
+		if (this.stackUpAnotherBox1000) // erase the part of the newly-redrawn left graphic which will...
+		{//...overlap the right graphic after the right graphic is erased but before it is redrawn
+			this.ctx.clearRect(this.xr, this.yr, this.wr, this.hr);
+		}
+		if (this.redrawRightGraphic)
 		{
 			if (this.fcnRightDrawing !== null)
 			{
@@ -1590,11 +1607,10 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 			else
 				this.ctx.fillText(this.rightText, this.xr, this.yr);
 			this.xrClear = this.xr - 2; // subtracting 2 remedies failure to erase top-left corner of V while sliding to the right
+			this.xrClear = fpLimitToInterval(this.xrClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 		}
 		this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
 		this.drawingOnCanvas.text = oldText;
-		this.xlClear = fpLimitToInterval(this.xlClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
-		this.xrClear = fpLimitToInterval(this.xrClear, 0, this.cnv.width, fpTolerance); // prevent from exceeding canvas width and from being negative
 	}
 }
 
