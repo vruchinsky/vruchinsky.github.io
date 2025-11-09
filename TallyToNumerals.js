@@ -882,6 +882,8 @@ function drawTally(drwngOnCnv, x0, y) // drwngOnCnv is ref. to object of class D
 		sza.push(sz);
 		box1000horizontalPosition = x;
 		wBox1K = sz.w;
+		if (h < sz.h)
+			h = sz.h;
 	}
 	nMs = Math.floor(nMs / 5);
 	r = nMs % 2;
@@ -892,6 +894,8 @@ function drawTally(drwngOnCnv, x0, y) // drwngOnCnv is ref. to object of class D
 		sz = drawBox1000(drwngOnCnv, x, y, 10);
 		sza.push(sz);
 		wBox10K = sz.w;
+		if (h < sz.h)
+			h = sz.h;
 	}
 	if (nDs > 0 || nMs > 0)
 		j++;
@@ -1900,7 +1904,10 @@ class MergeHorizontallyAdjacentBoxesHorizontally //i.e. merge 5 (or 2) identical
 		if (allEqual)
 			this.finished = true;
 		if (this.finished)
+		{
+			this.draw();
 			this.justFinished = true;
+		}
 		return this.finished;
 	}
 	recent() // returns true iff the most recent call to this.done() has returned true but...
@@ -1930,6 +1937,17 @@ class MergeHorizontallyAdjacentBoxesHorizontally //i.e. merge 5 (or 2) identical
 		if (this.fcnDrawing === null)
 			return;
 		this.ctx.clearRect(this.xClear, this.yClear, this.wClear, this.hClear);
+		if (this.finished)
+		{
+			const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
+			const oldText = this.drawingOnCanvas.text;
+			this.drawingOnCanvas.text = this.finalText;
+			this.drawingOnCanvas.numberOfTallyMarks = this.finalNumber;
+			this.drawingOnCanvas.draw(this.fcnDrawing, this.xr, this.y);
+			this.drawingOnCanvas.numberOfTallyMarks = oldNumberOfTallyMarks;
+			this.drawingOnCanvas.text = oldText;
+			return;
+		}
 		const xOffset = this.szi.sza[0].ix; // horizontal distance from boundary to nearest tally mark
 		let sz = null;
 		for (let i=0; i<this.nInitial; i++)
