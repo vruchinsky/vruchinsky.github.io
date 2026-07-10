@@ -124,7 +124,7 @@ let romanNumeralsSubtractive = new DrawingOnCanvas(romanNumeralsSubtractiveCanva
 let tally = new DrawingOnCanvas(tallyCanvas, true);
 
 let ArabicNumeralsVisible = true; //false;
-let settingsVisible = true; //false;
+let settingsVisible = false; //true;
 let inputNumber = 0;
 let incrementOrDecrementExecuting = false;
 let box1000horizontalPosition = 0;
@@ -1572,7 +1572,7 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 			return; // browser does not support canvas
 		if (this.leftText !== null)
 			this.ctx.clearRect(this.xlClear, -0.5, this.wlClear, this.cnv.height);
-		if (this.redrawRightGraphic)
+		if (this.redrawRightGraphic && this.stackUpAnotherBox1000==false)
 			this.ctx.clearRect(this.xrClear, -0.5, this.wrClear, this.cnv.height); // position of prior drawing
 		const oldNumberOfTallyMarks = this.drawingOnCanvas.numberOfTallyMarks;
 		const oldText = this.drawingOnCanvas.text;
@@ -1594,11 +1594,11 @@ class SlideGraphics //used to make space before inserting (fading in) a tally ma
 		}
 		if (this.stackUpAnotherBox1000) // erase the part of the newly-redrawn left graphic which will...
 		{//...overlap the right graphic after the right graphic is erased but before it is redrawn
-			this.ctx.clearRect(this.xr, this.yr, this.wr, this.hr);
+			//this.ctx.clearRect(this.xr, this.yr, this.wr, this.hr);
 		}
 		if (this.redrawRightGraphic)
 		{
-			if (this.fcnRightDrawing !== null)
+			if (this.fcnRightDrawing !== null)// && this.stackUpAnotherBox1000==false)
 			{
 				this.drawingOnCanvas.numberOfTallyMarks = convertRomanNumeralsAdditiveToNumber(this.rightText);
 				this.drawingOnCanvas.text = this.rightText;
@@ -1898,8 +1898,8 @@ class MergeHorizontallyAdjacentBoxesHorizontally //i.e. merge 5 (or 2) identical
 		this.y = this.szi.y;
 		this.yt = this.szi.y + this.szi.sza[0].iy;
 		this.l = this.szi.sza[0].l;
-		this.xClear = this.szi.x - 1; // subtracting 1 remedies erroneous erasure of rightmost edge of other graphics during this metamorphosis
-		this.yClear = this.szi.y;
+		this.xClear = this.szi.x - 1; // subtracting 1 remedies (hack) erroneous erasure of rightmost edge of other graphics during this metamorphosis
+		this.yClear = this.szi.y - 1; // subtracting 1 remedies (hack) failure to erase top edge of rightmost box while sliding
 		this.wClear = this.szi.w; // initial drawing is wider
 		this.hClear = this.szf.h;
 		this.t = Date.now();
@@ -2095,8 +2095,8 @@ class MergeTensToFifty //i.e. stack 5 boxes, each containing 10 tally marks,...
 		this.yl = this.szi.sza[0].iy2;
 		this.ylf = this.szi.sza[0].iy1 + this.szf.sza[0].dy;
 		this.v = AnimationSpeedMetamorphosis * (this.l - this.lf + this.yl - this.ylf);
-		this.xClear = this.szi.x - 1; // subtracting 1 remedies wrong erasure of rightmost edge of any box immediately to the left of 5 boxes of 10
-		this.yClear = this.szi.y;
+		this.xClear = this.szi.x - 1; // subtracting 1 remedies (hack) wrong erasure of rightmost edge of any box immediately to the left of 5 boxes of 10
+		this.yClear = this.szi.y - 1; // subtracting 1 remedies (hack) failure to erase top edges of 4 leftmost boxes of 10 while sliding
 		this.wClear = this.szi.w; // initial drawing is wider
 		this.hClear = this.szf.h; // final drawing is taller
 		this.t = Date.now();
@@ -2340,7 +2340,7 @@ class ShrinkAndRotateIIIII // the 1st stage of animations of metamorphosis of ||
 		this.angle = this.angleI;
 		this.vAngle = AnimationSpeedMetamorphosis*(this.angleF - this.angleI);
 		this.xClear = this.xi - 1; // subtracting 1 remedies (hack) failure to erase the rightmost tally mark on each redrawing towards the end of this animation, thus leaving the rightmost tallymark larger than the rest
-		this.yClear = this.yi - 2; // subtracting 2 remedies (hack) failure to erase the upper ends of tally marks on each redrawing which leaves a streak
+		this.yClear = this.yi - 3; // subtracting 3 remedies (hack) failure to erase the upper ends of tally marks on each redrawing which leaves a streak
 		this.wClear = this.wi;
 		this.hClear = this.wi; // using wi instead of hi is a hack which remedies the failure to erase the lower ends of tally marks on each redrawing which leaves a streak
 		this.t = Date.now();
